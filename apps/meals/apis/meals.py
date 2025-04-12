@@ -8,14 +8,26 @@ from rest_framework.generics import ListAPIView
 
 from apps.meals.models import Meal
 from apps.meals.models import MealCategory
+from apps.meals.models.meal import MealGroup
 from apps.meals.serializers import MealSerializer
 from apps.meals.serializers import MealCategorySerializer
+from apps.meals.serializers.meals import MealGroupSerializer
 
 
 class MealCategoryAPIView(ListAPIView):
     model = MealCategory
     serializer_class = MealCategorySerializer
     queryset = MealCategory.objects.all()
+
+    @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+class MealGroupAPIView(ListAPIView):
+    model = MealGroup
+    serializer_class = MealGroupSerializer
+    queryset = MealGroup.objects.all()
 
     @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
