@@ -11,11 +11,13 @@ from apps.orders.models import OrderItem
 @admin.register(Order)
 class OrderAdmin(SimpleHistoryAdmin):
     list_display = [
+
         'table_number',
         'room',
         'waitress',
         'total_price',
         'is_paid',
+        'is_deleted',
         'created_at',
 
     ]

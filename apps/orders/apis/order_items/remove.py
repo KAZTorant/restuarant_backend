@@ -80,6 +80,7 @@ class DeleteOrderItemAPIView(APIView):
 
         if not order.order_items.exists():
             order.is_deleted = True
+            order.save()
             return Response(
                 {'error': 'Sifariş yoxdur və ya ödəniş edilib'},
             )
