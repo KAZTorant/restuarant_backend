@@ -31,7 +31,10 @@ class Order(DateTimeModel, models.Model):
         verbose_name="Stol"
     )
     meals = models.ManyToManyField(
-        Meal, through='OrderItem', verbose_name="Yemək")
+        Meal,
+        through='OrderItem',
+        verbose_name="Yemək"
+    )
     is_paid = models.BooleanField(default=False, verbose_name="Ödənilib")
     is_check_printed = models.BooleanField(
         default=False, verbose_name="Çek çıxarılıb")
@@ -50,6 +53,12 @@ class Order(DateTimeModel, models.Model):
         default=0, max_digits=10, decimal_places=2,
         verbose_name="Ümumi"
     )
+
+    customer_count = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Müştəri sayı"
+    )
+
     history = HistoricalRecords()
     objects = OrderManager()
 
@@ -97,7 +106,15 @@ class OrderItem(DateTimeModel, models.Model):
     )
     is_deleted_by_adminstrator = models.BooleanField(default=False)
     item_added_at = models.DateTimeField(
-        default=timezone.now, blank=True, null=True)
+        default=timezone.now, blank=True, null=True
+    )
+
+    customer_number = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Müştəri №"
+    )
+    confirmed = models.BooleanField(default=False)
+
     history = HistoricalRecords()
     objects = OrderItemManager()
 
@@ -107,6 +124,6 @@ class OrderItem(DateTimeModel, models.Model):
 
     def __str__(self):
         try:
-            return f"{self.quantity} x {self.meal.name} | Qiymət: {self.quantity*self.meal.price}"
+            return f"Müştəri {self.customer_number}: {self.quantity} x {self.meal.name} | Qiymət: {self.quantity * self.meal.price}"
         except:
-            return "Yemek Yoxdur"
+            return "Yemək Yoxdur"

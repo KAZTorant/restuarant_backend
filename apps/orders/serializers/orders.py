@@ -10,7 +10,7 @@ from apps.orders.models import OrderItem
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ('id', 'table')
+        fields = ('id', 'table', 'customer_count')
 
     def create(self, validated_data):
         validated_data["waitress"] = self.context['request'].user
