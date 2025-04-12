@@ -1,0 +1,13 @@
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+.env
+venv
+dist
+build
+BirC.spec
+staticfiles
+output_postgres.sql
+data.json
+error.log

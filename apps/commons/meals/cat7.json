@@ -1,0 +1,82 @@
+[
+    {
+        "model": "meals.MealCategory",
+        "pk": 7,
+        "fields": {
+            "name": "SET menyu",
+            "description": "A variety of set menus"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "BIZON 200ml",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "Ice Tea",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "MEYVE",
+            "price": "3.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "QELYAN CASKA",
+            "price": "8.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "QREYFRUT QELYAN",
+            "price": "12.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "SET 1",
+            "price": "15.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "SET 2",
+            "price": "22.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "SET 3",
+            "price": "29.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "SET 4 cay dezgahi",
+            "price": "19.00"
+        }
+    }
+]

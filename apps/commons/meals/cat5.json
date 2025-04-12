@@ -1,0 +1,130 @@
+[
+    {
+        "model": "meals.MealCategory",
+        "pk": 5,
+        "fields": {
+            "name": "Salatlar",
+            "description": "A variety of salads and accompaniments"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Aci biber",
+            "price": "0.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Acika",
+            "price": "1.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Cobran salati",
+            "price": "3.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Goyerti",
+            "price": "1.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Ketchup",
+            "price": "0.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Mayonez",
+            "price": "0.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Mimoza salati",
+            "price": "3.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Paytaxt salati",
+            "price": "2.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "PENDIR",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Qatiq",
+            "price": "1.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Sveji balaca",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Sveji boyuk",
+            "price": "3.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Toyuq salati",
+            "price": "3.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Turshu",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Turshu Boyuk",
+            "price": "3.00"
+        }
+    }
+]

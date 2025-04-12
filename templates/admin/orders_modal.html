@@ -1,0 +1,48 @@
+{% if orders.exists %}
+<div>
+    <br>
+    {% for order in orders %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>
+                Sifariş {{ order.id }} {% if order.is_main %} (Əsas) {%else%}{%endif%}
+            </strong>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Yemək</th>
+                        <th>Miqdar</th>
+                        <th>Məbləğ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.order_items.all %}
+                    <tr>
+                        <td>{{ item.meal }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.price }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <hr>
+                <tfoot>
+                    <tr>
+                        <th>Cəmi</th>
+                        <th>
+                            
+                        </th>
+                        <th>
+                            {{order.total_price}}
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No active orders for this table.</p>
+{% endif %}

@@ -1,0 +1,82 @@
+[
+    {
+        "model": "meals.MealCategory",
+        "pk": 3,
+        "fields": {
+            "name": "KABABLAR",
+            "description": "A variety of kebabs"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "ANTRIKOT kabab",
+            "price": "8.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "BASDIRMA",
+            "price": "7.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "COP toyuq",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "KARTOF QUYRUQ",
+            "price": "4.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "LULE (quzu) kabab",
+            "price": "6.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "LULE toyuq",
+            "price": "5.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "TEREVEZ 1eded",
+            "price": "0.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "TIKE kabab",
+            "price": "7.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "TOYUQ kababi",
+            "price": "5.00"
+        }
+    }
+]
