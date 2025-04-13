@@ -55,6 +55,10 @@ INSTALLED_APPS = [
     'logentry_admin',
     'simple_history',
     'rangefilter',
+    'inventory',
+
+    # Apps
+    'apps.inventory_connector',
 ]
 
 MIDDLEWARE = [
@@ -263,3 +267,5 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Xoş gəldiniz!",
     "copyright": "KAZZA Team © 2025",
 }
+
+X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.

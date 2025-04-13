@@ -37,3 +37,6 @@ typing_extensions
 uritemplate
 urllib3
 whitenoise
+
+git+ssh://git@github.com/KAZTorant/kazza_inventory.git
+
