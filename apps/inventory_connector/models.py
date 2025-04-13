@@ -49,6 +49,12 @@ class MealInventoryMapping(models.Model):
         help_text="Bu yeməyin 1 vahidi üçün istifadə olunan anbar məhsulunun miqdarı (məs: 0.200 kq)",
         verbose_name="Miqdar"
     )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        help_text="Bu yeməyin 1 vahidi üçün istifadə olunan anbar məhsulunun satış qiyməti (məs: 1.2 AZN)",
+        verbose_name="Satış Qiyməti"
+    )
 
     def __str__(self):
         return f"{self.connector.meal.name} üçün {self.inventory_item.name} - {self.quantity}"
