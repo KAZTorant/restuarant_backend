@@ -32,7 +32,7 @@ def update_inventory_on_order_item_confirmation(sender, instance, created, **kwa
                     record_type='remove',
                     reason='sold',
                     # Adjust as needed for your pricing logic
-                    price=round(instance.meal.price * remove_quantity, 3)
+                    price=round(mapping.price * remove_quantity, 3)
                 )
     except Exception as error:
         print(error)
