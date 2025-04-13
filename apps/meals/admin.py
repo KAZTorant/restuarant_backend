@@ -15,6 +15,7 @@ class MealAdmin(admin.ModelAdmin):
         "name",
         "category",
         "price",
+        "preparation_place",
     )
 
 

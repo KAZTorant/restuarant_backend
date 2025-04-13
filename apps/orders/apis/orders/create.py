@@ -3,7 +3,6 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.orders.models import Order
 from apps.orders.serializers import OrderSerializer
 from apps.users.permissions import AtMostAdmin
 
