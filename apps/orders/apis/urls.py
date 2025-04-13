@@ -15,6 +15,7 @@ from apps.orders.apis import ListTableOrdersAPIView
 from apps.orders.apis import ListWaitressAPIView
 from apps.orders.apis import ChangeWaitressAPIView
 
+from apps.orders.apis.orders.confirm import ConfirmOrderItemsToWorkerPrintersAPIView
 from apps.printers.apis import PrintCheckAPIView
 
 urlpatterns = [
@@ -89,5 +90,11 @@ urlpatterns = [
         '<int:table_id>/print-check/',
         PrintCheckAPIView.as_view(),
         name='print-check'
+    ),
+
+    path(
+        '<int:table_id>/confirm/',
+        ConfirmOrderItemsToWorkerPrintersAPIView.as_view(),
+        name='confirm'
     ),
 ]

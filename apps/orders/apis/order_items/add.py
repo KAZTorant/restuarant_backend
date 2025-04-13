@@ -13,11 +13,11 @@ from apps.orders.models import OrderItem
 from apps.orders.models.order import Order
 from apps.orders.serializers import OrderItemSerializer
 from apps.tables.models import Table
-from apps.users.permissions import IsWaitressOrCapitaonOrAdminOrOwner
+from apps.users.permissions import AtMostAdmin
 
 
 class AddOrderItemAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsWaitressOrCapitaonOrAdminOrOwner]
+    permission_classes = [IsAuthenticated, AtMostAdmin]
 
     @swagger_auto_schema(
         operation_description=(

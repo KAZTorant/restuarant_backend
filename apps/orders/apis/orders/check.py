@@ -6,13 +6,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.orders.models import Order
-from apps.users.permissions import IsWaitressOrCapitaonOrAdminOrOwner
+from apps.users.permissions import AtMostAdmin
 
 
 class CheckOrderAPIView(APIView):
     permission_classes = [
         IsAuthenticated,
-        IsWaitressOrCapitaonOrAdminOrOwner
+        AtMostAdmin
     ]
 
     def get(self, request, table_id):

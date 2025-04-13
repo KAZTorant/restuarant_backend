@@ -13,11 +13,11 @@ from apps.orders.models import Order
 from apps.tables.models import Table
 
 
-from apps.users.permissions import IsAdminOrOwner
+from apps.users.permissions import IsAdmin
 
 
 class JoinTableOrdersAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrOwner]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         operation_description="Join other tables' orders to a table's order",

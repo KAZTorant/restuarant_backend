@@ -145,3 +145,69 @@ class PrinterService:
         except Exception as e:
             print(f"Printerə data göndərilərkən xəta: {e}")
             return DummyResponse(500)
+
+    def send_to_worker_printer(self, data, worker_printer):
+        """
+        Alınan JSON məlumatını alır, işçi üçün nəzərdə tutulmuş stilizə edilmiş mətn formatına çevirir 
+        və göstərilən işçi printerinə socket vasitəsilə göndərir.
+
+        data: Receipt JSON məlumatı.
+        worker_printer: İşçi printerini təmsil edən Printer instance.
+        """
+        ip_address = worker_printer.ip_address
+        port = worker_printer.port
+
+        try:
+            # Ümumi receipt genişliyini təyin edirik.
+            receipt_width = 48
+            lines = []
+
+            # Başlıq (mərkəzləşdirilmiş) - İşçi üçün Çek
+            header = "HAZIRLANMA ÇEKİ"
+            centered_header = header.center(receipt_width)
+            lines.append("=" * receipt_width)
+            lines.append(centered_header)
+            lines.append("=" * receipt_width)
+
+            # Tarix və masa məlumatları
+            lines.append(f"Tarix: {data['date']}")
+            lines.append(
+                f"Masa: {data['table']['room']} - {data['table']['number']}")
+
+            # Sifariş nömrəsi (əgər varsa)
+            if data['orders']:
+                lines.append(f"Sifariş №: {data['orders'][0]['order_id']}")
+            else:
+                lines.append("Sifariş №: N/A")
+            lines.append("-" * receipt_width)
+
+            # Sifarişlərin siyahısı (yalnız ad və miqdar göstərilir)
+            for order in data['orders']:
+                lines.append(f"Sifariş #{order['order_id']}")
+                for item in order['items']:
+                    name = item['name']
+                    qty = item['quantity']
+                    # İşçi üçün yalnız məhsul adı və miqdar kifayət edir.
+                    lines.append(f"{qty}x {name}")
+                lines.append("-" * receipt_width)
+
+            # Altbilgi: İşçi üçün xüsusi mesaj
+            lines.append("Zəhmət olmasa sifarişi düzgün hazırlayın!")
+            lines.append("=" * receipt_width)
+            lines.append("\n\n\n")
+
+            # Yekun receipt mətnini hazırlayırıq.
+            worker_receipt_text = "\n".join(lines)
+
+            # ESC/POS kəsmə əmri (əgər printer dəstəkləyirsə)
+            ESC_CUT = b'\x1D\x56\x00'
+
+            # Printerə socket vasitəsilə göndəririk; cp857 kodlaşdırması istifadə olunur.
+            with socket.create_connection((ip_address, port), timeout=5) as s:
+                s.sendall(worker_receipt_text.encode(
+                    'cp857', errors='replace') + ESC_CUT)
+
+            return DummyResponse(200)
+        except Exception as e:
+            print(f"İşçi printerinə data göndərilərkən xəta: {e}")
+            return DummyResponse(500)

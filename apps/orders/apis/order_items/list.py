@@ -10,12 +10,12 @@ from rest_framework.response import Response
 from apps.orders.serializers import ListOrderItemSerializer
 from apps.orders.models import Order, OrderItem
 from apps.tables.models import Table
-from apps.users.permissions import IsWaitressOrCapitaonOrAdminOrOwner
+from apps.users.permissions import AtMostAdmin
 
 
 class ListOrderItemsAPIView(ListAPIView):
     serializer_class = ListOrderItemSerializer
-    permission_classes = [IsAuthenticated, IsWaitressOrCapitaonOrAdminOrOwner]
+    permission_classes = [IsAuthenticated, AtMostAdmin]
 
     def get_queryset(self):
         """

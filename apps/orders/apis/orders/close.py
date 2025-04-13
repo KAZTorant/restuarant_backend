@@ -6,11 +6,11 @@ from rest_framework.views import APIView
 from apps.printers.utils.service import PrinterService
 from apps.tables.models import Table
 
-from apps.users.permissions import IsAdminOrOwner
+from apps.users.permissions import IsAdmin
 
 
 class CloseTableOrderAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrOwner]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def delete(self, request, table_id):
 

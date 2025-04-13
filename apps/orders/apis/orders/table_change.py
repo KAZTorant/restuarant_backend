@@ -13,11 +13,11 @@ from apps.orders.models import Order
 from apps.tables.models import Table
 
 
-from apps.users.permissions import IsAdminOrOwner
+from apps.users.permissions import IsAdmin
 
 
 class ChangeTableOrderAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminOrOwner]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         operation_description="Change an order's assigned table to a new table.",

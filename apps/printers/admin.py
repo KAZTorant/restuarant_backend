@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.urls import path
 
 from apps.printers.models import Printer
+from apps.printers.models import PreparationPlace
 from apps.printers.utils.print_test_page import send_raw_receipt
 from apps.printers.utils.printer_discovery import discover_all_printers
 
@@ -57,3 +58,10 @@ class PrinterAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Printer, PrinterAdmin)
+
+
+@admin.register(PreparationPlace)
+class PreparationPlaceAdmin(admin.ModelAdmin):
+    list_display = ['name', 'printer']
+    search_fields = ['name']
+    list_filter = ['printer']
