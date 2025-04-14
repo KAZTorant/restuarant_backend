@@ -1,10 +1,9 @@
-from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
+from rest_framework import serializers
 
 from apps.meals.models import Meal
-from apps.orders.models import Order
-from apps.orders.models import OrderItem
+from apps.orders.models import Order, OrderItem
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -35,7 +34,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         # 'meal' and 'order' are for serialization
-        fields = ['meal_id', 'quantity', 'meal', 'order', 'order_id',]
+        fields = ['meal_id', 'quantity', 'meal', 'order', 'order_id', "customer_number"]
         # These are for serialization only
         read_only_fields = ['meal', 'order']
 
@@ -108,6 +107,8 @@ class ListOrderItemSerializer(serializers.ModelSerializer):
         fields = (
             "meal",
             "quantity",
+            "confirmed",
+            "customer_number"
         )
 
     def get_meal(self, obj: OrderItem):
