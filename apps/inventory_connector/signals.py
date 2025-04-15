@@ -1,38 +1,90 @@
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from inventory.models import InventoryRecord
 from apps.orders.models import OrderItem
 
 
-@receiver(post_save, sender=OrderItem)
-def update_inventory_on_order_item_confirmation(sender, instance, created, **kwargs):
-    """
-    When an OrderItem is confirmed, update inventory by creating a removal record
-    for each inventory item linked to the meal via the MealInventoryConnector.
-    """
-    try:
-        # Process only if this OrderItem is confirmed
-        if instance.confirmed:
-            # Get the MealInventoryConnector from the Meal instance (via the related_name 'inventory_connector')
-            connector = getattr(instance.meal, 'inventory_connector', None)
-            if not connector:
-                return  # No connector found for this meal
+class OrderItemInventoryManager:
+    @staticmethod
+    def _process_mappings(instance, operation):
+        """
+        Helper method to create InventoryRecord entries based on OrderItem's mappings.
 
-            # Retrieve all mapping records from the connector
-            mappings = connector.mappings.all()
-            for mapping in mappings:
-                # Calculate the amount to remove: (mapping.quantity per meal) * (order item quantity)
-                remove_quantity = mapping.quantity * instance.quantity
+        operation: 'remove' for deducting inventory,
+                   'add' for reversing a deduction (adding stock back).
 
-                # Create a new inventory record to remove stock
-                InventoryRecord.objects.create(
-                    inventory_item=mapping.inventory_item,
-                    quantity=remove_quantity,
-                    record_type='remove',
-                    reason='sold',
-                    # Adjust as needed for your pricing logic
-                    price=round(mapping.price * remove_quantity, 3)
-                )
-    except Exception as error:
-        print(error)
+        For 'remove', the reason will be set as 'sold'.
+        For 'add', the reason is now set to 'return' so that the returned product
+        from an OrderItem is properly recorded.
+        """
+        connector = getattr(instance.meal, 'inventory_connector', None)
+        if not connector:
+            return
+
+        mappings = connector.mappings.all()
+        for mapping in mappings:
+            # Calculate the total quantity change: per-meal quantity * order item quantity
+            quantity_change = mapping.quantity * instance.quantity
+            # For removal, use 'sold'; for addition (reversal) use the 'return' reason.
+            reason = 'sold' if operation == 'remove' else 'return'
+            # Calculate the price for the inventory record.
+            price = round(mapping.price * quantity_change, 3)
+            InventoryRecord.objects.create(
+                inventory_item=mapping.inventory_item,
+                quantity=quantity_change,
+                record_type=operation,
+                reason=reason,
+                price=price
+            )
+
+    @staticmethod
+    def pre_save(sender, instance, **kwargs):
+        """
+        Capture the old confirmed value so that we can compare it in post_save.
+        For new instances, assume confirmed is False.
+        """
+        if instance.pk:
+            try:
+                old_instance = OrderItem.objects.get(pk=instance.pk)
+                instance._old_confirmed = old_instance.confirmed
+            except OrderItem.DoesNotExist:
+                instance._old_confirmed = False
+        else:
+            instance._old_confirmed = False
+
+    @staticmethod
+    def post_save(sender, instance, created, **kwargs):
+        """
+        Update inventory based on changes to the OrderItem 'confirmed' field.
+
+        CASE 1: New confirmed OrderItem - subtract inventory.
+        CASE 2: Updated OrderItem:
+          - Transition from unconfirmed to confirmed: subtract inventory.
+          - Transition from confirmed to unconfirmed: add inventory back (recorded as a return).
+        """
+        try:
+            if created and instance.confirmed:
+                OrderItemInventoryManager._process_mappings(instance, 'remove')
+            elif not created:
+                old_confirmed = getattr(instance, '_old_confirmed', False)
+                # Transition from unconfirmed to confirmed.
+                if instance.confirmed and not old_confirmed:
+                    OrderItemInventoryManager._process_mappings(
+                        instance, 'remove')
+                # Transition from confirmed to unconfirmed.
+                elif not instance.confirmed and old_confirmed:
+                    OrderItemInventoryManager._process_mappings(
+                        instance, 'add')
+        except Exception as error:
+            print("Error updating inventory on order item save:", error)
+
+    @staticmethod
+    def post_delete(sender, instance, **kwargs):
+        """
+        When a confirmed OrderItem is deleted, add its deducted inventory back
+        (recorded as a return).
+        """
+        try:
+            if instance.confirmed:
+                OrderItemInventoryManager._process_mappings(instance, 'add')
+        except Exception as error:
+            print("Error restoring inventory on order item deletion:", error)

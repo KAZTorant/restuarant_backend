@@ -16,11 +16,11 @@ from apps.orders.models import Order
 from apps.orders.serializers import DeleteOrderItemSerializer
 from apps.tables.models import Table
 
-from apps.users.permissions import IsRestaurantOwner
+from apps.users.permissions import IsAdmin
 
 
 class DeleteOrderItemAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsRestaurantOwner]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
         operation_description="Decrease the quantity or delete an item from an existing unpaid order for the specified table.",
@@ -53,7 +53,7 @@ class DeleteOrderItemAPIView(APIView):
 
         order_item: OrderItem = order.order_items.filter(
             meal__id=meal_id
-        ).first()
+        ).order_by('confirmed').first()
 
         if not order_item:
             return Response(
