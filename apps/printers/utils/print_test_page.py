@@ -8,7 +8,7 @@ def send_raw_receipt(ip: str, port: int = 9100):
 ============================
 Order #12345
 Table: 4
-Server: Elvin
+Offisiant: KAZZA TEST
 
 ----------------------------
 2x Latte             10.00₼
@@ -25,6 +25,7 @@ Thank you for dining with us!
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print(ip, port)
             s.connect((ip, port))
             s.sendall(receipt_text.encode("utf-8"))
         return True, "✅ Receipt sent successfully over TCP."
