@@ -1,0 +1,1 @@
+from apps.payments.apis.pay_table_orders import CompleteTablePaymentAPIView

@@ -7,4 +7,5 @@ urlpatterns = [
     path('users/', include('apps.users.apis.urls')),
     path('finance/', include('apps.finance.urls')),
     path('printers/', include('apps.printers.urls')),
+    path('payments/', include('apps.payments.apis.urls')),
 ]

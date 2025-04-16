@@ -78,7 +78,8 @@ class ReceiptAdmin(admin.ModelAdmin):
     search_fields = ('text',)
     readonly_fields = (
         'created_at', 'text', 'orders',
-        'payment', 'printer_response_status_code'
+        'payment', 'printer_response_status_code',
+        'type',
     )
 
     fieldsets = (

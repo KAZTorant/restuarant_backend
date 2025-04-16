@@ -8,10 +8,48 @@ from apps.tables.models import Table
 from apps.users.permissions import IsAdmin
 from apps.payments.models import Payment
 
+from decimal import Decimal
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 
 class CompleteTablePaymentAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @swagger_auto_schema(
+        operation_summary="Masaya aid sifarişin ödənişini tamamla",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["payment_type", "paid_amount"],
+            properties={
+                "payment_type": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Ödəniş növü (cash, card, other)",
+                    enum=["cash", "card", "other"]
+                ),
+                "discount_amount": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Endirim miqdarı (₼)",
+                    default=0
+                ),
+                "discount_comment": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Endirim səbəbi və ya qeydi",
+                    default=""
+                ),
+                "paid_amount": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Müştərinin ödədiyi məbləğ (₼)"
+                )
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Ödəniş uğurla tamamlandı"),
+            400: openapi.Response(description="Əlavə məlumat xətası"),
+            404: openapi.Response(description="Masa tapılmadı və ya sifariş yoxdur"),
+        }
+    )
     def post(self, request, table_id):
         data = request.data
 
@@ -86,27 +124,6 @@ class CompleteTablePaymentAPIView(APIView):
         return table, orders
 
     @staticmethod
-    def _calculate_payment_details(orders, discount, paid):
-        total = sum(order.total_price for order in orders)
-        final = max(total - discount, 0)
-
-        if paid < final:
-            return None, Response({
-                "success": False,
-                "message": _(
-                    "Müştərinin ödədiyi məbləğ ({paid}₼) kifayət etmir. Ümumi məbləğ {total}₼."
-                ).format(paid=paid, total=final)
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        return {
-            "total": total,
-            "discount": discount,
-            "final": final,
-            "paid": paid,
-            "change": round(paid - final, 2)
-        }, None
-
-    @staticmethod
     def _handle_printing(table_id, is_paid, payment_type, discount_amount, discount_comment, paid_amount, change):
         try:
             PrinterService.print_orders_for_table(
@@ -136,3 +153,29 @@ class CompleteTablePaymentAPIView(APIView):
         )
         payment.orders.set(orders)
         return payment
+
+    from decimal import Decimal
+
+    @staticmethod
+    def _calculate_payment_details(orders, discount, paid):
+        total = sum(order.total_price for order in orders)
+        discount = Decimal(str(discount))
+        paid = Decimal(str(paid))
+
+        final = max(total - discount, Decimal("0"))
+
+        if paid < final:
+            return None, Response({
+                "success": False,
+                "message": _(
+                    "Müştərinin ödədiyi məbləğ ({paid}₼) kifayət etmir. Ümumi məbləğ {total}₼."
+                ).format(paid=paid, total=final)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return {
+            "total": total,
+            "discount": discount,
+            "final": final,
+            "paid": paid,
+            "change": paid - final
+        }, None

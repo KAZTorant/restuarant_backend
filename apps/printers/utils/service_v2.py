@@ -74,7 +74,8 @@ class PrinterService:
                 printer_response_status_code=response.status_code,
 
             )
-            receipt.orders.set(orders)
+            if orders:
+                receipt.orders.set(orders)
 
             return response
         except Exception as e:
@@ -88,7 +89,7 @@ class PrinterService:
     @staticmethod
     def _build_receipt_data(table, orders, is_paid, payment_type, discount_amount, discount_comment, paid_amount, change):
         order_data = []
-        waitress = orders.first().user if orders.exists() else None
+        waitress = table.waitress
         total = 0
 
         for order in orders:

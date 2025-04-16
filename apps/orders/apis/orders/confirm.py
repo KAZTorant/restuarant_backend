@@ -9,7 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from apps.tables.models import Table
-from apps.printers.utils.service import PrinterService
+from apps.printers.utils.service_v2 import PrinterService
 from apps.users.permissions import AtMostAdmin
 
 
@@ -83,13 +83,13 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Generate and send receipt texts for each printer group
-        printer_service = PrinterService()
         receipt_results = {}
         for printer, items in printer_groups.items():
             receipt_data = self.prepare_receipt_data(orders, items)
-            response = printer_service.send_to_worker_printer(
+            response = PrinterService.send_to_worker_printer(
                 receipt_data,
-                printer
+                printer,
+                orders,
             )
             receipt_results[str(printer.id)] = response.status_code
 
