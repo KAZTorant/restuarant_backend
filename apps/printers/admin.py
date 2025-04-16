@@ -71,7 +71,7 @@ class PreparationPlaceAdmin(admin.ModelAdmin):
 @admin.register(Receipt)
 class ReceiptAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'created_at', 'type', 'short_text',
+        'id', 'created_at', 'type',
         'printer_response_status_code'
     )
     list_filter = ('type', 'created_at', 'printer_response_status_code')
@@ -94,8 +94,3 @@ class ReceiptAdmin(admin.ModelAdmin):
             )
         }),
     )
-
-    def short_text(self, obj):
-        return f"{obj.text[:50]}..." if len(obj.text) > 50 else obj.text
-
-    short_text.short_description = "Çek Mətni"
