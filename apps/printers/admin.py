@@ -7,6 +7,7 @@ from django.urls import path
 
 from apps.printers.models import Printer
 from apps.printers.models import PreparationPlace
+from apps.printers.models import Receipt
 from apps.printers.utils.print_test_page import send_raw_receipt
 from apps.printers.utils.printer_discovery import discover_all_printers
 
@@ -65,3 +66,35 @@ class PreparationPlaceAdmin(admin.ModelAdmin):
     list_display = ['name', 'printer']
     search_fields = ['name']
     list_filter = ['printer']
+
+
+@admin.register(Receipt)
+class ReceiptAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'created_at', 'type', 'short_text',
+        'printer_response_status_code'
+    )
+    list_filter = ('type', 'created_at', 'printer_response_status_code')
+    search_fields = ('text',)
+    readonly_fields = (
+        'created_at', 'text', 'orders',
+        'payment', 'printer_response_status_code'
+    )
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'type',
+                'created_at',
+                'printer_response_status_code',
+                'orders',
+                'payment',
+                'text',
+            )
+        }),
+    )
+
+    def short_text(self, obj):
+        return f"{obj.text[:50]}..." if len(obj.text) > 50 else obj.text
+
+    short_text.short_description = "Çek Mətni"

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.meals.apps.MealsConfig',
     'apps.finance.apps.FinanceConfig',
     'apps.printers.apps.PrintersConfig',
+    'apps.payments.apps.PaymentsConfig',
 
     # 3rd party apps
     'drf_yasg',
