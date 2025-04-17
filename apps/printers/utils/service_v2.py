@@ -146,13 +146,13 @@ class PrinterService:
         lines = []
 
         lines.append("=" * width)
-        lines.append("KAZZA CAFÉ".center(width))
+        lines.append("CAFEPARK".center(width))
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
         lines.append(
             f"Masa: {data['table']['room']} - {data['table']['number']}")
-        lines.append(f"Garson: {data['waitress']}")
+        lines.append(f"Ofisiant: {data['waitress']}")
         lines.append("-" * width)
 
         for order in data['orders']:
@@ -165,7 +165,7 @@ class PrinterService:
 
         lines.append(f"Ümumi məbləğ: {data['total']:>29.2f} AZN")
         if data['discount']:
-            lines.append(f"Endirim: -{data['discount']:>33.2f} AZN")
+            lines.append(f"Endirim: {data['discount']:>33.2f} AZN")
             if data['discount_comment']:
                 lines.append(f"Qeyd: {data['discount_comment']}")
         lines.append(f"Yekun məbləğ: {data['final_total']:>27.2f} AZN")

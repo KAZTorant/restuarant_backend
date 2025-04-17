@@ -117,7 +117,7 @@ class CompleteTablePaymentAPIView(APIView):
         if not table:
             return None, Response({"errors": _("Masa tapılmadı.")}, status=status.HTTP_404_NOT_FOUND)
 
-        orders = table.current_orders
+        orders = table.orders.exclude(is_deleted=True).filter(is_paid=False)
         if not orders.exists():
             return None, Response({"success": False, "message": _("Masada sifariş yoxdur.")}, status=status.HTTP_400_BAD_REQUEST)
 
