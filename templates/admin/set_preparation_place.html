@@ -1,0 +1,57 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="module">
+    <h2 style="margin-bottom: 20px;">{{ title }}</h2>
+
+    <form method="post" style="padding: 20px 0;">
+      {% csrf_token %}
+      <fieldset class="module aligned">
+
+        <div class="form-row" style="margin-bottom: 15px;">
+          <label for="id_preparation_place"><strong>Hazırlanma Yeri:</strong></label><br>
+          <select name="preparation_place" id="id_preparation_place" class="form-control" style="width: 300px;">
+            {% for place in form.fields.preparation_place.queryset %}
+              <option value="{{ place.pk }}" {% if form.preparation_place.value == place.pk|stringformat:"s" %}selected{% endif %}>
+                {{ place }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% for meal_id in selected_ids %}
+          <input type="hidden" name="_selected_action" value="{{ meal_id }}">
+        {% endfor %}
+      </fieldset>
+
+      <div style="margin-top: 20px;">
+        <button type="submit" class="btn btn-success">Təyin et</button>
+        <a href="{% url 'admin:meals_meal_changelist' %}" class="btn btn-secondary" style="margin-left: 10px;">Geri qayıt</a>
+      </div>
+    </form>
+
+    {% if meals %}
+      <h3 style="margin-top: 40px;">Seçilmiş Yeməklər</h3>
+      <table class="table table-striped" style="width: 100%; margin-top: 10px;">
+        <thead>
+          <tr>
+            <th>Ad</th>
+            <th>Kateqoriya</th>
+            <th>Hazırlanma Yeri</th>
+            <th>Qiymət</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for meal in meals %}
+            <tr>
+              <td>{{ meal.name }}</td>
+              <td>{{ meal.category }}</td>
+              <td>{{ meal.preparation_place }}</td>
+              <td>{{ meal.price }} ₼</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}
