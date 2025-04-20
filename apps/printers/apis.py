@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
-from apps.printers.utils.service import PrinterService
+from apps.printers.utils.service_v2 import PrinterService
 from apps.users.permissions import AtMostAdmin
 from apps.tables.models import Table
 
