@@ -49,7 +49,7 @@ class ChangeWaitressAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        orders = table.current_orders
+        orders = table.orders.exclude(is_deleted=True).filter(is_paid=False)
 
         if not orders.exists():
             return Response(

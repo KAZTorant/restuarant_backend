@@ -92,8 +92,9 @@ class DeleteOrderItemAPIView(APIView):
         if not table:
             return Order.objects.none()
 
-        order: Order = table.current_order \
+        order: Order = table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first() \
             if not order_id else \
-            table.current_orders.filter(id=order_id).first()
+            table.orders.exclude(is_deleted=True).filter(
+                is_paid=False).filter(id=order_id).first()
 
         return order

@@ -14,9 +14,13 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["waitress"] = self.context['request'].user
         validated_data["is_main"] = True
-        if order := Order.objects.filter(is_main=True, is_paid=False).first():
+        if order := Order.objects.filter(
+            is_main=True,
+            is_paid=False,
+            table__id=validated_data["table"].id
+        ).first():
             return order
-        
+
         order = Order.objects.create(**validated_data)
         return order
 
@@ -37,7 +41,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         # 'meal' and 'order' are for serialization
-        fields = ['meal_id', 'quantity', 'meal', 'order', 'order_id', "customer_number"]
+        fields = ['meal_id', 'quantity', 'meal',
+                  'order', 'order_id', "customer_number"]
         # These are for serialization only
         read_only_fields = ['meal', 'order']
 

@@ -46,7 +46,7 @@ class PrinterService:
                 'room': table.room.name if table and table.room else 'N/A',
                 'number': table.number if table else 'N/A'
             },
-            'waitress': table.current_order.waitress.get_full_name(),
+            'waitress': table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first().waitress.get_full_name(),
             'orders': []
         }
 
@@ -67,7 +67,8 @@ class PrinterService:
             if not table.can_print_check() and not force_print:
                 return False, "Aktiv sifariş yoxdur və ya çek artıq çap edilib."
 
-            orders = table.current_orders
+            orders = table.orders.exclude(
+                is_deleted=True).filter(is_paid=False)
             receipt_data = self.generate_receipt_data_for_orders(table, orders)
             response = self.send_to_printer(receipt_data)
 

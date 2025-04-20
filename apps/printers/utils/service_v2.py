@@ -33,7 +33,8 @@ class PrinterService:
             if not table.can_print_check() and not force_print:
                 return False, "Aktiv sifariş yoxdur və ya çek artıq çap edilib."
 
-            orders = table.current_orders
+            orders = table.orders.exclude(
+                is_deleted=True).filter(is_paid=False)
             if not orders.exists():
                 return False, "Sifariş mövcud deyil."
 

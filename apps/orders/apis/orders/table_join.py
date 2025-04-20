@@ -61,14 +61,15 @@ class JoinTableOrdersAPIView(APIView):
                 return Response({"detail": "No unpaid orders found to join."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Ensure the target table has a current order before proceeding
-            if not table.current_order:
+            if not table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first():
                 return Response({"detail": "The target table must have a current order."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Update all orders to be linked to the target table
             orders_to_join.update(
                 table=table,
                 is_main=False,
-                waitress=table.current_order.waitress
+                waitress=table.orders.exclude(is_deleted=True).filter(
+                    is_paid=False, is_main=True).first().waitress
             )
 
             return Response({"detail": "Tables successfully joined."}, status=status.HTTP_200_OK)

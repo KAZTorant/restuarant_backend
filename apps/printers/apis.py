@@ -32,7 +32,7 @@ class PrintCheckAPIView(APIView):
         table = Table.objects.filter(id=table_id).first()
         if not table:
             return Response({"error": "Masa tapılmadı."}, status=status.HTTP_404_NOT_FOUND)
-        orders = table.current_orders
+        orders = table.orders.exclude(is_deleted=True).filter(is_paid=False)
         if not orders.exists():
             return Response({"error": "Masa üçün sifariş tapılmadı."}, status=status.HTTP_404_NOT_FOUND)
 

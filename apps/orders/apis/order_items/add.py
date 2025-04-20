@@ -75,8 +75,8 @@ class AddOrderItemAPIView(APIView):
     def get_order(self, request, table_id, order_id):
         """
         Retrieves the order for the specified table.
-        If an order_id is provided, fetch it from table.current_orders;
-        otherwise, use table.current_order.
+        If an order_id is provided, fetch it from table.orders.exclude(is_deleted=True).filter(is_paid=False);
+        otherwise, use table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first().
         Also verifies that the requesting user has access.
         """
         try:
@@ -85,9 +85,10 @@ class AddOrderItemAPIView(APIView):
             return None
 
         order = (
-            table.current_orders.filter(id=order_id).first()
+            table.orders.exclude(is_deleted=True).filter(
+                is_paid=False).filter(id=order_id).first()
             if order_id
-            else table.current_order
+            else table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first()
         )
 
         if order and (

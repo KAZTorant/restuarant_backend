@@ -107,10 +107,11 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
 
     def get_target_orders(self, table, order_id=None):
         if order_id:
-            order = table.current_orders.filter(id=order_id).first()
+            order = table.orders.exclude(is_deleted=True).filter(
+                is_paid=False).filter(id=order_id).first()
             return [order] if order else []
         else:
-            return list(table.current_orders.all())
+            return list(table.orders.exclude(is_deleted=True).filter(is_paid=False).all())
 
     def group_items_by_worker_printer(self, unconfirmed_items):
         groups = {}

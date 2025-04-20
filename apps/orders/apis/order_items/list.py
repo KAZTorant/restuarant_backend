@@ -27,12 +27,14 @@ class ListOrderItemsAPIView(ListAPIView):
         if not table:
             return OrderItem.objects.none()
 
-        default_order_id = table.current_order.id if table.current_order else None
+        default_order_id = table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first(
+        ).id if table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first() else None
         if not default_order_id:
             return OrderItem.objects.none()
 
         order_id = self.request.GET.get("order_id", default_order_id)
-        order = table.current_orders.filter(id=order_id).first()
+        order = table.orders.exclude(is_deleted=True).filter(
+            is_paid=False).filter(id=order_id).first()
         if not order:
             return OrderItem.objects.none()
 
