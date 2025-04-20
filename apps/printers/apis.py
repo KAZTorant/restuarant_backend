@@ -4,12 +4,12 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from apps.printers.utils.service import PrinterService
-from apps.users.permissions import IsAdmin
+from apps.users.permissions import AtMostAdmin
 from apps.tables.models import Table
 
 
 class PrintCheckAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, AtMostAdmin]
 
     def post(self, request, table_id):
         if not table_id:
