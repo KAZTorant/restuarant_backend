@@ -15,6 +15,7 @@ from apps.orders.apis import ListTableOrdersAPIView
 from apps.orders.apis import ListWaitressAPIView
 from apps.orders.apis import ChangeWaitressAPIView
 
+from apps.orders.apis.order_items.transfer import TransferOrderItemsAPIView
 from apps.orders.apis.orders.confirm import ConfirmOrderItemsToWorkerPrintersAPIView
 from apps.printers.apis import PrintCheckAPIView
 
@@ -34,6 +35,11 @@ urlpatterns = [
     path(
         '<int:table_id>/add-order-item/',
         AddOrderItemAPIView.as_view(),
+        name='add-order-item'
+    ),
+    path(
+        '<int:table_id>/tranfer-order-items/',
+        TransferOrderItemsAPIView.as_view(),
         name='add-order-item'
     ),
 
