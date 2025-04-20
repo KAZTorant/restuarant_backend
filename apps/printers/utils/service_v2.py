@@ -178,7 +178,7 @@ class PrinterService:
             lines.append(f"Ödəniş növü: {data['payment_type'].capitalize()}")
 
         lines.append("=" * width)
-        lines.append("Bizə gəldiyiniz üçün təşəkkür edirik!")
+        lines.append("Bizi seçdiyiniz üçün təşəkkür edirik!")
         lines.append("=" * width)
         lines.append("\n\n\n")
 
