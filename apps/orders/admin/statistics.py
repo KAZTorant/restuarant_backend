@@ -127,7 +127,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
     def has_change_permission(self, request, obj=None):
         # Only allow editing an open shift by its starter
-        if obj and (obj.started_by != request.user or obj.is_closed):
+        if obj and (obj.started_by != request.user):
             return False
         return super().has_change_permission(request, obj)
 
