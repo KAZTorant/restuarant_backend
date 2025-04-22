@@ -294,7 +294,7 @@ class Statistics(DateTimeModel, models.Model):
 
     @property
     def cash(self):
-        return round(self.cash_total + self.initial_cash)
+        return round(self.cash_total + self.initial_cash, 2)
 
     def __str__(self):
         status = 'Bağlandı' if self.is_closed else 'Açıq'
