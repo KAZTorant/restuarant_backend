@@ -90,7 +90,8 @@ class StatisticsManager(models.Manager):
         """
         # 1) Find the existing till_now stat
         stat = self.filter(
-            title='till_now', is_z_checked=False, is_closed=False
+            title='till_now', is_z_checked=False, is_closed=False,
+            started_by=user
         ).first()
         if not stat:
             # nothing to update if no open till_now record
@@ -128,9 +129,9 @@ class StatisticsManager(models.Manager):
         return stat
 
     def start_shift(self, user):
-        if self.filter(started_by=user, is_closed=False).exists():
-            raise ValidationError("Sizin açıq növbəniz artıq mövcuddur.")
-        last = self.filter(started_by=user, is_closed=True).order_by(
+        if self.filter(is_closed=False).exists():
+            raise ValidationError("Açıq növbən var.")
+        last = self.filter(is_closed=True).order_by(
             '-end_time').first()
         initial = last.remaining_cash if last else Decimal('0.00')
         return self.create(title="till_now", started_by=user, start_time=timezone.now(), initial_cash=initial)
