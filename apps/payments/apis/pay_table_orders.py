@@ -129,7 +129,7 @@ class CompleteTablePaymentAPIView(APIView):
             PrinterService.print_orders_for_table(
                 table_id=table_id,
                 is_paid=is_paid,
-                force_print=True
+                force_print=True,
                 payment_type=payment_type,
                 discount_amount=discount_amount,
                 discount_comment=discount_comment,
