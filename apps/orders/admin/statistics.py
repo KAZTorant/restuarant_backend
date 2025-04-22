@@ -214,14 +214,14 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
     def response_change(self, request, obj):
         # Legacy Z-check buttons
-        if '_z-cek' in request.POST:
-            self.z_check(obj)
-            self.message_user(request, f"Hesabatı təsdiqləndi {obj.date}.")
+        if '_print_z_receipt' in request.POST:
+            success, msg = PrinterServiceV2.print_z_hesabat(
+                stat_id=obj.pk, user=request.user
+            )
+            level = messages.SUCCESS if success else messages.ERROR
+            self.message_user(request, msg, level=level)
             return HttpResponseRedirect('.')
-        if '_z-cek-till-now' in request.POST:
-            self.z_check_till_now(obj)
-            self.message_user(request, f"Hesabat təsdiqləndi {obj.date}.")
-            return HttpResponseRedirect('.')
+
         if '_print_shift_summary' in request.POST:
             success, msg = PrinterServiceV2.print_shift_summary(
                 stat_id=obj.pk, user=request.user)

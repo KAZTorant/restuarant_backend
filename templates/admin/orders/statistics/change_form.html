@@ -25,29 +25,10 @@
         name="_print_shift_summary"
         class="btn btn-secondary form-control mt-2"
       >
-        {% trans "Növbə Hesabını Çap Et" %}
+        {% trans "Növbə yekunu çap et" %}
       </button>
 
     {% endif %}
-
-    {# Legacy Z‑check buttons #}
-    {% comment %} {% if original.title == "till_now" %}
-      <button
-        type="submit"
-        name="_z-cek-till-now"
-        class="btn btn-warning form-control mt-2"
-      >
-        {% trans "Hesabatı Təsdiqlə" %}
-      </button>
-    {% else %}
-      <button
-        type="submit"
-        name="_z-cek"
-        class="btn btn-warning form-control mt-2"
-      >
-        {% trans "Hesabatı Təsdiqlə" %}
-      </button>
-    {% endif %} {% endcomment %}
 
     <button
       type="submit"
