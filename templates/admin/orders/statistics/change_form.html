@@ -1,23 +1,61 @@
 {% extends "admin/change_form.html" %}
-{% load i18n static %}
-
-
-
+{% load i18n admin_urls static %}
 
 {% block submit_buttons_bottom %}
-    {{ block.super }}
-    <br>
-    <div class="">
-        <div>
-            {% if object.title == "till_now" %}
-                <input type="submit" name="_z-cek-till-now" value="{% trans 'Hesabatı Təsdiqlə' %}" class="btn btn-warning form-control mt-2" />
-            {% else %}
-                <input type="submit" name="_z-cek" value="{% trans 'Hesabatı Təsdiqlə' %}" class="btn btn-warning form-control mt-2" />
-            {% endif %}
-            <input type="submit" name="_print_z_receipt" value="{% trans 'Z-Hesabat Çap Et' %}" class="btn btn-success form-control mt-2" />
+  {{ block.super }}
+  <br/>
+  <div>
 
-        </div>
 
-        
-    </div>
+    {# Only show for open shifts started by this user #}
+    {% if original and not original.is_closed and original.started_by_id == user.id %}
+
+        {# Refresh button – recalculates “till_now” and reloads this page #}
+      
+        <button
+          type="submit"
+          name="_refresh"
+          class="btn btn-info form-control mt-2"
+        >
+          {% trans "Yenilə" %}
+        </button>
+
+      <button
+        type="submit"
+        name="_print_shift_summary"
+        class="btn btn-secondary form-control mt-2"
+      >
+        {% trans "Növbə Hesabını Çap Et" %}
+      </button>
+
+    {% endif %}
+
+    {# Legacy Z‑check buttons #}
+    {% comment %} {% if original.title == "till_now" %}
+      <button
+        type="submit"
+        name="_z-cek-till-now"
+        class="btn btn-warning form-control mt-2"
+      >
+        {% trans "Hesabatı Təsdiqlə" %}
+      </button>
+    {% else %}
+      <button
+        type="submit"
+        name="_z-cek"
+        class="btn btn-warning form-control mt-2"
+      >
+        {% trans "Hesabatı Təsdiqlə" %}
+      </button>
+    {% endif %} {% endcomment %}
+
+    <button
+      type="submit"
+      name="_print_z_receipt"
+      class="btn btn-success form-control mt-2"
+    >
+      {% trans "Z‑Hesabat Çap Et" %}
+    </button>
+
+  </div>
 {% endblock %}

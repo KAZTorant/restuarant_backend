@@ -223,7 +223,7 @@ class PrinterService:
     # ========================= #
 
     @staticmethod
-    def _send_text_to_main_printer(text, payment=None):
+    def _send_text_to_main_printer(text, payment=None, type=Receipt.ReceiptType.CUSTOMER):
         printer = Printer.objects.filter(is_main=True).first()
         if not printer:
             raise Exception("Sistemdə əsas printer təyin edilməyib.")
@@ -233,7 +233,7 @@ class PrinterService:
         )
 
         Receipt.objects.create(
-            type=Receipt.ReceiptType.CUSTOMER,
+            type=type,
             text=text,
             payment=payment,
             printer_response_status_code=response.status_code,
@@ -333,13 +333,10 @@ class PrinterService:
         text = "\n".join(lines)
 
         # 3) Send to main printer
-        response = PrinterService._send_text_to_main_printer(text)
-
-        Receipt.objects.create(
-            type=Receipt.ReceiptType.Z_SUMMRY,
-            text=text,
-            printer_response_status_code=response.status_code
+        response = PrinterService._send_text_to_main_printer(
+            text, payment=None, type=Receipt.ReceiptType.Z_SUMMRY
         )
+
         if response.status_code == 200:
             return True, "Növbə yekunu uğurla çap edildi."
         return False, "Printerə qoşulmaq mümkün olmadı."
