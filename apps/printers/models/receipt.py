@@ -8,6 +8,8 @@ class Receipt(models.Model):
     class ReceiptType(models.TextChoices):
         CUSTOMER = 'customer', _('Müştəri üçün')
         PREPERATION_PLACE = 'preperation_places', _('Hazırlanma yeri üçün')
+        SHIFT_SUMMARY = 'shift_summary', _("Növbə yekunu")
+        Z_SUMMRY = 'z_summary', _("Z Hesabat")
 
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name=_("Çap tarixi")

@@ -78,10 +78,7 @@ class CompleteTablePaymentAPIView(APIView):
             change=totals['change']
         )
 
-        # STEP 4: Mark as paid
-        orders_or_error.update(is_paid=True)
-
-        # STEP 5: Save payment
+        # STEP 4: Save payment
         payment = self._create_payment_record(
             table=table,
             orders=orders_or_error,
@@ -90,6 +87,9 @@ class CompleteTablePaymentAPIView(APIView):
             payment_type=data.get('payment_type'),
             discount_comment=data.get('discount_comment', '')
         )
+
+        # STEP 4: Mark as paid
+        orders_or_error.update(is_paid=True)
 
         return Response(
             {
@@ -152,6 +152,7 @@ class CompleteTablePaymentAPIView(APIView):
             paid_by=user
         )
         payment.orders.set(orders)
+        payment.save()
         return payment
 
     from decimal import Decimal

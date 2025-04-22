@@ -1,17 +1,19 @@
 from simple_history.admin import SimpleHistoryAdmin
 
+from django.contrib import messages
 from django.contrib import admin
 from django.db.models import Sum
 from django.db.models import Min
 from django.db.models import Max
 from django.urls import path
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.utils.dateformat import format
 from django.utils.timezone import localtime
 from django.utils.html import format_html
 
 from apps.printers.utils.service import PrinterService
+from apps.printers.utils.service_v2 import PrinterService as PrinterServiceV2
 from apps.orders.models import Statistics
 from apps.orders.models import Order
 from apps.orders.models import OrderItem
@@ -160,6 +162,18 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             self.z_check_till_now(obj=obj)
             self.message_user(
                 request, "Hesabat təsdiqləndi %s." % obj.date)
+            return HttpResponseRedirect(".")
+
+        if "_print_shift_summary" in request.POST:
+            success, message = PrinterServiceV2.print_shift_summary(
+                stat_id=obj.pk,
+                user=request.user
+            )
+            self.message_user(
+                request,
+                message,
+                level=messages.SUCCESS if success else messages.ERROR
+            )
             return HttpResponseRedirect(".")
 
         return super().response_change(request, obj)

@@ -1,8 +1,13 @@
 import socket
 from datetime import datetime
-from apps.printers.models.receipt import Receipt
+from apps.orders.models import Statistics
+from apps.printers.models import Receipt
 from apps.tables.models import Table
 from apps.printers.models import Printer
+
+from django.db.models import Sum
+
+from apps.payments.models.pay_table_orders import Payment
 
 
 class DummyResponse:
@@ -246,3 +251,95 @@ class PrinterService:
         except Exception as e:
             print(f"Printerə data göndərilərkən xəta: {e}")
             return DummyResponse(500)
+
+    @staticmethod
+    def print_shift_summary(stat_id, user=None):
+        """
+        Prints the shift summary for the Statistics record with pk=stat_id.
+        """
+        # 1) Load the stat record
+        try:
+            stat = Statistics.objects.get(pk=stat_id)
+        except Statistics.DoesNotExist:
+            return False, f"Statistika id={stat_id} tapılmadı."
+
+        orders_qs = stat.orders.all_orders()
+        if not orders_qs.exists():
+            return False, "Bu statistikada heç bir sifariş yoxdur."
+
+        width = 48
+        lines = []
+
+        # Header
+        lines.append(f"{stat.id:03d} Z-Hesabat")
+        main_printer = Printer.objects.filter(is_main=True).first()
+        terminal = main_printer.name if main_printer else "N/A"
+        lines.append(f"Terminal: {terminal}")
+        lines.append(f"Kassa növbəsi: {stat.id}")
+        lines.append(
+            f"Status: {'Təsdiqləndi' if stat.is_z_checked else 'Təsdiqlənməmiş'}"
+        )
+
+        # Shift open time = earliest order.created_at
+        first_order = orders_qs.order_by("created_at").first()
+        opened = first_order.created_at.strftime(
+            "%d.%m.%Y %H:%M") if first_order else "–"
+        lines.append(f"Növbə açıldığı: {opened}")
+
+        # Current time & user
+        now = datetime.now().strftime("%d.%m.%Y %H:%M")
+        lines.append(f"Cari vaxt:       {now}")
+        if user:
+            try:
+                name = user.get_full_name() or user.username
+            except:
+                name = str(user)
+            lines.append(f"Cari istifadəçi: {name}")
+
+        lines.append("-" * width)
+
+        # 2) Aggregate cash vs. card, **via** Payments linked to these orders
+        cash = (
+            Payment.objects
+            .filter(payment_type=Payment.PaymentType.CASH, orders__in=orders_qs)
+            .distinct()
+            .aggregate(total=Sum("paid_amount"))["total"] or 0
+        )
+        card = (
+            Payment.objects
+            .filter(payment_type=Payment.PaymentType.CARD, orders__in=orders_qs)
+            .distinct()
+            .aggregate(total=Sum("paid_amount"))["total"] or 0
+        )
+        other = (
+            Payment.objects
+            .filter(payment_type=Payment.PaymentType.OTHER, orders__in=orders_qs)
+            .distinct()
+            .aggregate(total=Sum("paid_amount"))["total"] or 0
+        )
+
+        lines.append("Satışlar")
+        lines.append(f"Nağd ödəniş    {cash:>10.2f}")
+        lines.append(f"Bank kartları  {card:>10.2f}")
+        lines.append(f"Digər  {other:>10.2f}")
+        lines.append(f"CƏMİ (Satışlar): {(cash + card + other):>10.2f}")
+
+        # Footer
+        lines.append("=" * width)
+        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA")
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        # 3) Send to main printer
+        response = PrinterService._send_text_to_main_printer(text)
+
+        Receipt.objects.create(
+            type=Receipt.ReceiptType.Z_SUMMRY,
+            text=text,
+            printer_response_status_code=response.status_code
+        )
+        if response.status_code == 200:
+            return True, "Növbə yekunu uğurla çap edildi."
+        return False, "Printerə qoşulmaq mümkün olmadı."
