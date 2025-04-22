@@ -72,6 +72,53 @@
         }
     </style>
     <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle Start vs End button
+            fetch("{% url 'admin:orders_statistics_current_shift_info' %}")
+              .then(res => { if (!res.ok) throw ''; return res.json() })
+              .then(_ => {
+                document.getElementById('startShiftBtn').style.display = 'none';
+                document.getElementById('endShiftBtn').style.display   = 'inline-block';
+              })
+              .catch(_ => {
+                document.getElementById('startShiftBtn').style.display = 'inline-block';
+                document.getElementById('endShiftBtn').style.display   = 'none';
+              });
+          });
+        
+        function showEndShiftModal() {
+            fetch("{% url 'admin:orders_statistics_current_shift_info' %}")
+              .then(res => res.json())
+              .then(data => {
+                
+                const { initial_cash, cash_in_hand, cash_total, card_total, other_total, total } = data
+
+                document.getElementById('es_initial_cash').innerText      = parseFloat(initial_cash).toFixed(2);
+                document.getElementById('es_cash_total').innerText      = parseFloat(cash_total).toFixed(2);
+                document.getElementById('es_card_total').innerText      = parseFloat(card_total).toFixed(2);
+                document.getElementById('es_other_total').innerText     = parseFloat(other_total).toFixed(2);
+                
+                document.getElementById('es_cash_in_hand').innerText      = parseFloat(cash_in_hand).toFixed(2);
+                document.getElementById('es_total').innerText      = parseFloat(total).toFixed(2);
+
+                document.getElementById('es_withdrawn_amount').value    = '';
+                // Set form action to /…/end-shift/
+                let form = document.getElementById('endShiftForm');
+                const idRegex = /\d+(?=\/end-shift\/$)/;
+
+                form.action = form.action.replace(idRegex, data.shift_id);
+                document.getElementById('endShiftModal').style.display = 'block';
+              })
+              .catch(_ => {
+                alert('{% trans "Açıq növbə tapılmadı." %}');
+              });
+          }
+        
+        function closeEndShiftModal() {
+            document.getElementById('endShiftModal').style.display = 'none';
+          }
+
         function fetchTodaysOrders() {
             $.ajax({
                 url: "{% url 'admin:orders_statistics_active_orders' %}",
@@ -139,16 +186,53 @@
             modalBody.innerHTML = linksHTML;
             document.getElementById('ordersModal').style.display = "block";
         }
+
+        function showStartShiftModal() {
+            fetch("{% url 'admin:orders_statistics_start_shift_info' %}")
+              .then(r => r.json())
+              .then(data => {
+                document.getElementById('ss_initial_cash').value = data.initial_cash;
+                document.getElementById('startShiftModal').style.display = 'block';
+              });
+          }
+        function closeStartShiftModal() {
+            document.getElementById('startShiftModal').style.display = 'none';
+          }
     </script>
 {% endblock %}
 
 {% block object-tools-items %}
     <button type="button" class="btn btn-primary" onclick="fetchTodaysOrders()">{% trans "Aktiv sifarişlər" %}</button>
-    <button type="button" class="btn btn-primary ml-2" onclick="location.href='{% url 'admin:orders_statistics_calculate_till_now' %}'">{% trans "Hesabatı hazırla" %}</button>
 
-    <button class="btn btn-secondary ml-2 mr-2" type="button" onclick="showStatisticsModal()">
-        {% trans "Digər hesabatlar" %}
+    {# Start Shift button #}
+    <button
+        id="startShiftBtn"
+        type="button"
+        class="btn btn-primary ml-2"
+        onclick="showStartShiftModal()"
+    >
+        {% trans "Növbəni Başla" %}
     </button>
+
+    <button
+        id="endShiftBtn"
+        type="button"
+        class="btn btn-danger ml-2"
+        style="display:none;"
+        onclick="showEndShiftModal()"
+    >
+        {% trans "Növbəni Bağla" %}
+    </button>
+
+
+    {% comment %} <button type="button" class="btn btn-primary ml-2" onclick="location.href='{% url 'admin:orders_statistics_calculate_till_now' %}'">{% trans "Hesabatı hazırla" %}</button> {% endcomment %}
+
+    {% comment %} <button class="btn btn-secondary ml-2 mr-2" type="button" onclick="showStatisticsModal()">
+        {% trans "Digər hesabatlar" %}
+    </button> {% endcomment %}
+    
+
+
 
     {{ block.super }}
 {% endblock %}
@@ -170,4 +254,141 @@
             </div>
         </div>
     </div>
+
+    <!-- Start Shift Modal -->
+    <div id="startShiftModal" class="modal" style="display:none;">
+        <div class="modal-content">
+        <h3>{% trans "Növbəni Başla" %}</h3>
+        <form method="post" action="{% url 'admin:orders_statistics_start_shift' %}">
+            {% csrf_token %}
+    
+            <div class="form-group mt-3">
+            <label for="ss_initial_cash" class="font-weight-bold">
+                {% trans "Başlanğıc Nağd (AZN)" %}
+            </label>
+            <input
+                id="ss_initial_cash"
+                name="initial_cash"
+                type="number"
+                step="0.01"
+                class="form-control form-control-lg text-right"
+                placeholder="0.00"
+                required
+            />
+            <small class="form-text text-muted">
+                {% trans "Buraya əvvəlki növbədən qalan nağdı daxil edin." %}
+            </small>
+            </div>
+    
+            <div class="form-group mt-4">
+            <label for="ss_notes" class="font-weight-bold">
+                {% trans "Qeydlər (ixt.)" %}
+            </label>
+            <textarea
+                id="ss_notes"
+                name="notes"
+                rows="3"
+                class="form-control"
+                placeholder="{% trans 'İstəsəniz, burada qeydlər əlavə edin.' %}"
+            ></textarea>
+            </div>
+    
+            <div class="modal-footer justify-content-center mt-4">
+            <button type="submit" class="btn btn-success btn-lg mr-2">
+                {% trans "Başla" %}
+            </button>
+            <button type="button" class="btn btn-secondary btn-lg" onclick="closeStartShiftModal()">
+                {% trans "Bağla" %}
+            </button>
+            </div>
+        </form>
+        </div>
+    </div>
+    
+
+    <!-- End Shift Modal -->
+    <div id="endShiftModal" class="modal" style="display:none;">
+        <div class="modal-content">
+        <h3>{% trans "Növbəni Bağla" %}</h3>
+        <form id="endShiftForm" method="post" action="{% url 'admin:orders_statistics_end_shift' 0 %}">
+            {% csrf_token %}
+    
+            <table class="table table-striped table-bordered" style="margin-top: 1em;">
+            <thead>
+                <tr>
+                <th style="width:70%;">{% trans "Açıqlama" %}</th>
+                <th style="width:30%;">{% trans "Məbləğ (AZN)" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                <td>{% trans "Nağd başlanğıc" %}</td>
+                <td><span id="es_initial_cash"></span></td>
+                </tr>
+                <tr>
+                <td>{% trans "Nağd qazanılmış" %}</td>
+                <td><span id="es_cash_total"></span></td>
+                </tr>
+                <tr>
+                <td>{% trans "Kartla ümumi" %}</td>
+                <td><span id="es_card_total"></span></td>
+                </tr>
+                <tr>
+                <td>{% trans "Digər ödənişlər" %}</td>
+                <td><span id="es_other_total"></span></td>
+                </tr>
+                <tr class="table-active">
+                <td><strong>{% trans "Kassada nağd (Toplam)" %}</strong></td>
+                <td><strong><span id="es_cash_in_hand"></span></strong></td>
+                </tr>
+                <tr>
+                <td>{% trans "Ümumi cəmi" %}</td>
+                <td><span id="es_total"></span></td>
+                </tr>
+            </tbody>
+            </table>
+    
+            <div class="form-group row mt-4">
+                <label
+                for="es_withdrawn_amount"
+                class="col-sm-4 col-form-label font-weight-bold"
+                >
+                {% trans "Çəkilən məbləğ (AZN)" %}
+                </label>
+                <div class="col-sm-4">
+                <input
+                    id="es_withdrawn_amount"
+                    name="withdrawn_amount"
+                    type="number"
+                    step="0.01"
+                    class="form-control text-right"
+                    placeholder="0.00"
+                    style="max-width:150px;"
+                    required
+                />
+                <small class="form-text text-muted">
+                    {% trans "Burada kassadan götürəcəyiniz məbləği daxil edin; əgər götürməyəcəksinizsə, 0 qeyd edin." %}
+                </small>
+                </div>
+            </div>
+              
+    
+              <div class="modal-footer justify-content-center mt-3">
+                <button type="submit" class="btn btn-warning btn-lg mr-2">
+                  {% trans "Bitir" %}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-lg"
+                  onclick="closeEndShiftModal()"
+                >
+                  {% trans "Ləğv et" %}
+                </button>
+            </div>
+        </form>
+        </div>
+    </div>
+  
+  
+  
 {% endblock %}

@@ -1,166 +1,182 @@
 from django.db import models
-
-from apps.commons.models import DateTimeModel
+from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from django.db.models import Sum
-
-from apps.orders.models import Order
-
-import datetime
-import calendar
-from datetime import timedelta
+from decimal import Decimal
 
 from simple_history.models import HistoricalRecords
 
+from apps.commons.models import DateTimeModel
+from apps.orders.models import Order
+from apps.payments.models import Payment
+
+User = get_user_model()
+
 
 class StatisticsManager(models.Manager):
-
+    # === Existing summary methods ===
     def calculate_per_waitress(self, date=None):
         if not date:
-            # Default to today if no date is provided
-            date = timezone.localdate() - timedelta(days=1)
-
+            date = timezone.localdate() - timezone.timedelta(days=1)
         waitresses_orders = Order.objects.filter(
             created_at__date=date,
-            is_paid=True,  # Considering only paid orders
-            waitress__isnull=False  # Ensuring orders have an assigned waitress
-        ).values('waitress', 'waitress__username', 'waitress__first_name', 'waitress__last_name').annotate(total_price=Sum('total_price'))
-
+            is_paid=True,
+            waitress__isnull=False
+        ).values(
+            'waitress', 'waitress__username', 'waitress__first_name', 'waitress__last_name'
+        ).annotate(total_price=Sum('total_price'))
         for order in waitresses_orders:
             waitress_info = f"{order['waitress__username']} - {order['waitress__first_name']} {order['waitress__last_name']}"
-
-            obj, created = self.update_or_create(
+            self.update_or_create(
                 title='per_waitress',
                 date=date,
                 waitress_info=waitress_info,
-                defaults={
-                    'total': order['total_price'],
-                }
+                defaults={'total': order['total_price']}
             )
 
     def calculate_daily(self, date=None):
         if not date:
-            # Default to today if no date is provided
-            date = timezone.localdate() - timedelta(days=1)
-
+            date = timezone.localdate() - timezone.timedelta(days=1)
         self.calculate_per_waitress(date=date)
-
         existing_stat = self.filter(title='daily', date=date).first()
         if not existing_stat:
             start_of_day = timezone.make_aware(
-                datetime.datetime.combine(date, datetime.time.min))
+                timezone.datetime.combine(date, timezone.datetime.min.time()))
             end_of_day = timezone.make_aware(
-                datetime.datetime.combine(date, datetime.time.max))
-
-            daily_total = Order.objects.filter(created_at__range=(
-                start_of_day, end_of_day), is_paid=True).aggregate(Sum('total_price'))['total_price__sum'] or 0
-
+                timezone.datetime.combine(date, timezone.datetime.max.time()))
+            daily_total = Order.objects.filter(
+                created_at__range=(start_of_day, end_of_day),
+                is_paid=True
+            ).aggregate(sum=Sum('total_price'))['sum'] or 0
             if not daily_total:
                 return
-
-            obj, created = self.update_or_create(
-                title='daily',
-                date=date,
+            existing_stat, _ = self.update_or_create(
+                title='daily', date=date,
                 defaults={'total': daily_total}
             )
-
-        return existing_stat or obj
+        return existing_stat
 
     def calculate_monthly(self, date=None):
         if not date:
-            # Default to this month if no date is provided
-            date = timezone.localdate() - timedelta(days=1)
-        first_of_month = date.replace(day=1)
+            date = timezone.localdate() - timezone.timedelta(days=1)
+        first = date.replace(day=1)
         last_day = date.replace(
-            day=calendar.monthrange(date.year, date.month)[1])
-
-        for single_date in (first_of_month + datetime.timedelta(days=n) for n in range((last_day - first_of_month).days + 1)):
-            self.calculate_daily(single_date)
-
-        monthly_total = self.filter(title='daily', date__range=[
-                                    first_of_month, last_day]).aggregate(Sum('total'))['total__sum'] or 0
-
-        if not monthly_total:
+            day=models.functions.datetime_extract('day', date))
+        for n in range((last_day - first).days + 1):
+            self.calculate_daily(first + timezone.timedelta(days=n))
+        total = self.filter(title='daily', date__range=[first, last_day]).aggregate(
+            sum=Sum('total'))['sum'] or 0
+        if not total:
             return
-
-        monthly_stat, created = self.update_or_create(
-            title='monthly',
-            date=first_of_month,
-            defaults={'total': monthly_total}
-        )
-        return monthly_stat
+        return self.update_or_create(title='monthly', date=first, defaults={'total': total})
 
     def calculate_yearly(self, date=None):
         if not date:
-            # Default to this year if no date is provided
-            date = timezone.localdate() - timedelta(days=1)
-        first_of_year = date.replace(month=1, day=1)
-        last_month = date.month
-
-        for month in range(1, last_month + 1):
-            month_date = first_of_year.replace(month=month)
-            self.calculate_monthly(month_date)
-
-        yearly_total = self.filter(title='monthly', date__year=date.year).aggregate(
-            Sum('total'))['total__sum'] or 0
-
-        if not yearly_total:
+            date = timezone.localdate() - timezone.timedelta(days=1)
+        first = date.replace(month=1, day=1)
+        for month in range(1, date.month + 1):
+            self.calculate_monthly(first.replace(month=month))
+        total = self.filter(title='monthly', date__year=date.year).aggregate(
+            sum=Sum('total'))['sum'] or 0
+        if not total:
             return
+        return self.update_or_create(title='yearly', date=first, defaults={'total': total})
 
-        yearly_stat, created = self.update_or_create(
-            title='yearly',
-            date=first_of_year,
-            defaults={'total': yearly_total}
-        )
-        return yearly_stat
+    def calculate_till_now(self, user=None):
+        """
+        Update the existing 'till_now' Statistics record with fresh
+        cumulative totals and payment‐type breakdowns; do nothing if none exists.
+        """
+        # 1) Find the existing till_now stat
+        stat = self.filter(
+            title='till_now', is_z_checked=False, is_closed=False,
+            started_by=user
+        ).first()
+        if not stat:
+            # nothing to update if no open till_now record
+            return None
 
-    def calculate_till_now(self):
+        # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-        till_now_total = orders.aggregate(
-            Sum('total_price')
-        )['total_price__sum'] or 0
+        total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
 
-        if not till_now_total:
-            return self
+        # 3) Payment‐type breakdown
+        payments = Payment.objects.filter(orders__in=orders).distinct()
+        totals = payments.values('payment_type').annotate(
+            sum=Sum('final_price'))
+        cash = next((t['sum'] for t in totals if t['payment_type']
+                     == Payment.PaymentType.CASH),  Decimal('0.00'))
+        card_total = next((t['sum'] for t in totals if t['payment_type']
+                          == Payment.PaymentType.CARD),  Decimal('0.00'))
+        other_total = next((t['sum'] for t in totals if t['payment_type']
+                           == Payment.PaymentType.OTHER), Decimal('0.00'))
 
-        till_now_stat, created = self.update_or_create(
-            title='till_now',
-            is_z_checked=False,
-            defaults={
-                'total': till_now_total,
-                'date': timezone.localdate(),
-            }
-        )
-        till_now_stat.orders.add(*orders)
-        till_now_stat.save()
-        return till_now_stat
+        # 4) Overwrite all relevant fields
+        stat.total = total + stat.initial_cash
+        stat.date = timezone.localdate()
+        stat.started_by = user or stat.started_by
+        stat.cash_total = cash
+        stat.card_total = card_total
+        stat.other_total = other_total
+        stat.withdrawn_amount = Decimal('0.00')
+        stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
+        stat.save()
+
+        # 5) Refresh linked orders
+        stat.orders.set(orders)
+
+        return stat
+
+    def start_shift(self, user):
+        if self.filter(is_closed=False).exists():
+            raise ValidationError("Açıq növbən var.")
+        last = self.filter(is_closed=True).order_by(
+            '-end_time').first()
+        initial = last.remaining_cash if last else Decimal('0.00')
+        return self.create(title="till_now", started_by=user, start_time=timezone.now(), initial_cash=initial)
+
+    def end_shift(self, shift, user, withdrawn_amount=Decimal('0.00')):
+        if shift.started_by != user:
+            raise ValidationError(
+                "Növbəni bitirə bilmək üçün onu açan admin olmalısınız.")
+        if shift.is_closed:
+            raise ValidationError("Növbə artıq bağlanıb.")
+
+        if withdrawn_amount > shift.cash:
+            raise ValidationError(
+                "Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.")
+
+        shift.withdrawn_amount = withdrawn_amount
+        shift.remaining_cash = shift.cash - withdrawn_amount
+        shift.end_time = timezone.now()
+        shift.ended_by = user
+        shift.is_closed = True
+        shift.is_z_checked = True
+        shift.save()
+
+        shift.orders.update(is_deleted=True)
+        return shift
 
     def delete_orders_for_statistics_day(self, date):
-        # First check if statistics exist for the day, if not calculate them
         self.calculate_daily(date)
-
-        start_of_day = timezone.make_aware(
-            datetime.datetime.combine(date, datetime.time.min))
-        end_of_day = timezone.make_aware(
-            datetime.datetime.combine(date, datetime.time.max))
-
-        # Filter and delete orders within the specified range that are paid
-        orders = Order.objects.filter(created_at__range=(
-            start_of_day, end_of_day), is_paid=True)
-        count = orders.count()  # Count orders before deletion for reporting
+        start = timezone.make_aware(timezone.datetime.combine(
+            date, timezone.datetime.min.time()))
+        end = timezone.make_aware(timezone.datetime.combine(
+            date, timezone.datetime.max.time()))
+        orders = Order.objects.filter(
+            created_at__range=(start, end), is_paid=True)
+        count = orders.count()
         orders.update(is_deleted=True)
-        return count  # Return the number of deleted orders for confirmation/logging
+        return count
 
 
 class Statistics(DateTimeModel, models.Model):
     TITLE_CHOICES = (
-        ("till_now", "Hesabat"),
-        ("daily", "Günlük"),
-        ("monthly", "Aylıq"),
-        ("yearly", "İllik"),
+        ("till_now", "Hesabat"), ("daily", "Günlük"),
+        ("monthly", "Aylıq"), ("yearly", "İllik"),
         ("per_waitress", "Ofisianta görə")
     )
-
     title = models.CharField(
         max_length=32,
         choices=TITLE_CHOICES,
@@ -168,47 +184,118 @@ class Statistics(DateTimeModel, models.Model):
         verbose_name="Başlıq"
     )
     total = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0, verbose_name="Ümumi")
-    date = models.DateField(default=timezone.now, verbose_name="Tarix")
-
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Ümumi məbləğ"
+    )
+    date = models.DateField(
+        default=timezone.now,
+        verbose_name="Tarix"
+    )
     waitress_info = models.CharField(
-        max_length=90, blank=True, null=True,
-        help_text="Ofisiant kodu və adı.",
+        max_length=90,
+        blank=True,
+        null=True,
         verbose_name="Ofisiant"
     )
     is_z_checked = models.BooleanField(
-        default=False, verbose_name="Hesabat təsdiqlənib?")
-    orders = models.ManyToManyField(
-        Order, blank=True, related_name="statistics"
+        default=False,
+        verbose_name="Hesabat təsdiqləndi?"
     )
-    objects = StatisticsManager()
+    orders = models.ManyToManyField(
+        Order,
+        blank=True,
+        related_name="statistics",
+        verbose_name="Sifarişlər"
+    )
+
+    # --- Shift fields ---
+    started_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='shifts_started',
+        verbose_name='Növbəni açan'
+    )
+    start_time = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Növbənin başlanma vaxtı'
+    )
+    initial_cash = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Başlanğıc nağd'
+    )
+    ended_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='shifts_ended',
+        verbose_name='Növbəni bağlayan'
+    )
+    end_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Növbənin bitmə vaxtı'
+    )
+    is_closed = models.BooleanField(
+        default=False,
+        verbose_name='Növbə bağlandı?'
+    )
+    cash_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Nağd qazanılmış'
+    )
+    card_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Kartla ümumi'
+    )
+    other_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Digər ödənişlər'
+    )
+    withdrawn_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Çıxarılan məbləğ'
+    )
+    remaining_cash = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Qalan nağd'
+    )
+    notes = models.TextField(
+        blank=True,
+        verbose_name='Qeydlər'
+    )
     history = HistoricalRecords()
+
+    objects = StatisticsManager()
 
     class Meta:
         verbose_name = "Statistika"
         verbose_name_plural = "Statistikalar 📊"
 
-    def __str__(self) -> str:
-        if self.title == "per_waitress":
-            return f"{self.waitress_info} Statistics for {self.date}"
-        return f"{self.title} Statistics for {self.date}"
+    def clean(self):
+        if self.withdrawn_amount > self.cash_total:
+            raise ValidationError(
+                {'withdrawn_amount': 'Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.'}
+            )
 
     @property
-    def print_check(self):
-        return f"""
-            Tarix:{self.date.strftime('%d.%m.%Y %H:%M:%S')}
-            Məbləğ: {self.total}
-            Başlıq: {self.get_title_display()}
-        """
+    def cash(self):
+        return round(self.cash_total + self.initial_cash)
 
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
-
-    def delete_orders_till_now(self):
-        # Filter and delete all paid orders up to the current date
-        orders = self.orders.all()
-        count = orders.count()  # Count orders before deletion for reporting
-        orders.update(is_deleted=True)
-        self.is_z_checked = True
-        self.save()
-        return count
+    def __str__(self):
+        status = 'Bağlandı' if self.is_closed else 'Açıq'
+        return f"{self.started_by} tərəfindən {self.start_time:%Y-%m-%d %H:%M} tarixində başlayan növbə ({status})"
