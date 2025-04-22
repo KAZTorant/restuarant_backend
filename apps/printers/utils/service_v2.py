@@ -245,9 +245,10 @@ class PrinterService:
     @staticmethod
     def _send_text_to_printer(text, ip_address, port):
         ESC_CUT = b'\x1D\x56\x00'
+        mapped = PrinterService.mapping(text)
         try:
             with socket.create_connection((ip_address, port), timeout=5) as s:
-                s.sendall(text.encode('cp857', errors='replace') + ESC_CUT)
+                s.sendall(mapped.encode('cp857', errors='replace') + ESC_CUT)
             return DummyResponse(200)
         except Exception as e:
             print(f"Printerə data göndərilərkən xəta: {e}")
@@ -459,3 +460,23 @@ class PrinterService:
         if response.status_code == 200:
             return True, "Z‑hesabat uğurla çap edildi."
         return False, "Printerə qoşulmaq mümkün olmadı."
+
+    @staticmethod
+    def mapping(text: str) -> str:
+        """
+        Map Azerbaijani-specific characters to ASCII equivalents:
+          ə→e, Ə→E, ı→i, İ→I, ö→o, Ö→O,
+          ü→u, Ü→U, ğ→g, Ğ→G, ş→s, Ş→S, ç→c, Ç→C
+        """
+        char_map = {
+            'ə': 'e', 'Ə': 'E',
+            'ı': 'i', 'İ': 'I',
+            'ö': 'o', 'Ö': 'O',
+            'ü': 'u', 'Ü': 'U',
+            'ğ': 'g', 'Ğ': 'G',
+            'ş': 's', 'Ş': 'S',
+            'ç': 'c', 'Ç': 'C',
+        }
+        for src, dst in char_map.items():
+            text = text.replace(src, dst)
+        return text
