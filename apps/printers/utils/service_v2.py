@@ -130,11 +130,13 @@ class PrinterService:
         total = 0
         for item in order.order_items.all():
             line_total = item.quantity * item.meal.price
+            comment = getattr(item, 'comment', '').strip() or None
             items.append({
                 'name': item.meal.name,
                 'quantity': item.quantity,
                 'price': item.meal.price,
-                'line_total': line_total
+                'line_total': line_total,
+                'comment': comment,
             })
             total += line_total
         return {
@@ -192,29 +194,45 @@ class PrinterService:
 
     @staticmethod
     def _format_worker_receipt(data):
+        """
+        Format a worker (preparation) receipt with enlarged font
+        and unique comments for each meal-group.
+        """
+
+        # ESC/POS commands for double width & height
+        ESC = '\x1B'
+        DOUBLE_SIZE = ESC + '!\x11'
+        NORMAL_SIZE = ESC + '!\x00'
         width = 48
         lines = []
 
-        lines.append("=" * width)
-        lines.append("HAZIRLANMA ÇEKİ".center(width))
-        lines.append("=" * width)
+        # Header in double size
+        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
+        lines.append(
+            DOUBLE_SIZE + 'HAZIRLANMA ÇEKİ'.center(width) + NORMAL_SIZE)
+        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
         lines.append(f"Tarix: {data['date']}")
         lines.append(
             f"Masa: {data['table']['room']} - {data['table']['number']}")
-        if data['orders']:
-            lines.append(f"Sifariş №: {data['orders'][0]['order_id']}")
-        else:
-            lines.append("Sifariş №: N/A")
-        lines.append("-" * width)
+        order_ids = [str(o['order_id']) for o in data['orders']]
+        lines.append(f"Sifariş №: {', '.join(order_ids)}")
+        lines.append('-' * width)
 
+        # There may be just one grouped order in data['orders']
         for order in data['orders']:
-            lines.append(f"Sifariş #{order['order_id']}")
+            # Print each meal-group and its own comments
             for item in order['items']:
+                # Meal line
                 lines.append(f"{item['quantity']}x {item['name']}")
-            lines.append("-" * width)
+                # Now, if this group has comments, print each in double size
+                for comment in item.get('comments', []):
+                    lines.append(
+                        DOUBLE_SIZE + f"  Qeyd: {comment}" + NORMAL_SIZE
+                    )
+            lines.append('-' * width)
 
         lines.append("Zəhmət olmasa sifarişi düzgün hazırlayın!")
-        lines.append("=" * width)
+        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
         lines.append("\n\n\n")
 
         return "\n".join(lines)

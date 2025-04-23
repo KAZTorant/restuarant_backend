@@ -116,7 +116,8 @@ class ListOrderItemSerializer(serializers.ModelSerializer):
             "meal",
             "quantity",
             "confirmed",
-            "customer_number"
+            "customer_number",
+            "comment",
         )
 
     def get_meal(self, obj: OrderItem):
@@ -135,3 +136,31 @@ class ListOrderSerializer(serializers.ModelSerializer):
             "pk",
             "is_main",
         )
+
+
+class AddCommentToOrderItemSerializer(serializers.Serializer):
+    meal_id = serializers.IntegerField(
+        help_text="Şərh əlavə ediləcək yeməyin ID-si"
+    )
+    order_id = serializers.IntegerField(
+        help_text="Şərh əlavə ediləcək orderin ID-si"
+    )
+    comment = serializers.CharField(
+        help_text="Sifariş məhsuluna yazılacaq şərh",
+        allow_blank=False
+    )
+
+    def validate_meal_id(self, value):
+        if not Meal.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Yemək tapılmadı.")
+        return value
+
+    def validate(self, attrs):
+        table = self.context['table']
+        # ensure there is an unpaid main order
+        order = table.orders.exclude(is_deleted=True).filter(
+            is_paid=False, is_main=True).first()
+        if not order:
+            raise serializers.ValidationError("Aktiv sifariş tapılmadı.")
+        attrs['order'] = order
+        return attrs

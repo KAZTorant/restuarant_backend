@@ -135,6 +135,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
                     item.save(update_fields=['confirmed'])
 
     def prepare_receipt_data(self, orders, items):
+        # Determine the order ID string and table reference
         if len(orders) == 1:
             order_id_str = str(orders[0].id)
             table = orders[0].table
@@ -142,33 +143,46 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
             order_id_str = ", ".join(str(o.id) for o in orders)
             table = orders[0].table
 
-        # Group items by meal and aggregate quantities
+        # Group items by meal and aggregate quantities + collect comments
         meal_groups = {}
         for item in items:
-            meal_id = item.meal.id
-            if meal_id not in meal_groups:
-                meal_groups[meal_id] = {
-                    "name": item.meal.name,
-                    "quantity": 0,
-                    "price": item.meal.price,
-                    "line_total": 0
+            mid = item.meal.id
+            if mid not in meal_groups:
+                meal_groups[mid] = {
+                    "name":       item.meal.name,
+                    "quantity":   0,
+                    "price":      item.meal.price,
+                    "line_total": 0,
+                    "comments":   set(),      # collect into a set
                 }
-            meal_groups[meal_id]["quantity"] += item.quantity
-        for group in meal_groups.values():
-            group["line_total"] = group["quantity"] * group["price"]
+            grp = meal_groups[mid]
+            grp["quantity"] += item.quantity
 
-        grouped_items = list(meal_groups.values())
-        order_total = sum(item["line_total"] for item in grouped_items)
+            # collect any non-empty comment
+            comment = getattr(item, "comment", None)
+            if comment and comment.strip():
+                grp["comments"].add(comment.strip())
 
+        # Finalize each group: compute line_total and turn comments into a sorted list
+        grouped_items = []
+        for grp in meal_groups.values():
+            grp["line_total"] = grp["quantity"] * grp["price"]
+            grp["comments"] = sorted(grp["comments"])
+            grouped_items.append(grp)
+
+        # Compute order_total once per the grouped items
+        order_total = sum(g["line_total"] for g in grouped_items)
+
+        # Build the receipt payload
         receipt_data = {
             "date": datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
             "table": {
-                "room": table.room.name if table and table.room else "N/A",
+                "room":   table.room.name if table and table.room else "N/A",
                 "number": table.number if table else "N/A"
             },
             "orders": [{
-                "order_id": order_id_str,
-                "items": grouped_items,
+                "order_id":    order_id_str,
+                "items":       grouped_items,
                 "order_total": order_total
             }]
         }

@@ -115,6 +115,12 @@ class OrderItem(DateTimeModel, models.Model):
     )
     confirmed = models.BooleanField(default=False)
 
+    comment = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Şərh"
+    )
+
     history = HistoricalRecords()
     objects = OrderItemManager()
 
