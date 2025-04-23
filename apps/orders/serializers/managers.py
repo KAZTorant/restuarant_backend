@@ -19,6 +19,8 @@ class DeleteOrderItemV2Serializer(serializers.Serializer):
         min_value=1,
         help_text="Azaldılacaq miqdar"
     )
+    confirmed = serializers.BooleanField(default=False)
+
     reason = serializers.ChoiceField(
         choices=OrderItemDeletionLog.REASON_CHOICES,
         required=False,
