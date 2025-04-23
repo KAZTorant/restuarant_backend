@@ -1,11 +1,14 @@
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.forms import ValidationError
 from apps.commons.models import DateTimeModel
 from apps.meals.models import Meal
+from apps.orders.models.order_deletion import OrderItemDeletionLog
 from apps.tables.models import Table
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.timezone import now
 from simple_history.models import HistoricalRecords
 
 
@@ -127,3 +130,52 @@ class OrderItem(DateTimeModel, models.Model):
             return f"Müştəri {self.customer_number}: {self.quantity} x {self.meal.name} | Qiymət: {self.quantity * self.meal.price}"
         except:
             return "Yemək Yoxdur"
+
+    def delete(self, *args, reason=None, deleted_by=None, comment=None, **kwargs):
+        """
+        - Unconfirmed items: delete immediately, no logging/inventory action.
+        - Confirmed items: must supply reason ('return' or 'waste');
+          logs the deletion (with optional comment), and if reason=='return'
+          returns ingredients to inventory.
+        """
+        # 1) Simple delete if not confirmed
+        if not self.confirmed:
+            return super().delete(*args, **kwargs)
+
+        # 2) Validate reason
+        if reason not in (
+            OrderItemDeletionLog.REASON_RETURN,
+            OrderItemDeletionLog.REASON_WASTE
+        ):
+            raise ValidationError(
+                "Təsdiqlənmiş məhsulları silmək üçün reason='return' və ya 'waste' olmalıdır."
+            )
+
+        # 3) Capture waitress name
+        waitress = self.order.waitress
+        waitress_name = waitress.get_full_name() if waitress else ""
+
+        # 4) Create the deletion log
+        OrderItemDeletionLog.objects.create(
+            order_id=self.order_id,
+            order_item_id=self.pk,
+            table_id=self.order.table_id,
+            waitress_name=waitress_name,
+            meal_name=str(self.meal.name),
+            quantity=self.quantity,
+            price=self.price,
+            customer_number=self.customer_number,
+            reason=reason,
+            deleted_by=deleted_by,
+            comment=comment,
+            deleted_at=now()
+        )
+
+        # 5) Return inventory on 'return'
+        if reason == OrderItemDeletionLog.REASON_RETURN:
+            from apps.inventory_connector.signals import OrderItemInventoryManager
+
+            OrderItemInventoryManager._process_mappings(self, operation='add')
+
+        # 6) Finally delete the record
+        return super().delete(*args, **kwargs)

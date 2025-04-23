@@ -1,4 +1,5 @@
 from apps.orders.serializers.managers import DeleteOrderItemSerializer
+from apps.orders.serializers.managers import DeleteOrderItemV2Serializer
 from apps.orders.serializers.managers import ListWaitressSerializer
 
 from apps.orders.serializers.orders import ListOrderSerializer

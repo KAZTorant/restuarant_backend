@@ -2,10 +2,56 @@ from rest_framework import serializers
 from apps.meals.models import Meal
 from apps.orders.models import Order
 from apps.orders.models import OrderItem
+from apps.orders.models import OrderItemDeletionLog
 from apps.users.models import User
 
-# from apps.tables.models import Table
-# from apps.users.models import User
+
+class DeleteOrderItemV2Serializer(serializers.Serializer):
+    order_id = serializers.IntegerField(
+        required=False,
+        help_text="Sifarişin ID-si (varsa)"
+    )
+    meal_id = serializers.IntegerField(
+        help_text="Silinəcək yeməyin ID-si"
+    )
+    quantity = serializers.IntegerField(
+        default=1,
+        min_value=1,
+        help_text="Azaldılacaq miqdar"
+    )
+    reason = serializers.ChoiceField(
+        choices=OrderItemDeletionLog.REASON_CHOICES,
+        required=False,
+        help_text="Təsdiqlənmiş məhsullar üçün silinmə səbəbi: 'return' və ya 'waste'"
+    )
+    reason_comment = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Silinmə səbəbinə əlavə izah (şərh)"
+    )
+
+    def validate_meal_id(self, value):
+        try:
+            Meal.objects.get(id=value)
+        except Meal.DoesNotExist:
+            raise serializers.ValidationError("Yemək tapılmadı.")
+        return value
+
+    def validate(self, attrs):
+        order = self.context.get('order')
+        meal_id = attrs.get('meal_id')
+        try:
+            item = OrderItem.objects.get(order=order, meal_id=meal_id)
+        except OrderItem.DoesNotExist:
+            raise serializers.ValidationError({
+                'meal_id': "Sifariş məhsulu tapılmadı."
+            })
+        # require reason for confirmed items
+        if item.confirmed and not attrs.get('reason'):
+            raise serializers.ValidationError({
+                'reason': "Təsdiqlənmiş məhsullar üçün səbəb tələb olunur."
+            })
+        return attrs
 
 
 class DeleteOrderItemSerializer(serializers.Serializer):
