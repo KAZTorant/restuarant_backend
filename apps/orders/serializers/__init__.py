@@ -9,3 +9,5 @@ from apps.orders.serializers.orders import ListOrderItemSerializer
 from apps.orders.serializers.orders import OrderItemSerializer
 from apps.orders.serializers.orders import OrderItemInputSerializer
 from apps.orders.serializers.orders import OrderItemOutputSerializer
+
+from apps.orders.serializers.orders import AddCommentToOrderItemSerializer

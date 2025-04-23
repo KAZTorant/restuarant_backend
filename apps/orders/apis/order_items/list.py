@@ -65,10 +65,15 @@ class ListOrderItemsAPIView(ListAPIView):
                     'quantity': 0,
                     'price': 0,
                     # Latest timestamp in the group.
-                    'item_added_at': item.item_added_at
+                    'item_added_at': item.item_added_at,
+                    'comment': set(),
                 }
             groups[key]['quantity'] += item.quantity
             groups[key]['price'] += item.price
+
+            if getattr(item, 'comment', None):
+                groups[key]['comment'].add(item.comment.strip())
+
             if item.item_added_at and item.item_added_at > groups[key]['item_added_at']:
                 groups[key]['item_added_at'] = item.item_added_at
 
@@ -82,6 +87,7 @@ class ListOrderItemsAPIView(ListAPIView):
             dummy_item.quantity = data['quantity']
             dummy_item.price = data['price']
             dummy_item.item_added_at = data['item_added_at']
+            dummy_item.comment = "".join(sorted(data['comment']))
             aggregated_items.append(dummy_item)
 
         # Sort aggregated items by meal name, then by customer_number, then by confirmed flag.
