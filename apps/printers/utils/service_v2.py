@@ -129,12 +129,20 @@ class PrinterService:
         items = []
         total = 0
         for item in order.order_items.all():
-            line_total = item.quantity * item.meal.price
-            comment = getattr(item, 'comment', '').strip() or None
+            if item.meal.is_extra:
+                name = item.description
+                price = item.price or 0
+            else:
+                name = item.meal.name
+                price = item.meal.price or 0
+
+            line_total = item.quantity * price
+            comment = (getattr(item, 'comment', '') or "").strip() or None
+
             items.append({
-                'name': item.meal.name,
+                'name': name,
                 'quantity': item.quantity,
-                'price': item.meal.price,
+                'price': price,
                 'line_total': line_total,
                 'comment': comment,
             })

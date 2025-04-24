@@ -104,7 +104,10 @@ class TransferOrderItemsAPIView(APIView):
                 )
                 src_order.update_total_price()
                 tgt_order.update_total_price()
+                if not src_order.order_items.exists():
+                    src_order.delete()
         except Exception as exc:
+            print(exc)
             return Response(
                 {"error": str(exc)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

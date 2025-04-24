@@ -62,46 +62,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Meal not found")
         return value
 
-    def create(self, validated_data):
-        with transaction.atomic():
-            # Extract meal details and fetch the meal instance
-            meal_data = validated_data.pop('meal', None)
-            meal_id = meal_data.get("id", 0)
-            meal = Meal.objects.filter(id=meal_id).first()
-
-            # Default to 1 if not specified
-            quantity = validated_data.get('quantity', 1)
-
-            # Fetch the order instance and lock it
-            order = Order.objects.select_for_update().get(
-                id=self.context['order_id'])
-
-            # Attempt to get or create the order item
-            order_item, created = OrderItem.objects.get_or_create(
-                meal=meal,
-                order=order,
-                defaults={
-                    'quantity': quantity,
-                    'price': meal.price * quantity
-                }
-            )
-
-            # If the order item was not created, it means it already exists, so update the quantity
-            if not created:
-                # Since we're in a transaction block with select_for_update, we can safely update
-                order_item.quantity += quantity
-                order_item.price += meal.price * quantity
-                order_item.item_added_at = timezone.now()
-                order_item.save()
-
-            # Update the total price of the order
-            order.update_total_price()
-
-            # Ensure changes are persisted and visible outside this function
-            order_item.refresh_from_db()
-
-        return order_item
-
 
 class OrderItemInputSerializer(serializers.Serializer):
     meal_id = serializers.IntegerField(

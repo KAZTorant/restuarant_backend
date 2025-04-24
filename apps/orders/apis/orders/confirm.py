@@ -146,12 +146,20 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
         # Group items by meal and aggregate quantities + collect comments
         meal_groups = {}
         for item in items:
-            mid = item.meal.id
+            if item.meal.is_extra:
+                mid = f'{item.meal.id}_{item.id}'
+                name = item.description
+                price = item.price
+            else:
+                mid = item.meal.id
+                name = item.meal.name
+                price = item.meal.price
+
             if mid not in meal_groups:
                 meal_groups[mid] = {
-                    "name":       item.meal.name,
+                    "name":       name,
                     "quantity":   0,
-                    "price":      item.meal.price,
+                    "price":      price,
                     "line_total": 0,
                     "comments":   set(),      # collect into a set
                 }

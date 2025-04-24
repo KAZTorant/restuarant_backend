@@ -68,6 +68,7 @@ class DeleteOrderItemAPIView(APIView):
 
     @staticmethod
     def _get_order(table_id, order_id):
+
         try:
             table = Table.objects.get(pk=table_id)
         except Table.DoesNotExist:
@@ -80,6 +81,7 @@ class DeleteOrderItemAPIView(APIView):
 
     @staticmethod
     def _get_order_item(order, meal_id, confirmed=False, order_item_id=0):
+
         if order_item_id:
             return order.order_items.filter(id=order_item_id).first()
 
@@ -160,7 +162,7 @@ class DeleteOrderItemAPIView(APIView):
             order.save()
             return Response(
                 {'error': 'Sifariş artıq mövcud deyil'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_204_NO_CONTENT
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 

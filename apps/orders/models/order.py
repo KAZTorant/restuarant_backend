@@ -106,7 +106,7 @@ class OrderItem(DateTimeModel, models.Model):
     quantity = models.IntegerField(default=1, verbose_name="Miqdar")
     is_prepared = models.BooleanField(default=False)
     price = models.DecimalField(
-        max_digits=9, decimal_places=2, default=0.00, verbose_name="Məbləğ"
+        max_digits=15, decimal_places=2, default=0.00, verbose_name="Məbləğ"
     )
     is_deleted_by_adminstrator = models.BooleanField(default=False)
     item_added_at = models.DateTimeField(
@@ -127,7 +127,7 @@ class OrderItem(DateTimeModel, models.Model):
     transfer_comment = models.TextField(
         null=True,
         blank=True,
-        verbose_name="Şərh"
+        verbose_name="Transfer Şərh"
     )
 
     history = HistoricalRecords()
