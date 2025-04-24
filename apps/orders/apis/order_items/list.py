@@ -57,6 +57,14 @@ class ListOrderItemsAPIView(ListAPIView):
         groups = {}
         for item in queryset:
             key = (item.meal.id, item.confirmed, item.customer_number)
+            if item.meal.is_extra:
+                key = (
+                    item.meal.id, item.confirmed,
+                    item.customer_number, item.id
+                )
+                item.meal.name = item.description
+                item.meal.price = item.price
+
             if key not in groups:
                 groups[key] = {
                     'meal': item.meal,
@@ -67,6 +75,8 @@ class ListOrderItemsAPIView(ListAPIView):
                     # Latest timestamp in the group.
                     'item_added_at': item.item_added_at,
                     'comment': set(),
+                    'order_item_id': item.id if item.meal.is_extra else 0,
+                    'transfer_comment': item.transfer_comment,
                 }
             groups[key]['quantity'] += item.quantity
             groups[key]['price'] += item.price
@@ -88,11 +98,17 @@ class ListOrderItemsAPIView(ListAPIView):
             dummy_item.price = data['price']
             dummy_item.item_added_at = data['item_added_at']
             dummy_item.comment = "".join(sorted(data['comment']))
+            dummy_item.order_item_id = data.get("order_item_id")
+            dummy_item.transfer_comment = data.get("transfer_comment")
             aggregated_items.append(dummy_item)
 
         # Sort aggregated items by meal name, then by customer_number, then by confirmed flag.
-        aggregated_items = sorted(aggregated_items, key=lambda x: (
-            x.meal.name, x.customer_number, x.confirmed))
+        aggregated_items = sorted(
+            aggregated_items,
+            key=lambda x: (
+                x.meal.name, x.customer_number, x.confirmed
+            )
+        )
 
         serializer = self.get_serializer(aggregated_items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

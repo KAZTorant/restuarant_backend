@@ -29,11 +29,17 @@ class MealGroupSerializer(serializers.ModelSerializer):
 
 
 class MealSerializer(serializers.ModelSerializer):
+    is_extra = serializers.SerializerMethodField()
+
     class Meta:
         model = Meal
         fields = (
             "id",
             "name",
             "description",
-            "price"
+            "price",
+            "is_extra",
         )
+
+    def get_is_extra(self, meal: Meal):
+        return meal.category.is_extra if meal.category else False

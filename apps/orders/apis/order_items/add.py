@@ -37,6 +37,8 @@ class AddOrderItemAPIView(APIView):
         order_id = (request.data or {}).get("order_id")
         meal_id = (request.data or {}).get("meal_id")
         customer_number = (request.data or {}).get("customer_number", 1)
+        price = (request.data or {}).get("price", 0)
+        description = (request.data or {}).get("description", "")
 
         if not customer_number:
             return Response(
@@ -61,7 +63,12 @@ class AddOrderItemAPIView(APIView):
         try:
             with transaction.atomic():
                 order_item = self.create_order_item(
-                    order, meal, customer_number)
+                    order,
+                    meal,
+                    customer_number,
+                    price,
+                    description,
+                )
                 order.update_total_price()
         except Exception as exc:
             return Response(
@@ -108,7 +115,14 @@ class AddOrderItemAPIView(APIView):
         except Meal.DoesNotExist:
             return None
 
-    def create_order_item(self, order, meal, customer_number):
+    def create_order_item(
+        self,
+        order,
+        meal,
+        customer_number,
+        price=0,
+        description=''
+    ):
         """
         Always create a new order item for the given meal and customer.
         The order item will have:
@@ -116,11 +130,14 @@ class AddOrderItemAPIView(APIView):
           - The price set to the meal's price.
           - A confirmed flag set to False (unconfirmed).
         """
+        price = meal.price if not meal.category.is_extra else price
+
         return OrderItem.objects.create(
             order=order,
             meal=meal,
             customer_number=customer_number,
             quantity=1,        # Fixed quantity, never changed.
-            price=meal.price,
-            confirmed=False    # New order items start as unconfirmed.
+            price=price,
+            confirmed=False,    # New order items start as unconfirmed.
+            description=description,
         )
