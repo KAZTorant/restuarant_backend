@@ -1,21 +1,19 @@
-from rest_framework.views import APIView
-from django.db.models import Sum
+# apps/orders/api/remove_refactored.py
+
 from decimal import Decimal
+from django.db.models import Sum
 from django.db import models
 
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-
-from apps.orders.models import OrderItem
-
-
 from drf_yasg.utils import swagger_auto_schema
 
-from apps.orders.models import Order
-from apps.orders.serializers import DeleteOrderItemSerializer
+from apps.inventory_connector.signals import OrderItemInventoryManager
+from apps.orders.models.order_deletion import OrderItemDeletionLog
+from apps.orders.serializers import DeleteOrderItemV2Serializer
 from apps.tables.models import Table
-
 from apps.users.permissions import IsAdmin
 
 
@@ -23,78 +21,147 @@ class DeleteOrderItemAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     @swagger_auto_schema(
-        operation_description="Decrease the quantity or delete an item from an existing unpaid order for the specified table.",
-        request_body=DeleteOrderItemSerializer,
+        operation_description=(
+            "Decrease the quantity or delete an item from an existing unpaid order for the specified table. "
+            "For confirmed items, you must supply reason='return' or 'waste' and may include a reason_comment."
+        ),
+        request_body=DeleteOrderItemV2Serializer,
         responses={
-            204: 'Item quantity updated or item deleted successfully',
+            204: 'Item updated or deleted successfully',
             404: 'Order or item not found, or payment already made',
             400: 'Invalid data'
         }
     )
     def delete(self, request, table_id):
-        # Check if there is an existing unpaid order and if it belongs to the user
+        order = self._get_order(table_id, request.data.get("order_id"))
+        if order is None:
+            return self._response_not_found('Sifariş yoxdur və ya ödəniş edilib')
 
-        order_id = request.data.get("order_id", None)
-        order: (Order | None) = self.get_order(table_id, order_id)
-        if not order:
-            return Response(
-                {'error': 'Sifariş yoxdur və ya ödəniş edilib'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        meal_id = request.data.get("meal_id")
+        confirmed = request.data.get("confirmed", False)
 
-        meal_id = request.data.get("meal_id", 0)
+        order_item = self._get_order_item(
+            order,
+            meal_id,
+            confirmed
+        )
+        if order_item is None:
+            return self._response_not_found('Sifariş məhsulu tapılmadı')
 
-        if not order.order_items.exists():
-            order.is_deleted = True
-            return Response(
-                {'error': 'Sifariş yoxdur və ya ödəniş edilib'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # Extract reason and optional comment
+        reason = request.data.get("reason")
+        comment = request.data.get("reason_comment", "")
 
-        order_item: OrderItem = order.order_items.filter(
-            meal__id=meal_id
-        ).order_by('confirmed').first()
-
-        if not order_item:
-            return Response(
-                {'error': 'Sifariş yoxdur və ya ödəniş edilib'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        if order_item.quantity == 1:
-            order_item.is_deleted_by_adminstrator = True
-            order_item.save()
-            order_item.delete()
+        if order_item.confirmed:
+            error_response = self._validate_reason(reason)
+            if error_response:
+                return error_response
+            self._handle_confirmed(
+                order, order_item, reason, comment, request.user)
         else:
-            new_quantity = order_item.quantity - 1
-            order_item.quantity = new_quantity
-            order_item.price = new_quantity * order_item.meal.price
-            order_item.save()
+            self._handle_unconfirmed(order_item)
 
-        order.refresh_from_db()
-        total_price = order.order_items.aggregate(
+        self._recalculate_order(order)
+        return self._finalize_order_response(order)
+
+    @staticmethod
+    def _get_order(table_id, order_id):
+        try:
+            table = Table.objects.get(pk=table_id)
+        except Table.DoesNotExist:
+            return None
+
+        queryset = table.orders.exclude(is_deleted=True).filter(is_paid=False)
+        if order_id:
+            return queryset.filter(id=order_id).first()
+        return queryset.filter(is_main=True).first()
+
+    @staticmethod
+    def _get_order_item(order, meal_id, confirmed=False):
+        return (
+            order.order_items
+            .filter(meal__id=meal_id)
+            .filter(confirmed=confirmed)
+            .first()
+        )
+
+    @staticmethod
+    def _validate_reason(reason):
+        valid_reasons = (
+            OrderItemDeletionLog.REASON_RETURN,
+            OrderItemDeletionLog.REASON_WASTE
+        )
+        if reason not in valid_reasons:
+            return Response(
+                {'error': "Təsdiqlənmişlər üçün reason='return' və ya 'waste' tələb olunur."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return None
+
+    @staticmethod
+    def _handle_confirmed(order, order_item, reason, comment, user):
+        waitress_name = order.waitress.get_full_name() if order.waitress else ''
+
+        if order_item.quantity > 1:
+            DeleteOrderItemAPIView._decrement_and_log_single(
+                order, order_item, reason, comment, waitress_name, user
+            )
+        else:
+            # full delete with comment
+            order_item.delete(reason=reason, deleted_by=user, comment=comment)
+
+    @staticmethod
+    def _handle_unconfirmed(order_item):
+        order_item.delete()
+
+    @staticmethod
+    def _decrement_and_log_single(order, order_item, reason, comment, waitress_name, user):
+        unit_price = order_item.meal.price
+        order_item.quantity -= 1
+        order_item.price = order_item.quantity * unit_price
+        order_item.save()
+
+        # Log the single-item deletion with comment
+        OrderItemDeletionLog.objects.create(
+            order_id=order.pk,
+            order_item_id=order_item.pk,
+            table_id=order.table_id,
+            waitress_name=waitress_name,
+            meal_name=order_item.meal.name,
+            quantity=1,
+            price=unit_price,
+            customer_number=order_item.customer_number,
+            reason=reason,
+            deleted_by=user,
+            comment=comment
+        )
+
+        # Return inventory if appropriate
+        if reason == OrderItemDeletionLog.REASON_RETURN:
+            OrderItemInventoryManager._process_mappings(order_item, 'add')
+
+    @staticmethod
+    def _recalculate_order(order):
+        total = order.order_items.aggregate(
             total=Sum('price', output_field=models.DecimalField())
-        )['total']
-        order.total_price = total_price or Decimal(0)
+        )['total'] or Decimal(0)
+        order.total_price = total
         order.save()
 
+    @staticmethod
+    def _finalize_order_response(order):
         if not order.order_items.exists():
             order.is_deleted = True
             order.save()
             return Response(
-                {'error': 'Sifariş yoxdur və ya ödəniş edilib'},
+                {'error': 'Sifariş artıq mövcud deyil'},
+                status=status.HTTP_404_NOT_FOUND
             )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return Response({}, status=status.HTTP_200_OK)
-
-    def get_order(self, table_id, order_id):
-        table = Table.objects.filter(id=table_id).first()
-        if not table:
-            return Order.objects.none()
-
-        order: Order = table.orders.exclude(is_deleted=True).filter(is_paid=False, is_main=True).first() \
-            if not order_id else \
-            table.orders.exclude(is_deleted=True).filter(
-                is_paid=False).filter(id=order_id).first()
-
-        return order
+    @staticmethod
+    def _response_not_found(message):
+        return Response(
+            {'error': message},
+            status=status.HTTP_404_NOT_FOUND
+        )

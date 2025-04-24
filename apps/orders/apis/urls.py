@@ -15,6 +15,7 @@ from apps.orders.apis import ListTableOrdersAPIView
 from apps.orders.apis import ListWaitressAPIView
 from apps.orders.apis import ChangeWaitressAPIView
 
+from apps.orders.apis.order_items.comment import AddCommentToOrderItemAPIView
 from apps.orders.apis.order_items.transfer import TransferOrderItemsAPIView
 from apps.orders.apis.orders.confirm import ConfirmOrderItemsToWorkerPrintersAPIView
 from apps.printers.apis import PrintCheckAPIView
@@ -102,5 +103,11 @@ urlpatterns = [
         '<int:table_id>/confirm/',
         ConfirmOrderItemsToWorkerPrintersAPIView.as_view(),
         name='confirm'
+    ),
+
+    path(
+        '<int:table_id>/comment/',
+        AddCommentToOrderItemAPIView.as_view(),
+        name='comment'
     ),
 ]

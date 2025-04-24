@@ -83,8 +83,4 @@ class OrderItemInventoryManager:
         When a confirmed OrderItem is deleted, add its deducted inventory back
         (recorded as a return).
         """
-        try:
-            if instance.confirmed:
-                OrderItemInventoryManager._process_mappings(instance, 'add')
-        except Exception as error:
-            print("Error restoring inventory on order item deletion:", error)
+        pass
