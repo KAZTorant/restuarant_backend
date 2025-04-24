@@ -39,11 +39,13 @@ class DeleteOrderItemAPIView(APIView):
 
         meal_id = request.data.get("meal_id")
         confirmed = request.data.get("confirmed", False)
+        order_item_id = int(request.data.get("order_item_id", 0))
 
         order_item = self._get_order_item(
             order,
             meal_id,
-            confirmed
+            confirmed,
+            order_item_id,
         )
         if order_item is None:
             return self._response_not_found('Sifariş məhsulu tapılmadı')
@@ -77,7 +79,10 @@ class DeleteOrderItemAPIView(APIView):
         return queryset.filter(is_main=True).first()
 
     @staticmethod
-    def _get_order_item(order, meal_id, confirmed=False):
+    def _get_order_item(order, meal_id, confirmed=False, order_item_id=0):
+        if order_item_id:
+            return order.order_items.filter(id=order_item_id).first()
+
         return (
             order.order_items
             .filter(meal__id=meal_id)

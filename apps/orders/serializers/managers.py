@@ -14,6 +14,9 @@ class DeleteOrderItemV2Serializer(serializers.Serializer):
     meal_id = serializers.IntegerField(
         help_text="Silinəcək yeməyin ID-si"
     )
+    order_item_id = serializers.IntegerField(
+        help_text="Silinəcək extra yeməyin ID-si"
+    )
     quantity = serializers.IntegerField(
         default=1,
         min_value=1,

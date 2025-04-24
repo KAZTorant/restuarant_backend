@@ -25,6 +25,9 @@ class MealCategory(DateTimeModel, models.Model):
         MealGroup, blank=True, null=True,
         on_delete=models.SET_NULL, related_name="categories"
     )
+    is_extra = models.BooleanField(
+        default=False, help_text="price will be sent from api"
+    )
 
     class Meta:
         verbose_name = "Yemək kateqoriyası"
@@ -59,3 +62,7 @@ class Meal(DateTimeModel, models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_extra(self):
+        return self.category.is_extra if self.category else False

@@ -37,12 +37,21 @@ class OrderItemSerializer(serializers.ModelSerializer):
         help_text="ID of the Order",
         required=False
     )
+    price = serializers.FloatField(
+        required=False
+    )
+    description = serializers.CharField(
+        allow_blank=True,
+    )
 
     class Meta:
         model = OrderItem
         # 'meal' and 'order' are for serialization
-        fields = ['meal_id', 'quantity', 'meal',
-                  'order', 'order_id', "customer_number"]
+        fields = [
+            'meal_id', 'quantity', 'meal',
+            'order', 'order_id', "customer_number",
+            'price', 'description',
+        ]
         # These are for serialization only
         read_only_fields = ['meal', 'order']
 
@@ -109,6 +118,7 @@ class OrderItemOutputSerializer(serializers.Serializer):
 class ListOrderItemSerializer(serializers.ModelSerializer):
 
     meal = serializers.SerializerMethodField()
+    order_item_id = serializers.IntegerField()
 
     class Meta:
         model = OrderItem
@@ -118,12 +128,17 @@ class ListOrderItemSerializer(serializers.ModelSerializer):
             "confirmed",
             "customer_number",
             "comment",
+            "order_item_id",
+            "transfer_comment",
         )
 
     def get_meal(self, obj: OrderItem):
+        name = (
+            obj.meal.name if not obj.meal.is_extra else obj.description or obj.meal.name
+        )
         return {
             "id": obj.meal.id,
-            "name": obj.meal.name,
+            "name": name,
             "price": obj.meal.price,
             "description": obj.meal.description,
         }

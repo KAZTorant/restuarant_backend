@@ -102,6 +102,7 @@ class OrderItem(DateTimeModel, models.Model):
     meal = models.ForeignKey(
         Meal, on_delete=models.CASCADE, verbose_name="Yemək"
     )
+    description = models.TextField(blank=True, null=True)
     quantity = models.IntegerField(default=1, verbose_name="Miqdar")
     is_prepared = models.BooleanField(default=False)
     price = models.DecimalField(
@@ -119,6 +120,11 @@ class OrderItem(DateTimeModel, models.Model):
     confirmed = models.BooleanField(default=False)
 
     comment = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Şərh"
+    )
+    transfer_comment = models.TextField(
         null=True,
         blank=True,
         verbose_name="Şərh"
