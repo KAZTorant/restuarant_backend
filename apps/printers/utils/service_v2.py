@@ -201,21 +201,21 @@ class PrinterService:
 
             for item in order['items']:
                 lines.append(
-                    f"{item['name']:<19}{item['quantity']:>5}{item['price']:>9.2f} AZN{item['line_total']:>10.2f} AZN"
+                    f"{item['name']:<19}{item['quantity']:>5}{item['price']:>9.2f} {item['line_total']:>10.2f} AZN"
                 )
 
             lines.append("-" * width)
-            lines.append(f"Cəmi: {order['order_total']:>39.2f} AZN")
+            lines.append(f"Cəmi: {order['order_total']:>37.2f} AZN")
             lines.append("-" * width)
 
-        lines.append(f"Ümumi məbləğ: {data['total']:>29.2f} AZN")
+        lines.append(f"Ümumi məbləğ: {data['total']:>28.2f} AZN")
         if data['discount']:
-            lines.append(f"Endirim: {data['discount']:>33.2f} AZN")
+            lines.append(f"Endirim: {data['discount']:>28.2f} AZN")
             if data['discount_comment']:
                 lines.append(f"Qeyd: {data['discount_comment']}")
-        lines.append(f"Yekun məbləğ: {data['final_total']:>27.2f} AZN")
+        lines.append(f"Yekun məbləğ: {data['final_total']:>28.2f} AZN")
         if data['paid_amount']:
-            lines.append(f"Ödənildi: {data['paid_amount']:>30.2f} AZN")
+            lines.append(f"Ödənildi: {data['paid_amount']:>28.2f} AZN")
         if data['change']:
             lines.append(f"Qaytarıldı: {data['change']:>28.2f} AZN")
         if data['payment_type']:
