@@ -37,5 +37,6 @@ typing_extensions
 uritemplate
 urllib3
 whitenoise
+python-escpos
 
 git+https://github.com/KAZTorant/kazza_inventory.git

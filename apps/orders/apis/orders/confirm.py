@@ -148,7 +148,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
         for item in items:
             if item.meal.is_extra:
                 mid = f'{item.meal.id}_{item.id}'
-                name = item.description
+                name = f"{item.meal.name}: {item.description}"
                 price = item.price
             else:
                 mid = item.meal.id

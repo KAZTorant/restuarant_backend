@@ -126,32 +126,55 @@ class PrinterService:
 
     @staticmethod
     def _parse_order(order):
-        items = []
-        total = 0
+        """
+        Parse an order into grouped items, aggregating quantities and comments.
+        """
+
+        meal_groups = {}
+
+        # Group items by meal (and by item ID if it's an extra)
         for item in order.order_items.all():
             if item.meal.is_extra:
-                name = item.description
+                mid = f'{item.meal.id}_{item.id}'
+                name = f"{item.meal.name}: {item.description}"
                 price = item.price or 0
             else:
+                mid = item.meal.id
                 name = item.meal.name
                 price = item.meal.price or 0
 
-            line_total = item.quantity * price
-            comment = (getattr(item, 'comment', '') or "").strip() or None
+            if mid not in meal_groups:
+                meal_groups[mid] = {
+                    "name":       name,
+                    "quantity":   0,
+                    "price":      price,
+                    "line_total": 0,
+                    "comments":   set(),  # use set to avoid duplicates
+                }
+            grp = meal_groups[mid]
+            grp["quantity"] += item.quantity
 
-            items.append({
-                'name': name,
-                'quantity': item.quantity,
-                'price': price,
-                'line_total': line_total,
-                'comment': comment,
-            })
-            total += line_total
+            # collect any non-empty comment
+            comment = getattr(item, "comment", None)
+            if comment and comment.strip():
+                grp["comments"].add(comment.strip())
+
+        # Finalize groups
+        grouped_items = []
+        for grp in meal_groups.values():
+            grp["line_total"] = grp["quantity"] * grp["price"]
+            grp["comments"] = sorted(grp["comments"])
+            grouped_items.append(grp)
+
+        # Calculate order total
+        order_total = sum(item["line_total"] for item in grouped_items)
+
         return {
-            'order_id': order.id,
-            'items': items,
-            'order_total': total
+            "order_id": order.id,
+            "items": grouped_items,
+            "order_total": order_total
         }
+
 
     # ========================= #
     #   FORMATTING FUNCTIONS   #
@@ -167,17 +190,22 @@ class PrinterService:
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
-        lines.append(
-            f"Masa: {data['table']['room']} - {data['table']['number']}")
+        lines.append(f"Masa: {data['table']['room']} - {data['table']['number']}")
         lines.append(f"Ofisiant: {data['waitress']}")
         lines.append("-" * width)
 
         for order in data['orders']:
             lines.append(f"Sifariş #{order['order_id']}")
+            lines.append(f"{'Ad':<19}{'Miqdar':>5}{'Qiymət':>9}{'Cəm':>13}")
+            lines.append("-" * width)
+
             for item in order['items']:
                 lines.append(
-                    f"{item['quantity']}x {item['name']:<16}{item['line_total']:>8.2f} AZN")
-            lines.append(f"Cəmi: {order['order_total']:>17.2f} AZN")
+                    f"{item['name']:<19}{item['quantity']:>5}{item['price']:>9.2f} AZN{item['line_total']:>10.2f} AZN"
+                )
+
+            lines.append("-" * width)
+            lines.append(f"Cəmi: {order['order_total']:>39.2f} AZN")
             lines.append("-" * width)
 
         lines.append(f"Ümumi məbləğ: {data['total']:>29.2f} AZN")
@@ -203,44 +231,42 @@ class PrinterService:
     @staticmethod
     def _format_worker_receipt(data):
         """
-        Format a worker (preparation) receipt with enlarged font
-        and unique comments for each meal-group.
+        Format a worker (preparation) receipt with enlarged font (medium-large size).
         """
 
-        # ESC/POS commands for double width & height
+        # ESC/POS commands for medium-large size
         ESC = '\x1B'
-        DOUBLE_SIZE = ESC + '!\x11'
-        NORMAL_SIZE = ESC + '!\x00'
-        width = 48
+        GS = '\x1D'
+        MEDIUM_LARGE_SIZE = GS + '!' + '\x10'  # 2x height only
+        NORMAL_SIZE = GS + '!' + '\x00'
+        width = 48  # keep width 48 because width is normal
+
         lines = []
 
-        # Header in double size
-        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
-        lines.append(
-            DOUBLE_SIZE + 'HAZIRLANMA ÇEKİ'.center(width) + NORMAL_SIZE)
-        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
+        # Start with medium-large size
+        lines.append(MEDIUM_LARGE_SIZE)
+
+        lines.append('=' * width)
+        lines.append('HAZIRLANMA ÇEKİ'.center(width-10))
+        lines.append('=' * width)
         lines.append(f"Tarix: {data['date']}")
-        lines.append(
-            f"Masa: {data['table']['room']} - {data['table']['number']}")
+        lines.append(f"Masa: {data['table']['room']} - {data['table']['number']}")
         order_ids = [str(o['order_id']) for o in data['orders']]
         lines.append(f"Sifariş №: {', '.join(order_ids)}")
         lines.append('-' * width)
 
-        # There may be just one grouped order in data['orders']
         for order in data['orders']:
-            # Print each meal-group and its own comments
             for item in order['items']:
-                # Meal line
                 lines.append(f"{item['quantity']}x {item['name']}")
-                # Now, if this group has comments, print each in double size
                 for comment in item.get('comments', []):
-                    lines.append(
-                        DOUBLE_SIZE + f"  Qeyd: {comment}" + NORMAL_SIZE
-                    )
+                    lines.append(f"  Qeyd: {comment}")
             lines.append('-' * width)
 
         lines.append("Zəhmət olmasa sifarişi düzgün hazırlayın!")
-        lines.append(DOUBLE_SIZE + '=' * width + NORMAL_SIZE)
+        lines.append('=' * width)
+
+        # End with normal size (to reset printer after)
+        lines.append(NORMAL_SIZE)
         lines.append("\n\n\n")
 
         return "\n".join(lines)
@@ -271,10 +297,12 @@ class PrinterService:
     @staticmethod
     def _send_text_to_printer(text, ip_address, port):
         ESC_CUT = b'\x1D\x56\x00'
+        BEEP = b'\x1B\x42\x03\x02'  # Beep 3 times, 200ms each
+
         mapped = PrinterService.mapping(text)
         try:
             with socket.create_connection((ip_address, port), timeout=5) as s:
-                s.sendall(mapped.encode('cp857', errors='replace') + ESC_CUT)
+                s.sendall(mapped.encode('cp857', errors='replace') + ESC_CUT + BEEP)
             return DummyResponse(200)
         except Exception as e:
             print(f"Printerə data göndərilərkən xəta: {e}")
