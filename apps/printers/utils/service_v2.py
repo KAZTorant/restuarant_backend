@@ -175,7 +175,6 @@ class PrinterService:
             "order_total": order_total
         }
 
-
     # ========================= #
     #   FORMATTING FUNCTIONS   #
     # ========================= #
@@ -190,7 +189,8 @@ class PrinterService:
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
-        lines.append(f"Masa: {data['table']['room']} - {data['table']['number']}")
+        lines.append(
+            f"Masa: {data['table']['room']} - {data['table']['number']}")
         lines.append(f"Ofisiant: {data['waitress']}")
         lines.append("-" * width)
 
@@ -231,41 +231,45 @@ class PrinterService:
     @staticmethod
     def _format_worker_receipt(data):
         """
-        Format a worker (preparation) receipt with enlarged font (medium-large size).
+        Format a worker (preparation) receipt with a table-like structure
+        and enlarged font (medium-large size).
         """
 
-        # ESC/POS commands for medium-large size
         ESC = '\x1B'
         GS = '\x1D'
         MEDIUM_LARGE_SIZE = GS + '!' + '\x10'  # 2x height only
         NORMAL_SIZE = GS + '!' + '\x00'
-        width = 48  # keep width 48 because width is normal
+        width = 48
 
         lines = []
 
-        # Start with medium-large size
         lines.append(MEDIUM_LARGE_SIZE)
+        lines.append('=' * width)
+        lines.append('HAZIRLANMA ÇƏKİ'.center(width))
+        lines.append('=' * width)
 
-        lines.append('=' * width)
-        lines.append('HAZIRLANMA ÇEKİ'.center(width-10))
-        lines.append('=' * width)
         lines.append(f"Tarix: {data['date']}")
-        lines.append(f"Masa: {data['table']['room']} - {data['table']['number']}")
+        lines.append(
+            f"Masa: {data['table']['room']} - {data['table']['number']}")
         order_ids = [str(o['order_id']) for o in data['orders']]
         lines.append(f"Sifariş №: {', '.join(order_ids)}")
         lines.append('-' * width)
 
         for order in data['orders']:
+            lines.append(f"Sifariş #{order['order_id']}")
+            lines.append(f"{'Ad':<30}{'Miqdar':>6}")
+            lines.append('-' * width)
+
             for item in order['items']:
-                lines.append(f"{item['quantity']}x {item['name']}")
+                lines.append(f"{item['name']:<30}{item['quantity']:>6}")
                 for comment in item.get('comments', []):
                     lines.append(f"  Qeyd: {comment}")
+
             lines.append('-' * width)
 
         lines.append("Zəhmət olmasa sifarişi düzgün hazırlayın!")
         lines.append('=' * width)
 
-        # End with normal size (to reset printer after)
         lines.append(NORMAL_SIZE)
         lines.append("\n\n\n")
 
@@ -302,218 +306,12 @@ class PrinterService:
         mapped = PrinterService.mapping(text)
         try:
             with socket.create_connection((ip_address, port), timeout=5) as s:
-                s.sendall(mapped.encode('cp857', errors='replace') + ESC_CUT + BEEP)
+                s.sendall(mapped.encode(
+                    'cp857', errors='replace') + ESC_CUT + BEEP)
             return DummyResponse(200)
         except Exception as e:
             print(f"Printerə data göndərilərkən xəta: {e}")
             return DummyResponse(500)
-
-    @staticmethod
-    def print_shift_summary(stat_id, user=None):
-        """
-        Fetch the Statistics record (assumed already up‑to‑date),
-        format every field into a Z‑check layout, and send it to the main printer.
-        """
-        # 1) Load the shift record
-        try:
-            stat = Statistics.objects.get(pk=stat_id)
-        except Statistics.DoesNotExist:
-            return False, f"Statistika id={stat_id} tapılmadı."
-
-        # 2) Read pre‑computed totals straight from the model
-        cash = stat.cash_total
-        card = stat.card_total
-        other = stat.other_total
-
-        # 3) Sum of any open (unpaid) orders across the system
-        open_sum = (Order.objects
-                         .filter(is_paid=False)
-                         .aggregate(total=Sum('total_price'))['total']
-                    ) or 0
-
-        # 4) Build the receipt text
-        width = 48
-        lines = []
-
-        # — Header
-        lines.append(f"Növbə yekunu")
-        main_printer = Printer.objects.filter(is_main=True).first()
-        terminal = main_printer.name if main_printer else "N/A"
-        lines.append(f"Terminal: {terminal}")
-        lines.append(f"Kassa növbəsi: {stat.id}")
-        lines.append(
-            f"Status: {'Təsdiqlənib' if stat.is_closed else 'Qaralama'}"
-        )
-        lines.append(
-            f"Növbə açıldığı: {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
-        lines.append(f"Cari vaxt:       {now}")
-        if user:
-            name = user.get_full_name() or user.username
-            lines.append(f"Cari istifadəçi: {name}")
-        lines.append("-" * width)
-
-        # — Sales totals
-        lines.append("Satışlar")
-        lines.append(f"Nağd ödəniş    {cash:>10.2f}")
-        lines.append(f"Bank kartları  {card:>10.2f}")
-        lines.append(f"Digər ödənişlər {other:>10.2f}")
-        lines.append(f"CƏMİ (Satışlar): {(cash + card + other):>10.2f}")
-        lines.append("")
-
-        # — Voids (hard‑coded zeros unless you track them)
-        lines.append("Silinmələr")
-        lines.append(f"Müəssisə hesabına      0,00")
-        lines.append(f"Məhsulların silinməsi  0,00")
-        lines.append(f"CƏMİ (Silinmələr):     0,00")
-        lines.append("")
-
-        # — Open orders
-        lines.append(f"Açıq sifarişlər        {open_sum:.2f}")
-        lines.append("")
-
-        # — Cash‑drawer movements
-        lines.append("Nağd vasitələrin hərəkəti")
-        lines.append(
-            f"Növbənin əvvəlində kassada nəğd pul:   {stat.initial_cash:.2f}")
-        lines.append("")
-        lines.append(f"+ nağd satışlar         {stat.cash_total:.2f}")
-        lines.append(f"− qaytarılan nağd pullar 0,00")
-        lines.append(f"= kassada olmalıdır      {stat.remaining_cash:.2f}")
-        lines.append("")
-
-        # — Other payment‑type breakdown
-        lines.append("=" * width)
-        lines.append("DİGƏR ÖDƏNİŞ NÖVLƏRİ")
-        lines.append("=" * width)
-
-        lines.append("Nağd ödəniş")
-        lines.append(f"Nağd                    —          {cash:.2f}")
-        lines.append(f"CƏMİ (Nağd):                        {cash:.2f}")
-        lines.append("")
-        lines.append("Bank kartları")
-        lines.append(f"Bank kartları           —          {card:.2f}")
-        lines.append(f"CƏMİ (Bank kartları):               {card:.2f}")
-        lines.append("")
-        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA")
-        lines.append("=" * width)
-        lines.append("\n\n\n")
-
-        text = "\n".join(lines)
-
-        # 5) Send to the main ESC/POS printer
-        response = PrinterService._send_text_to_main_printer(
-            text,
-            payment=None,
-            type=Receipt.ReceiptType.SHIFT_SUMMARY
-        )
-
-        if response.status_code == 200:
-            return True, "Növbə yekunu uğurla çap edildi."
-        return False, "Printerə qoşulmaq mümkün olmadı."
-
-    @staticmethod
-    def print_z_hesabat(stat_id, user=None):
-        """
-        Prints the full Z‑hesabat (detailed) for shift stat_id,
-        matching the second receipt layout exactly.
-        """
-        # 1) Load the Statistics record
-        try:
-            stat = Statistics.objects.get(pk=stat_id)
-        except Statistics.DoesNotExist:
-            return False, f"Statistika id={stat_id} tapılmadı."
-
-        # 2) Read pre‑computed totals
-        cash = stat.cash_total
-        card = stat.card_total
-        other = stat.other_total
-        total = cash + card + other
-
-        # 3) Count of operations (e.g. number of paid orders)
-        op_count = stat.orders.count()
-
-        # 4) Sum of any open (unpaid) orders
-        open_sum = Order.objects.filter(is_paid=False)\
-                                .aggregate(total=Sum('total_price'))['total'] or 0
-
-        # 5) Build the lines
-        width = 48
-        lines = []
-
-        # Header
-        lines.append("Z‑hesabat")
-        main_printer = Printer.objects.filter(is_main=True).first()
-        term = main_printer.name if main_printer else "N/A"
-        lines.append(f"Terminal:        {term}")
-        lines.append(f"Kassa növbəsi:   {stat.id}")
-        lines.append(
-            f"Status: {'Təsdiqlənib' if stat.is_z_checked else 'Qaralama'}"
-        )
-        lines.append(
-            f"Növbə açıldı:    {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
-        lines.append(f"Cari vaxt:       {now}")
-        if user:
-            name = user.get_full_name() or user.username
-            lines.append(f"Cari istifadəçi: {name}")
-        lines.append("")
-
-        # Nağd section
-        lines.append("Nağd")
-        lines.append(f"Satış       {cash:>10.2f}")
-        lines.append(f"Qaytarılma  {0:>10.2f}")
-        lines.append(f"Alış        {0:>10.2f}")
-        lines.append(f"Alışın qaytar.{0:>10.2f}")
-        lines.append("")
-
-        # Bank kartları
-        lines.append("Bank kartları")
-        lines.append(f"Satış       {card:>10.2f}")
-        lines.append(f"Qaytarılma  {0:>10.2f}")
-        lines.append("")
-
-        # Cəmi
-        lines.append(f"Cəmi        {total:>10.2f}")
-        lines.append(f"Satış       {0:>10.2f}")
-        lines.append(f"Qaytarılma  {0:>10.2f}")
-        lines.append(f"Alış        {0:>10.2f}")
-        lines.append(f"Alışın qaytar.{0:>10.2f}")
-        lines.append(f"Möhkmlətmə  {0:>10.2f}")
-        lines.append(f"İnkassasiya {0:>10.2f}")
-        lines.append("")
-
-        # Open orders
-        lines.append(f"Açıq sifarişlər        {open_sum:.2f}")
-        lines.append("")
-
-        # Operations count
-        lines.append(f"YERİNƏ YETİRİLƏN ƏMƏLİYYATLAR {op_count}")
-        lines.append(f"Satış       {0}")
-        lines.append(f"Qaytarılma  {0}")
-        lines.append(f"Alış        {0}")
-        lines.append(f"Alışın qaytar.{0}")
-        lines.append(f"Möhkmlətmə  {0}")
-        lines.append(f"İnkassasiya {0}")
-        lines.append("")
-
-        # Footer
-        lines.append("Diqqət! Gösterilen məbləğlər")
-        lines.append("fiskal registr…")
-        lines.append("")
-
-        text = "\n".join(lines)
-
-        # 6) Send to the main printer
-        response = PrinterService._send_text_to_main_printer(
-            text,
-            payment=None,
-            type=Receipt.ReceiptType.Z_SUMMRY
-        )
-
-        if response.status_code == 200:
-            return True, "Z‑hesabat uğurla çap edildi."
-        return False, "Printerə qoşulmaq mümkün olmadı."
 
     @staticmethod
     def mapping(text: str) -> str:
@@ -534,3 +332,158 @@ class PrinterService:
         for src, dst in char_map.items():
             text = text.replace(src, dst)
         return text
+
+    @staticmethod
+    def print_shift_summary(stat_id, user=None):
+        try:
+            stat = Statistics.objects.get(pk=stat_id)
+        except Statistics.DoesNotExist:
+            return False, f"Statistika id={stat_id} tapılmadı."
+
+        cash = stat.cash_total
+        card = stat.card_total
+        other = stat.other_total
+        open_sum = Order.objects.filter(is_paid=False).aggregate(
+            total=Sum('total_price'))['total'] or 0
+
+        width = 48
+        lines = []
+
+        lines.append("=" * width)
+        lines.append("NÖVBƏ YEKUNU".center(width))
+        lines.append("=" * width)
+
+        main_printer = Printer.objects.filter(is_main=True).first()
+        terminal = main_printer.name if main_printer else "N/A"
+        lines.append(f"Terminal: {terminal}")
+        lines.append(f"Kassa növbəsi: {stat.id}")
+        lines.append(
+            f"Status: {'Təsdiqlənib' if stat.is_closed else 'Qaralama'}")
+        lines.append(
+            f"Növbə açıldı: {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
+        now = datetime.now().strftime("%d.%m.%Y %H:%M")
+        lines.append(f"Cari vaxt: {now}")
+        if user:
+            name = user.get_full_name() or user.username
+            lines.append(f"Cari istifadəçi: {name}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Satışlar':<30}{''}")
+        lines.append(f"{'Nağd ödəniş':<30}{cash:>15.2f}")
+        lines.append(f"{'Bank kartları':<30}{card:>15.2f}")
+        lines.append(f"{'Digər ödənişlər':<30}{other:>15.2f}")
+        lines.append(f"{'CƏMİ (Satışlar)':<30}{(cash + card + other):>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Silinmələr':<30}{''}")
+        lines.append(f"{'Müəssisə hesabına':<30}{0.00:>15.2f}")
+        lines.append(f"{'Məhsulların silinməsi':<30}{0.00:>15.2f}")
+        lines.append(f"{'CƏMİ (Silinmələr)':<30}{0.00:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Açıq sifarişlər':<30}{open_sum:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Nağd vasitələr hərəkəti':<30}")
+        lines.append(
+            f"{'Növbənin evvəlində kassada':<30}{stat.initial_cash:>15.2f}")
+        lines.append(f"{'+ Nağd satışlar':<30}{cash:>15.2f}")
+        lines.append(f"{'- Qaytarılan nağd pullar':<30}{0.00:>15.2f}")
+        lines.append(
+            f"{'= Kassada olmalıdır':<30}{stat.remaining_cash:>15.2f}")
+        lines.append("=" * width)
+
+        lines.append("DİGƏR ÖDƏNİŞ NÖVLƏRİ".center(width))
+        lines.append("=" * width)
+
+        lines.append(f"{'Nağd ödəniş':<30}{cash:>15.2f}")
+        lines.append(f"{'Bank kartları':<30}{card:>15.2f}")
+        lines.append("=" * width)
+        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA".center(width))
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        response = PrinterService._send_text_to_main_printer(
+            text,
+            payment=None,
+            type=Receipt.ReceiptType.SHIFT_SUMMARY
+        )
+
+        if response.status_code == 200:
+            return True, "Növbə yekunu uğurla çap edildi."
+        return False, "Printerə qoşulmaq mümkün olmadı."
+
+    @staticmethod
+    def print_z_hesabat(stat_id, user=None):
+        try:
+            stat = Statistics.objects.get(pk=stat_id)
+        except Statistics.DoesNotExist:
+            return False, f"Statistika id={stat_id} tapılmadı."
+
+        cash = stat.cash_total
+        card = stat.card_total
+        other = stat.other_total
+        total = cash + card + other
+
+        op_count = stat.orders.count()
+        open_sum = Order.objects.filter(is_paid=False).aggregate(
+            total=Sum('total_price'))['total'] or 0
+
+        width = 48
+        lines = []
+
+        lines.append("=" * width)
+        lines.append("Z-HESABAT".center(width))
+        lines.append("=" * width)
+
+        main_printer = Printer.objects.filter(is_main=True).first()
+        term = main_printer.name if main_printer else "N/A"
+        lines.append(f"Terminal: {term}")
+        lines.append(f"Kassa növbəsi: {stat.id}")
+        lines.append(
+            f"Status: {'Təsdiqlənib' if stat.is_z_checked else 'Qaralama'}")
+        lines.append(
+            f"Növbə açıldı: {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
+        now = datetime.now().strftime("%d.%m.%Y %H:%M")
+        lines.append(f"Cari vaxt: {now}")
+        if user:
+            name = user.get_full_name() or user.username
+            lines.append(f"Cari istifadəçi: {name}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Nağd Satış':<30}{cash:>15.2f}")
+        lines.append(f"{'Qaytarılma':<30}{0.00:>15.2f}")
+        lines.append(f"{'Alış':<30}{0.00:>15.2f}")
+        lines.append(f"{'Alış qaytarılması':<30}{0.00:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Bank kartı Satış':<30}{card:>15.2f}")
+        lines.append(f"{'Bank kartı Qaytarılma':<30}{0.00:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'CƏMİ':<30}{total:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'Açıq sifarişlər':<30}{open_sum:>15.2f}")
+        lines.append("-" * width)
+
+        lines.append(f"{'YERİNƏ YETİRİLƏN ƏMƏLİYYATLAR':<30}{op_count}")
+        lines.append("-" * width)
+
+        lines.append("Diqqət! Göstərilən məbləğlər fiskal registr...")
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        response = PrinterService._send_text_to_main_printer(
+            text,
+            payment=None,
+            type=Receipt.ReceiptType.Z_SUMMRY
+        )
+
+        if response.status_code == 200:
+            return True, "Z-hesabat uğurla çap edildi."
+        return False, "Printerə qoşulmaq mümkün olmadı."
