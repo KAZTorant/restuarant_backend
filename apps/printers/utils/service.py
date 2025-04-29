@@ -98,7 +98,7 @@ class PrinterService:
             lines = []
 
             # Başlıq (mərkəzləşdirilmiş)
-            header = "Cafepark"
+            header = "CAFEPARK TAVERN"
             centered_header = header.center(receipt_width)
             lines.append("=" * receipt_width)
             lines.append(centered_header)

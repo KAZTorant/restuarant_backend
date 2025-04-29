@@ -185,7 +185,7 @@ class PrinterService:
         lines = []
 
         lines.append("=" * width)
-        lines.append("CAFEPARK".center(width))
+        lines.append("CAFEPARK TAVERN".center(width))
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
