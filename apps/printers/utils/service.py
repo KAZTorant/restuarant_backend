@@ -98,7 +98,7 @@ class PrinterService:
             lines = []
 
             # Başlıq (mərkəzləşdirilmiş)
-            header = "Cafepark"
+            header = "CAFEPARK TAVERN"
             centered_header = header.center(receipt_width)
             lines.append("=" * receipt_width)
             lines.append(centered_header)
@@ -140,7 +140,8 @@ class PrinterService:
             # Printerə göndəririk; cp857 kodlaşdırması istifadə olunur.
             with socket.create_connection((ip_address, port), timeout=5) as s:
                 s.sendall(
-                    receipt_text.encode('cp857', errors='replace') + ESC_CUT + BEEP
+                    receipt_text.encode(
+                        'cp857', errors='replace') + ESC_CUT + BEEP
                 )
 
             return DummyResponse(200)
@@ -204,7 +205,6 @@ class PrinterService:
             # ESC/POS kəsmə əmri (əgər printer dəstəkləyirsə)
             ESC_CUT = b'\x1D\x56\x00'
             BEEP = b'\x1B\x42\x03\x02'  # Beep 3 times, 200ms each
-
 
             # Printerə socket vasitəsilə göndəririk; cp857 kodlaşdırması istifadə olunur.
             with socket.create_connection((ip_address, port), timeout=5) as s:
