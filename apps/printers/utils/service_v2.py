@@ -491,6 +491,9 @@ class PrinterService:
     @staticmethod
     def print_order_items_summary(stat_id, user=None):
         from apps.orders.models.order import OrderItem
+        from apps.orders.models.order_deletion import OrderItemDeletionLog
+        from apps.meals.models import MealGroup
+        from datetime import datetime
 
         try:
             stat = Statistics.objects.get(pk=stat_id)
@@ -498,25 +501,14 @@ class PrinterService:
             return False, f"Statistika id={stat_id} tapılmadı."
 
         orders = Order.objects.all_orders().filter(statistics=stat)
-        order_items = OrderItem.objects.all_order_items().filter(order__in=orders)
-
-        if not order_items.exists():
-            return False, "Sifariş məhsulları tapılmadı."
-
-        # Group items by MealGroup
-        grouped = {}
-        for item in order_items.select_related("meal__category__group"):
-            meal = item.meal
-            group_name = meal.category.group.name if meal.category and meal.category.group else "Digər"
-
-            if group_name not in grouped:
-                grouped[group_name] = []
-            grouped[group_name].append(item)
+        active_items = OrderItem.objects.all_order_items().filter(order__in=orders)
+        deleted_items = OrderItemDeletionLog.objects.filter(
+            order_id__in=orders.values_list('id', flat=True))
 
         width = 48
         lines = []
         lines.append("=" * width)
-        lines.append("Q R U P L A N M I Ş   M Ə H S U L L A R".center(width))
+        lines.append("SATILMIŞ MƏHSULLAR (AKTİV)".center(width))
         lines.append("=" * width)
         lines.append(f"Kassa növbəsi: {stat.id}")
         lines.append(f"Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
@@ -525,11 +517,23 @@ class PrinterService:
                 f"Istifadəçi: {user.get_full_name() or user.username}")
         lines.append("-" * width)
 
+        # --- GROUP ACTIVE ITEMS BY MEAL GROUP ---
+        grouped_active = {}
+        for item in active_items.select_related("meal__category__group"):
+            group_name = (
+                item.meal.category.group.name
+                if item.meal and item.meal.category and item.meal.category.group
+                else "Digər"
+            )
+            if group_name not in grouped_active:
+                grouped_active[group_name] = []
+            grouped_active[group_name].append(item)
+
         grand_total_price = 0
         grand_total_qty = 0
 
-        for group, items in grouped.items():
-            lines.append(f"\n*** {group.upper()} ***\n")
+        for group, items in grouped_active.items():
+            lines.append(f"\n*** {group.upper()} ***")
             lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
 
             group_total_price = 0
@@ -538,11 +542,10 @@ class PrinterService:
                 name = item.meal.name[:25]
                 qty = item.quantity
                 price = item.price
-                line_total = qty * price
+                total = qty * price
+                group_total_price += total
                 group_total_qty += qty
-                group_total_price += line_total
-
-                lines.append(f"{name:<25}{qty:>6}{line_total:>15.2f}")
+                lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
 
             lines.append(
                 f"{'Qrup cəmi:':<25}{group_total_qty:>6}{group_total_price:>15.2f}")
@@ -552,7 +555,45 @@ class PrinterService:
             grand_total_qty += group_total_qty
 
         lines.append(
-            f"{'CƏMİ':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
+            f"{'CƏMİ (Aktiv)':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
+        lines.append("=" * width)
+
+        # --- APPEND DELETED ITEMS ---
+        if deleted_items.exists():
+            lines.append("SİLİNMİŞ MƏHSULLAR".center(width))
+            reasons = {
+                OrderItemDeletionLog.REASON_RETURN: "Anbara Qaytarma",
+                OrderItemDeletionLog.REASON_WASTE: "Tullantı"
+            }
+
+            for reason_code, reason_label in reasons.items():
+                reason_group = deleted_items.filter(reason=reason_code)
+                if not reason_group.exists():
+                    continue
+
+                lines.append(f"\n*** {reason_label.upper()} ***")
+                grouped_deleted = {}
+                for item in reason_group.select_related("meal__category__group"):
+                    group_name = (
+                        item.meal.category.group.name
+                        if item.meal and item.meal.category and item.meal.category.group
+                        else "Digər"
+                    )
+                    if group_name not in grouped_deleted:
+                        grouped_deleted[group_name] = []
+                    grouped_deleted[group_name].append(item)
+
+                for group, items in grouped_deleted.items():
+                    lines.append(f"\n{group}")
+                    for item in items:
+                        name = item.meal_name[:25]
+                        qty = item.quantity
+                        price = item.price
+                        total = qty * price
+                        lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
+
+        lines.append("\n" + "=" * width)
+        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA".center(width))
         lines.append("=" * width)
         lines.append("\n\n\n")
 
@@ -564,4 +605,4 @@ class PrinterService:
             type=Receipt.ReceiptType.SHIFT_SUMMARY
         )
 
-        return (response.status_code == 200), "Məhsullar qruplarla çap edildi." if response.status_code == 200 else "Çap alınmadı."
+        return (response.status_code == 200), "Məhsullar qrupla çap edildi." if response.status_code == 200 else "Çap alınmadı."
