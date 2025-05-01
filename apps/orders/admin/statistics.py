@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.contrib import admin, messages
 from django.forms import ValidationError
 from django.urls import path
@@ -17,6 +18,7 @@ from apps.orders.models import Statistics, Order
 
 from apps.orders.models.order import OrderItem
 from apps.payments.models.pay_table_orders import Payment
+from apps.printers.models.receipt import Receipt
 from apps.printers.utils.service import PrinterService
 from apps.printers.utils.service_v2 import PrinterService as PrinterServiceV2
 
@@ -168,6 +170,11 @@ class StatisticsAdmin(SimpleHistoryAdmin):
                 self.end_shift_view), name='orders_statistics_end_shift'),
             path('<int:shift_id>/print-shift-summary/', self.admin_site.admin_view(
                 self.print_shift_summary), name='orders_statistics_print_shift_summary'),
+            path(
+                '<int:shift_id>/print-order-items-summary/',
+                self.admin_site.admin_view(self.print_order_items_summary),
+                name='orders_statistics_print_order_items_summary'
+            ),
         ]
         return custom + urls
 
@@ -229,6 +236,15 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         if '_print_shift_summary' in request.POST:
             success, msg = PrinterServiceV2.print_shift_summary(
                 stat_id=obj.pk, user=request.user)
+            level = messages.SUCCESS if success else messages.ERROR
+            self.message_user(request, msg, level=level)
+            return HttpResponseRedirect('.')
+
+        if '_print_order_items_summary' in request.POST:
+            success, msg = PrinterServiceV2.print_order_items_summary(
+                stat_id=obj.pk,
+                user=request.user
+            )
             level = messages.SUCCESS if success else messages.ERROR
             self.message_user(request, msg, level=level)
             return HttpResponseRedirect('.')
@@ -338,6 +354,14 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     def print_shift_summary(self, request, shift_id):
         obj = self.get_object(request, shift_id)
         PrinterServiceV2.print_shift_summary(stat_id=obj.pk, user=request.user)
+        self.message_user(request, "Shift summary sent to printer.")
+        return HttpResponseRedirect('../..')
+
+    def print_order_items_summary(self, request, shift_id):
+        obj = self.get_object(request, shift_id)
+        PrinterServiceV2.print_order_items_summary(
+            stat_id=obj.pk, user=request.user
+        )
         self.message_user(request, "Shift summary sent to printer.")
         return HttpResponseRedirect('../..')
 

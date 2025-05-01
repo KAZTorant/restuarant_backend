@@ -487,3 +487,81 @@ class PrinterService:
         if response.status_code == 200:
             return True, "Z-hesabat uğurla çap edildi."
         return False, "Printerə qoşulmaq mümkün olmadı."
+
+    @staticmethod
+    def print_order_items_summary(stat_id, user=None):
+        from apps.orders.models.order import OrderItem
+
+        try:
+            stat = Statistics.objects.get(pk=stat_id)
+        except Statistics.DoesNotExist:
+            return False, f"Statistika id={stat_id} tapılmadı."
+
+        orders = Order.objects.all_orders().filter(statistics=stat)
+        order_items = OrderItem.objects.all_order_items().filter(order__in=orders)
+
+        if not order_items.exists():
+            return False, "Sifariş məhsulları tapılmadı."
+
+        # Group items by MealGroup
+        grouped = {}
+        for item in order_items.select_related("meal__category__group"):
+            meal = item.meal
+            group_name = meal.category.group.name if meal.category and meal.category.group else "Digər"
+
+            if group_name not in grouped:
+                grouped[group_name] = []
+            grouped[group_name].append(item)
+
+        width = 48
+        lines = []
+        lines.append("=" * width)
+        lines.append("Q R U P L A N M I Ş   M Ə H S U L L A R".center(width))
+        lines.append("=" * width)
+        lines.append(f"Kassa növbəsi: {stat.id}")
+        lines.append(f"Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        if user:
+            lines.append(
+                f"Istifadəçi: {user.get_full_name() or user.username}")
+        lines.append("-" * width)
+
+        grand_total_price = 0
+        grand_total_qty = 0
+
+        for group, items in grouped.items():
+            lines.append(f"\n*** {group.upper()} ***\n")
+            lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
+
+            group_total_price = 0
+            group_total_qty = 0
+            for item in items:
+                name = item.meal.name[:25]
+                qty = item.quantity
+                price = item.price
+                line_total = qty * price
+                group_total_qty += qty
+                group_total_price += line_total
+
+                lines.append(f"{name:<25}{qty:>6}{line_total:>15.2f}")
+
+            lines.append(
+                f"{'Qrup cəmi:':<25}{group_total_qty:>6}{group_total_price:>15.2f}")
+            lines.append("-" * width)
+
+            grand_total_price += group_total_price
+            grand_total_qty += group_total_qty
+
+        lines.append(
+            f"{'CƏMİ':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        response = PrinterService._send_text_to_main_printer(
+            text,
+            payment=None,
+            type=Receipt.ReceiptType.SHIFT_SUMMARY
+        )
+
+        return (response.status_code == 200), "Məhsullar qruplarla çap edildi." if response.status_code == 200 else "Çap alınmadı."
