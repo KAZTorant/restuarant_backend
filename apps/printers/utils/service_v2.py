@@ -492,7 +492,8 @@ class PrinterService:
     def print_order_items_summary(stat_id, user=None):
         from apps.orders.models.order import OrderItem
         from apps.orders.models.order_deletion import OrderItemDeletionLog
-        from apps.meals.models import MealGroup
+        from django.db.models import Min
+        from django.utils import timezone
         from datetime import datetime
 
         try:
@@ -501,9 +502,16 @@ class PrinterService:
             return False, f"Statistika id={stat_id} tapılmadı."
 
         orders = Order.objects.all_orders().filter(statistics=stat)
-        active_items = OrderItem.objects.all_order_items().filter(order__in=orders)
+        active_items = OrderItem.objects.all().filter(order__in=orders)
+
+        # Determine actual shift time range
+        order_dates = orders.aggregate(earliest=Min('created_at'))
+        shift_start = order_dates['earliest']
+        shift_end = stat.end_time or timezone.now()
+
         deleted_items = OrderItemDeletionLog.objects.filter(
-            order_id__in=orders.values_list('id', flat=True))
+            deleted_at__range=(shift_start, shift_end)
+        )
 
         width = 48
         lines = []
@@ -517,7 +525,7 @@ class PrinterService:
                 f"Istifadəçi: {user.get_full_name() or user.username}")
         lines.append("-" * width)
 
-        # --- GROUP ACTIVE ITEMS BY MEAL GROUP ---
+        # Group active items by MealGroup
         grouped_active = {}
         for item in active_items.select_related("meal__category__group"):
             group_name = (
@@ -525,9 +533,7 @@ class PrinterService:
                 if item.meal and item.meal.category and item.meal.category.group
                 else "Digər"
             )
-            if group_name not in grouped_active:
-                grouped_active[group_name] = []
-            grouped_active[group_name].append(item)
+            grouped_active.setdefault(group_name, []).append(item)
 
         grand_total_price = 0
         grand_total_qty = 0
@@ -558,7 +564,7 @@ class PrinterService:
             f"{'CƏMİ (Aktiv)':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
         lines.append("=" * width)
 
-        # --- APPEND DELETED ITEMS ---
+        # Append deleted items summary
         if deleted_items.exists():
             lines.append("SİLİNMİŞ MƏHSULLAR".center(width))
             reasons = {
@@ -572,25 +578,25 @@ class PrinterService:
                     continue
 
                 lines.append(f"\n*** {reason_label.upper()} ***")
-                grouped_deleted = {}
-                for item in reason_group.select_related("meal__category__group"):
-                    group_name = (
-                        item.meal.category.group.name
-                        if item.meal and item.meal.category and item.meal.category.group
-                        else "Digər"
-                    )
-                    if group_name not in grouped_deleted:
-                        grouped_deleted[group_name] = []
-                    grouped_deleted[group_name].append(item)
+                lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
 
-                for group, items in grouped_deleted.items():
-                    lines.append(f"\n{group}")
-                    for item in items:
-                        name = item.meal_name[:25]
-                        qty = item.quantity
-                        price = item.price
-                        total = qty * price
-                        lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
+                total_reason_price = 0
+                total_reason_qty = 0
+
+                for item in reason_group:
+                    name = item.meal_name[:25]
+                    qty = item.quantity
+                    price = item.price
+                    total = qty * price
+                    total_reason_price += total
+                    total_reason_qty += qty
+                    lines.append(f"{name:<25}{int(qty):>6}{total:>15.2f}")
+
+                lines.append(
+                    f"{'Cəmi:':<25}{int(total_reason_qty):>6}{total_reason_price:>15.2f}"
+                )
+
+                lines.append("-" * width)
 
         lines.append("\n" + "=" * width)
         lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA".center(width))
