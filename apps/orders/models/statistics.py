@@ -99,12 +99,12 @@ class StatisticsManager(models.Manager):
 
         # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-        total = orders.aggregate(sum=Sum('final_price'))['sum'] or 0
+        total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
 
         # 3) Payment‐type breakdown
         payments = Payment.objects.filter(orders__in=orders).distinct()
         totals = payments.values('payment_type').annotate(
-            sum=Sum('paid_amount'))
+            sum=Sum('final_price'))
         cash = next((t['sum'] for t in totals if t['payment_type']
                      == Payment.PaymentType.CASH),  Decimal('0.00'))
         card_total = next((t['sum'] for t in totals if t['payment_type']
