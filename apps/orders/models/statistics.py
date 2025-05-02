@@ -101,8 +101,12 @@ class StatisticsManager(models.Manager):
         if shift.is_closed:
             raise ValidationError("Növbə artıq bağlanıb.")
 
+        if withdrawn_amount > shift.cash:
+            raise ValidationError(
+                f"Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz. {withdrawn_amount} > {shift.cash}"
+            )
+
         shift.withdrawn_amount = withdrawn_amount
-        shift.clean()  # <-- Explicitly validate using model rules
         shift.remaining_cash = shift.cash - withdrawn_amount
         shift.end_time = timezone.now()
         shift.ended_by = user
@@ -113,7 +117,7 @@ class StatisticsManager(models.Manager):
         for o in shift.orders.all():
             o.is_deleted = True
             o.save()
-
+        # shift.orders.update(is_deleted=True)
         return shift
 
     def delete_orders_for_statistics_day(self, date):
@@ -362,12 +366,6 @@ class Statistics(DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Statistika"
         verbose_name_plural = "Statistikalar 📊"
-
-    def clean(self):
-        if self.withdrawn_amount > self.cash_total:
-            raise ValidationError(
-                {'withdrawn_amount': 'Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.'}
-            )
 
     @property
     def cash(self):
