@@ -96,34 +96,30 @@ class StatisticsManager(models.Manager):
         ).first()
         logging.error(f"TOTAL: TILL NOW, {user}")
         if not stat:
-            # nothing to update if no open till_now record
             return None
+        logging.info("Found existing 'till_now' statistics record.")
 
         # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-
-        # total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
+        logging.info(f"Fetched {orders.count()} paid orders.")
 
         # 3) Payment‐type breakdown
         payments = Payment.objects.filter(orders__in=orders).distinct()
+        logging.info(
+            f"Filtered payments linked to paid orders: {payments.count()} found.")
 
-        print(payments.values_list("pk", flat=True))
         totals = payments.values('payment_type').annotate(
             sum=Sum('final_price'))
-
-        print(">>>>>>>", list(payments.values_list("final_price", flat=True)))
-
-        print(totals)
+        logging.info(f"Aggregated totals by payment type: {totals}.")
 
         cash = next(
-            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH),  Decimal('0.00'))
+            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH), Decimal('0.00'))
         card_total = next(
-            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CARD),  Decimal('0.00'))
+            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CARD), Decimal('0.00'))
         other_total = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.OTHER), Decimal('0.00'))
-
-        logging.error(
-            f"TOTAL: cash: {cash}, card: {card_total}, other: {other_total}, {cash + card_total + other_total}")
+        logging.info(
+            f"Breakdown - Cash: {cash}, Card: {card_total}, Other: {other_total}")
 
         # 4) Overwrite all relevant fields
         stat.total = (cash + card_total + other_total) + stat.initial_cash
@@ -135,9 +131,11 @@ class StatisticsManager(models.Manager):
         stat.withdrawn_amount = Decimal('0.00')
         stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
         stat.save()
+        logging.info("Updated statistics record fields and saved.")
 
         # 5) Refresh linked orders
         stat.orders.set(orders)
+        logging.info("Linked orders updated for the statistics record.")
 
         return stat
 
