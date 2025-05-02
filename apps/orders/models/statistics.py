@@ -115,7 +115,8 @@ class StatisticsManager(models.Manager):
         other_total = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.OTHER), Decimal('0.00'))
 
-        logging.error(f"TOTAL: {cash + card_total + other_total}")
+        logging.error(
+            f"TOTAL: cash: {cash}, card: {card_total}, other: {other_total}, {cash + card_total + other_total}")
 
         # 4) Overwrite all relevant fields
         stat.total = (cash + card_total + other_total) + stat.initial_cash
