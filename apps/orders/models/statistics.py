@@ -93,27 +93,29 @@ class StatisticsManager(models.Manager):
             title='till_now', is_z_checked=False, is_closed=False,
             started_by=user
         ).first()
+
         if not stat:
             # nothing to update if no open till_now record
             return None
 
         # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-        total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
+        # total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
 
         # 3) Payment‐type breakdown
         payments = Payment.objects.filter(orders__in=orders).distinct()
         totals = payments.values('payment_type').annotate(
             sum=Sum('final_price'))
-        cash = next((t['sum'] for t in totals if t['payment_type']
-                     == Payment.PaymentType.CASH),  Decimal('0.00'))
-        card_total = next((t['sum'] for t in totals if t['payment_type']
-                          == Payment.PaymentType.CARD),  Decimal('0.00'))
-        other_total = next((t['sum'] for t in totals if t['payment_type']
-                           == Payment.PaymentType.OTHER), Decimal('0.00'))
+
+        cash = next(
+            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH),  Decimal('0.00'))
+        card_total = next(
+            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CARD),  Decimal('0.00'))
+        other_total = next(
+            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.OTHER), Decimal('0.00'))
 
         # 4) Overwrite all relevant fields
-        stat.total = total + stat.initial_cash
+        stat.total = (cash + card_total + other_total) + stat.initial_cash
         stat.date = timezone.localdate()
         stat.started_by = user or stat.started_by
         stat.cash_total = cash
