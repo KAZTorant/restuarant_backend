@@ -107,7 +107,7 @@ class StatisticsManager(models.Manager):
         payments = Payment.objects.filter(orders__in=orders).distinct()
         totals = payments.values('payment_type').annotate(
             sum=Sum('final_price'))
-
+        print(">>>>>>>", payments.values_list("final_price", flat=True))
         cash = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH),  Decimal('0.00'))
         card_total = next(
