@@ -130,7 +130,7 @@ class StatisticsManager(models.Manager):
         # Discounts by payment type
         discounts = payments.values('payment_type').annotate(
             # Assuming 'discount' is the field name
-            discount_sum=Sum('discount')
+            discount_sum=Sum('discount_amount')
         )
 
         # Convert to dicts for easier lookup
