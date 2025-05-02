@@ -146,28 +146,28 @@ class StatisticsManager(models.Manager):
             is_closed=False,
             started_by=user
         ).first()
-        logging.error(f"TOTAL: TILL NOW, {user} {stat}")
+        # logging.error(f"TOTAL: TILL NOW, {user} {stat}")
         if not stat:
             return None
-        logging.error("Found existing 'till_now' statistics record.")
+        # logging.error("Found existing 'till_now' statistics record.")
 
         # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-        logging.error(f"Fetched {orders.count()} paid orders.")
+        # logging.error(f"Fetched {orders.count()} paid orders.")
 
         # 3) All payments linked to those orders
         all_payments = Payment.objects.filter(orders__in=orders)
         payments = all_payments.distinct()
-        logging.error(
-            f"Filtered payments linked to paid orders: {payments.count()} found.")
+        # logging.error(
+        #     f"Filtered payments linked to paid orders: {payments.count()} found.")
 
         # Identify non-distinct payment IDs
-        payment_ids = list(all_payments.values_list("id", flat=True))
-        duplicates = [pid for pid, count in Counter(
-            payment_ids).items() if count > 1]
-        if duplicates:
-            logging.warning(
-                f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
+        # payment_ids = list(all_payments.values_list("id", flat=True))
+        # duplicates = [pid for pid, count in Counter(
+        #     payment_ids).items() if count > 1]
+        # if duplicates:
+        #     logging.warning(
+        #         f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
 
         # Manual breakdown and accumulation
         cash_total = Decimal('0.00')
@@ -187,12 +187,12 @@ class StatisticsManager(models.Manager):
         total_discount = Decimal('0.00')
 
         # Log detailed cash payment table header
-        logging.error(
-            "┌────────────┬───────────────┬──────────────┬────────────────┐")
-        logging.error(
-            "│ Payment ID │ Total Price   │ Final Price  │ Discount Amount│")
-        logging.error(
-            "├────────────┼───────────────┼──────────────┼────────────────┤")
+        # logging.error(
+        #     "┌────────────┬───────────────┬──────────────┬────────────────┐")
+        # logging.error(
+        #     "│ Payment ID │ Total Price   │ Final Price  │ Discount Amount│")
+        # logging.error(
+        #     "├────────────┼───────────────┼──────────────┼────────────────┤")
 
         for payment in payments:
             total_total_price += payment.total_price
@@ -216,20 +216,20 @@ class StatisticsManager(models.Manager):
                 other_discount += payment.discount_amount
                 other_count += 1
 
-        logging.error(
-            "├────────────┼───────────────┼──────────────┼────────────────┤")
-        logging.error(
-            f"│ {'TOTAL'.rjust(10)} │ {str(total_total_price).rjust(13)} │ "
-            f"{str(total_final_price).rjust(12)} │ {str(total_discount).rjust(14)} │"
-        )
-        logging.error(
-            "└────────────┴───────────────┴──────────────┴────────────────┘")
+        # logging.error(
+        #     "├────────────┼───────────────┼──────────────┼────────────────┤")
+        # logging.error(
+        #     f"│ {'TOTAL'.rjust(10)} │ {str(total_total_price).rjust(13)} │ "
+        #     f"{str(total_final_price).rjust(12)} │ {str(total_discount).rjust(14)} │"
+        # )
+        # logging.error(
+        #     "└────────────┴───────────────┴──────────────┴────────────────┘")
 
-        logging.error(
-            f"Breakdown - Cash: {cash_total} ({cash_count} payments, {cash_discount} discount), "
-            f"Card: {card_total} ({card_count} payments, {card_discount} discount), "
-            f"Other: {other_total} ({other_count} payments, {other_discount} discount)"
-        )
+        # logging.error(
+        #     f"Breakdown - Cash: {cash_total} ({cash_count} payments, {cash_discount} discount), "
+        #     f"Card: {card_total} ({card_count} payments, {card_discount} discount), "
+        #     f"Other: {other_total} ({other_count} payments, {other_discount} discount)"
+        # )
 
         # 4) Overwrite all relevant fields
         stat.total = (cash_total + card_total +
@@ -242,11 +242,11 @@ class StatisticsManager(models.Manager):
         stat.withdrawn_amount = Decimal('0.00')
         stat.remaining_cash = cash_total + stat.initial_cash - stat.withdrawn_amount
         stat.save()
-        logging.error("Updated statistics record fields and saved.")
+        # logging.error("Updated statistics record fields and saved.")
 
         # 5) Refresh linked orders
         stat.orders.set(orders)
-        logging.error("Linked orders updated for the statistics record.")
+        # logging.error("Linked orders updated for the statistics record.")
 
         return stat
 
