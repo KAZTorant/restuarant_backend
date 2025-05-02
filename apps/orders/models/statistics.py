@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from decimal import Decimal
+from collections import Counter
+from django.db.models import Sum, Count, Q
 
 from simple_history.models import HistoricalRecords
 
@@ -106,22 +108,55 @@ class StatisticsManager(models.Manager):
         logging.error(f"Fetched {orders.count()} paid orders.")
 
         # 3) Payment‐type breakdown
-        payments = Payment.objects.filter(orders__in=orders).distinct()
+        all_payments = Payment.objects.filter(orders__in=orders)
+        payments = all_payments.distinct()
         logging.error(
             f"Filtered payments linked to paid orders: {payments.count()} found.")
 
-        totals = payments.values('payment_type').annotate(
-            sum=Sum('final_price'))
-        logging.error(f"Aggregated totals by payment type: {totals}.")
+        # Identify non-distinct payment IDs
+        payment_ids = list(all_payments.values_list("id", flat=True))
+        duplicates = [pid for pid, count in Counter(
+            payment_ids).items() if count > 1]
+        if duplicates:
+            logging.warning(
+                f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
 
-        cash = next(
-            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH), Decimal('0.00'))
-        card_total = next(
-            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CARD), Decimal('0.00'))
-        other_total = next(
-            (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.OTHER), Decimal('0.00'))
+        # Totals and counts by payment type
+        totals = payments.values('payment_type').annotate(
+            sum=Sum('final_price'),
+            count=Count('id')
+        )
+
+        # Discounts by payment type
+        discounts = payments.values('payment_type').annotate(
+            # Assuming 'discount' is the field name
+            discount_sum=Sum('discount')
+        )
+
+        # Convert to dicts for easier lookup
+        total_map = {t['payment_type']: t for t in totals}
+        discount_map = {d['payment_type']: d['discount_sum']
+                        or Decimal('0.00') for d in discounts}
+
+        def get_sum(ptype): return total_map.get(
+            ptype, {}).get('sum', Decimal('0.00'))
+
+        def get_count(ptype): return total_map.get(ptype, {}).get('count', 0)
+        def get_discount(ptype): return discount_map.get(
+            ptype, Decimal('0.00'))
+
+        cash = get_sum(Payment.PaymentType.CASH)
+        card_total = get_sum(Payment.PaymentType.CARD)
+        other_total = get_sum(Payment.PaymentType.OTHER)
+
         logging.info(
-            f"Breakdown - Cash: {cash}, Card: {card_total}, Other: {other_total}")
+            f"Breakdown - Cash: {cash} ({get_count(Payment.PaymentType.CASH)} payments, "
+            f"{get_discount(Payment.PaymentType.CASH)} discount), "
+            f"Card: {card_total} ({get_count(Payment.PaymentType.CARD)} payments, "
+            f"{get_discount(Payment.PaymentType.CARD)} discount), "
+            f"Other: {other_total} ({get_count(Payment.PaymentType.OTHER)} payments, "
+            f"{get_discount(Payment.PaymentType.OTHER)} discount)"
+        )
 
         # 4) Overwrite all relevant fields
         stat.total = (cash + card_total + other_total) + stat.initial_cash
