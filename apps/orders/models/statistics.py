@@ -155,7 +155,7 @@ class StatisticsManager(models.Manager):
         shift.is_z_checked = True
         shift.save()
 
-        for o in shift.orders:
+        for o in shift.orders.all():
             o.is_deleted = True
             o.save()
         # shift.orders.update(is_deleted=True)

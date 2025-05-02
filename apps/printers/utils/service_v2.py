@@ -497,11 +497,12 @@ class PrinterService:
 
     @staticmethod
     def print_order_items_summary(stat_id, user=None):
-        from apps.orders.models.order import OrderItem
-        from apps.orders.models.order_deletion import OrderItemDeletionLog
+        from decimal import Decimal
+        from datetime import datetime
         from django.db.models import Min
         from django.utils import timezone
-        from datetime import datetime
+        from apps.orders.models.order import OrderItem
+        from apps.orders.models.order_deletion import OrderItemDeletionLog
 
         try:
             stat = Statistics.objects.get(pk=stat_id)
@@ -532,48 +533,51 @@ class PrinterService:
                 f"Istifadəçi: {user.get_full_name() or user.username}")
         lines.append("-" * width)
 
-        # Group active items by MealGroup
-        grouped_active = {}
+        # Group active items first by MealGroup, then by Meal name
+        grouped = {}
         for item in active_items.select_related("meal__category__group"):
             group_name = (
                 item.meal.category.group.name
                 if item.meal and item.meal.category and item.meal.category.group
                 else "Digər"
             )
-            grouped_active.setdefault(group_name, []).append(item)
+            meal_name = item.meal.name
+            grouped.setdefault(group_name, {})
+            agg = grouped[group_name].setdefault(
+                meal_name, {"qty": 0, "total": Decimal("0.00")})
+            agg["qty"] += item.quantity
+            agg["total"] += item.quantity * item.price
 
-        grand_total_price = 0
         grand_total_qty = 0
+        grand_total_price = Decimal("0.00")
 
-        for group, items in grouped_active.items():
+        for group, meals in grouped.items():
             lines.append(f"\n*** {group.upper()} ***")
             lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
 
-            group_total_price = 0
-            group_total_qty = 0
-            for item in items:
-                name = item.meal.name[:25]
-                qty = item.quantity
-                price = item.price
-                total = qty * price
-                group_total_price += total
-                group_total_qty += qty
-                lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
+            group_qty = 0
+            group_price = Decimal("0.00")
+            for meal_name, agg in meals.items():
+                qty = agg["qty"]
+                total = agg["total"]
+                lines.append(f"{meal_name[:25]:<25}{qty:>6}{total:>15.2f}")
+                group_qty += qty
+                group_price += total
 
             lines.append(
-                f"{'Qrup cəmi:':<25}{group_total_qty:>6}{group_total_price:>15.2f}")
+                f"{'Qrup cəmi:':<25}{group_qty:>6}{group_price:>15.2f}")
             lines.append("-" * width)
 
-            grand_total_price += group_total_price
-            grand_total_qty += group_total_qty
+            grand_total_qty += group_qty
+            grand_total_price += group_price
 
         lines.append(
             f"{'CƏMİ (Aktiv)':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
         lines.append("=" * width)
 
-        # Append deleted items summary
+        # Append deleted items summary (unchanged logic, but also sums per meal)
         if deleted_items.exists():
-            lines.append("SİLİNMİŞ MƏHSULLAR".center(width))
+            lines.append("\n" + "SİLİNMİŞ MƏHSULLAR".center(width))
             reasons = {
                 OrderItemDeletionLog.REASON_RETURN: "Anbara Qaytarma",
                 OrderItemDeletionLog.REASON_WASTE: "Tullantı"
@@ -584,25 +588,28 @@ class PrinterService:
                 if not reason_group.exists():
                     continue
 
+                # aggregate per meal_name
+                deleted_agg = {}
+                for item in reason_group:
+                    deleted_agg.setdefault(
+                        item.meal_name, {"qty": 0, "total": Decimal("0.00")})
+                    deleted_agg[item.meal_name]["qty"] += int(item.quantity)
+                    deleted_agg[item.meal_name]["total"] += item.quantity * item.price
+
                 lines.append(f"\n*** {reason_label.upper()} ***")
                 lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
 
-                total_reason_price = 0
-                total_reason_qty = 0
-
-                for item in reason_group:
-                    name = item.meal_name[:25]
-                    qty = item.quantity
-                    price = item.price
-                    total = qty * price
-                    total_reason_price += total
-                    total_reason_qty += qty
-                    lines.append(f"{name:<25}{int(qty):>6}{total:>15.2f}")
+                reason_qty = 0
+                reason_price = Decimal("0.00")
+                for meal_name, agg in deleted_agg.items():
+                    qty = agg["qty"]
+                    total = agg["total"]
+                    lines.append(f"{meal_name[:25]:<25}{qty:>6}{total:>15.2f}")
+                    reason_qty += qty
+                    reason_price += total
 
                 lines.append(
-                    f"{'Cəmi:':<25}{int(total_reason_qty):>6}{total_reason_price:>15.2f}"
-                )
-
+                    f"{'Cəmi:':<25}{reason_qty:>6}{reason_price:>15.2f}")
                 lines.append("-" * width)
 
         lines.append("\n" + "=" * width)
@@ -611,11 +618,14 @@ class PrinterService:
         lines.append("\n\n\n")
 
         text = "\n".join(lines)
-
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
             type=Receipt.ReceiptType.SHIFT_SUMMARY
         )
 
-        return (response.status_code == 200), "Məhsullar qrupla çap edildi." if response.status_code == 200 else "Çap alınmadı."
+        return (response.status_code == 200), (
+            "Məhsullar qrupla çap edildi."
+            if response.status_code == 200
+            else "Çap alınmadı."
+        )
