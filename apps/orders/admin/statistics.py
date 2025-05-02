@@ -226,6 +226,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     def response_change(self, request, obj):
         # Legacy Z-check buttons
         if '_print_z_receipt' in request.POST:
+            obj.refresh_from_db()
             success, msg = PrinterServiceV2.print_z_hesabat(
                 stat_id=obj.pk, user=request.user
             )
@@ -234,6 +235,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             return HttpResponseRedirect('.')
 
         if '_print_shift_summary' in request.POST:
+            obj.refresh_from_db()
             success, msg = PrinterServiceV2.print_shift_summary(
                 stat_id=obj.pk, user=request.user)
             level = messages.SUCCESS if success else messages.ERROR
@@ -241,6 +243,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             return HttpResponseRedirect('.')
 
         if '_print_order_items_summary' in request.POST:
+            obj.refresh_from_db()
             success, msg = PrinterServiceV2.print_order_items_summary(
                 stat_id=obj.pk,
                 user=request.user
@@ -256,6 +259,8 @@ class StatisticsAdmin(SimpleHistoryAdmin):
                     'withdrawn_amount', '0') or '0')
                 Statistics.objects.calculate_till_now()
                 Statistics.objects.end_shift(obj, request.user, withdrawn)
+                obj.refresh_from_db()
+
                 self.message_user(request,
                                   (
                                       "Növbə uğurla bağlandı."
