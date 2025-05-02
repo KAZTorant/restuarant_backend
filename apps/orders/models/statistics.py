@@ -103,7 +103,8 @@ class StatisticsManager(models.Manager):
 
         if withdrawn_amount > shift.cash:
             raise ValidationError(
-                "Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.")
+                f"Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz. {withdrawn_amount} > {shift.cash}"
+            )
 
         shift.withdrawn_amount = withdrawn_amount
         shift.remaining_cash = shift.cash - withdrawn_amount
