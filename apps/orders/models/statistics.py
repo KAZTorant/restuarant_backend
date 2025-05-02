@@ -91,26 +91,28 @@ class StatisticsManager(models.Manager):
         """
         # 1) Find the existing till_now stat
         stat = self.filter(
-            title='till_now', is_z_checked=False, is_closed=False,
+            title='till_now',
+            is_z_checked=False,
+            is_closed=False,
             started_by=user
         ).first()
-        logging.error(f"TOTAL: TILL NOW, {user}")
+        logging.error(f"TOTAL: TILL NOW, {user} {stat}")
         if not stat:
             return None
-        logging.info("Found existing 'till_now' statistics record.")
+        logging.error("Found existing 'till_now' statistics record.")
 
         # 2) All paid orders
         orders = Order.objects.filter(is_paid=True)
-        logging.info(f"Fetched {orders.count()} paid orders.")
+        logging.error(f"Fetched {orders.count()} paid orders.")
 
         # 3) Payment‐type breakdown
         payments = Payment.objects.filter(orders__in=orders).distinct()
-        logging.info(
+        logging.error(
             f"Filtered payments linked to paid orders: {payments.count()} found.")
 
         totals = payments.values('payment_type').annotate(
             sum=Sum('final_price'))
-        logging.info(f"Aggregated totals by payment type: {totals}.")
+        logging.error(f"Aggregated totals by payment type: {totals}.")
 
         cash = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH), Decimal('0.00'))
@@ -131,11 +133,11 @@ class StatisticsManager(models.Manager):
         stat.withdrawn_amount = Decimal('0.00')
         stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
         stat.save()
-        logging.info("Updated statistics record fields and saved.")
+        logging.error("Updated statistics record fields and saved.")
 
         # 5) Refresh linked orders
         stat.orders.set(orders)
-        logging.info("Linked orders updated for the statistics record.")
+        logging.error("Linked orders updated for the statistics record.")
 
         return stat
 
