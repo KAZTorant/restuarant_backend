@@ -94,7 +94,7 @@ class StatisticsManager(models.Manager):
             title='till_now', is_z_checked=False, is_closed=False,
             started_by=user
         ).first()
-
+        logging.error(f"TOTAL: TILL NOW, {user}")
         if not stat:
             # nothing to update if no open till_now record
             return None
