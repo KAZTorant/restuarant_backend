@@ -35,12 +35,13 @@ class PrinterService:
     ):
         try:
             table = Table.objects.get(pk=table_id)
-
             if not table.can_print_check() and not force_print:
                 return False, "Aktiv sifariş yoxdur və ya çek artıq çap edilib."
 
             orders = table.orders.exclude(
-                is_deleted=True).filter(is_paid=False)
+                is_deleted=True
+            ).filter(is_paid=False)
+
             if not orders.exists():
                 return False, "Sifariş mövcud deyil."
 
@@ -50,9 +51,11 @@ class PrinterService:
             )
 
             formatted_text = PrinterService._format_customer_receipt(
-                receipt_data)
+                receipt_data
+            )
             response = PrinterService._send_text_to_main_printer(
-                formatted_text)
+                formatted_text
+            )
 
             if response.status_code == 200:
                 orders.update(is_check_printed=True)
