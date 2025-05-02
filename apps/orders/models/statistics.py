@@ -149,7 +149,7 @@ class StatisticsManager(models.Manager):
         card_total = get_sum(Payment.PaymentType.CARD)
         other_total = get_sum(Payment.PaymentType.OTHER)
 
-        logging.info(
+        logging.error(
             f"Breakdown - Cash: {cash} ({get_count(Payment.PaymentType.CASH)} payments, "
             f"{get_discount(Payment.PaymentType.CASH)} discount), "
             f"Card: {card_total} ({get_count(Payment.PaymentType.CARD)} payments, "
