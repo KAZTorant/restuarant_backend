@@ -86,96 +86,6 @@ class StatisticsManager(models.Manager):
             return
         return self.update_or_create(title='yearly', date=first, defaults={'total': total})
 
-    def calculate_till_now(self, user=None):
-        """
-        Update the existing 'till_now' Statistics record with fresh
-        cumulative totals and payment‐type breakdowns; do nothing if none exists.
-        """
-        # 1) Find the existing till_now stat
-        stat = self.filter(
-            title='till_now',
-            is_z_checked=False,
-            is_closed=False,
-            started_by=user
-        ).first()
-        logging.error(f"TOTAL: TILL NOW, {user} {stat}")
-        if not stat:
-            return None
-        logging.error("Found existing 'till_now' statistics record.")
-
-        # 2) All paid orders
-        orders = Order.objects.filter(is_paid=True)
-        logging.error(f"Fetched {orders.count()} paid orders.")
-
-        # 3) Payment‐type breakdown
-        all_payments = Payment.objects.filter(orders__in=orders)
-        payments = all_payments.distinct()
-        logging.error(
-            f"Filtered payments linked to paid orders: {payments.count()} found.")
-
-        # Identify non-distinct payment IDs
-        payment_ids = list(all_payments.values_list("id", flat=True))
-        duplicates = [pid for pid, count in Counter(
-            payment_ids).items() if count > 1]
-        if duplicates:
-            logging.warning(
-                f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
-
-        # Totals and counts by payment type
-        totals = payments.values('payment_type').annotate(
-            sum=Sum('final_price'),
-            count=Count('id')
-        )
-
-        # Discounts by payment type
-        discounts = payments.values('payment_type').annotate(
-            # Assuming 'discount' is the field name
-            discount_sum=Sum('discount_amount')
-        )
-
-        # Convert to dicts for easier lookup
-        total_map = {t['payment_type']: t for t in totals}
-        discount_map = {d['payment_type']: d['discount_sum']
-                        or Decimal('0.00') for d in discounts}
-
-        def get_sum(ptype): return total_map.get(
-            ptype, {}).get('sum', Decimal('0.00'))
-
-        def get_count(ptype): return total_map.get(ptype, {}).get('count', 0)
-        def get_discount(ptype): return discount_map.get(
-            ptype, Decimal('0.00'))
-
-        cash = get_sum(Payment.PaymentType.CASH)
-        card_total = get_sum(Payment.PaymentType.CARD)
-        other_total = get_sum(Payment.PaymentType.OTHER)
-
-        logging.error(
-            f"Breakdown - Cash: {cash} ({get_count(Payment.PaymentType.CASH)} payments, "
-            f"{get_discount(Payment.PaymentType.CASH)} discount), "
-            f"Card: {card_total} ({get_count(Payment.PaymentType.CARD)} payments, "
-            f"{get_discount(Payment.PaymentType.CARD)} discount), "
-            f"Other: {other_total} ({get_count(Payment.PaymentType.OTHER)} payments, "
-            f"{get_discount(Payment.PaymentType.OTHER)} discount)"
-        )
-
-        # 4) Overwrite all relevant fields
-        stat.total = (cash + card_total + other_total) + stat.initial_cash
-        stat.date = timezone.localdate()
-        stat.started_by = user or stat.started_by
-        stat.cash_total = cash
-        stat.card_total = card_total
-        stat.other_total = other_total
-        stat.withdrawn_amount = Decimal('0.00')
-        stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
-        stat.save()
-        logging.error("Updated statistics record fields and saved.")
-
-        # 5) Refresh linked orders
-        stat.orders.set(orders)
-        logging.error("Linked orders updated for the statistics record.")
-
-        return stat
-
     def start_shift(self, user):
         if self.filter(is_closed=False).exists():
             raise ValidationError("Açıq növbən var.")
@@ -223,6 +133,127 @@ class StatisticsManager(models.Manager):
             o.save()
         # orders.update(is_deleted=True)
         return count
+
+    def calculate_till_now(self, user=None):
+        """
+        Update the existing 'till_now' Statistics record with fresh
+        cumulative totals and payment‐type breakdowns; do nothing if none exists.
+        """
+        # 1) Find the existing till_now stat
+        stat = self.filter(
+            title='till_now',
+            is_z_checked=False,
+            is_closed=False,
+            started_by=user
+        ).first()
+        logging.error(f"TOTAL: TILL NOW, {user} {stat}")
+        if not stat:
+            return None
+        logging.error("Found existing 'till_now' statistics record.")
+
+        # 2) All paid orders
+        orders = Order.objects.filter(is_paid=True)
+        logging.error(f"Fetched {orders.count()} paid orders.")
+
+        # 3) Payment‐type breakdown
+        all_payments = Payment.objects.filter(orders__in=orders)
+        payments = all_payments.distinct()
+        logging.error(
+            f"Filtered payments linked to paid orders: {payments.count()} found.")
+
+        # Identify non-distinct payment IDs
+        payment_ids = list(all_payments.values_list("id", flat=True))
+        duplicates = [pid for pid, count in Counter(
+            payment_ids).items() if count > 1]
+        if duplicates:
+            logging.warning(
+                f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
+
+        # Totals and counts by payment type
+        totals = payments.values('payment_type').annotate(
+            sum=Sum('final_price'),
+            count=Count('id')
+        )
+
+        # Discounts by payment type
+        discounts = payments.values('payment_type').annotate(
+            discount_sum=Sum('discount_amount')
+        )
+
+        # Convert to dicts for easier lookup
+        total_map = {t['payment_type']: t for t in totals}
+        discount_map = {d['payment_type']: d['discount_sum']
+                        or Decimal('0.00') for d in discounts}
+
+        def get_sum(ptype): return total_map.get(
+            ptype, {}).get('sum', Decimal('0.00'))
+
+        def get_count(ptype): return total_map.get(ptype, {}).get('count', 0)
+        def get_discount(ptype): return discount_map.get(
+            ptype, Decimal('0.00'))
+
+        cash = get_sum(Payment.PaymentType.CASH)
+        card_total = get_sum(Payment.PaymentType.CARD)
+        other_total = get_sum(Payment.PaymentType.OTHER)
+
+        logging.error(
+            f"Breakdown - Cash: {cash} ({get_count(Payment.PaymentType.CASH)} payments, "
+            f"{get_discount(Payment.PaymentType.CASH)} discount), "
+            f"Card: {card_total} ({get_count(Payment.PaymentType.CARD)} payments, "
+            f"{get_discount(Payment.PaymentType.CARD)} discount), "
+            f"Other: {other_total} ({get_count(Payment.PaymentType.OTHER)} payments, "
+            f"{get_discount(Payment.PaymentType.OTHER)} discount)"
+        )
+
+        # Log detailed cash payments table
+        cash_payments = payments.filter(payment_type=Payment.PaymentType.CASH)
+        total_total_price = Decimal('0.00')
+        total_final_price = Decimal('0.00')
+        total_discount = Decimal('0.00')
+
+        logging.error(
+            "┌────────────┬───────────────┬──────────────┬────────────────┐")
+        logging.error(
+            "│ Payment ID │ Total Price   │ Final Price  │ Discount Amount│")
+        logging.error(
+            "├────────────┼───────────────┼──────────────┼────────────────┤")
+
+        for p in cash_payments:
+            total_total_price += p.total_price
+            total_final_price += p.final_price
+            total_discount += p.discount_amount
+
+            logging.error(
+                f"│ {str(p.id).rjust(10)} │ {str(p.total_price).rjust(13)} │ "
+                f"{str(p.final_price).rjust(12)} │ {str(p.discount_amount).rjust(14)} │"
+            )
+
+        logging.error(
+            "├────────────┼───────────────┼──────────────┼────────────────┤")
+        logging.error(
+            f"│ {'TOTAL'.rjust(10)} │ {str(total_total_price).rjust(13)} │ "
+            f"{str(total_final_price).rjust(12)} │ {str(total_discount).rjust(14)} │"
+        )
+        logging.error(
+            "└────────────┴───────────────┴──────────────┴────────────────┘")
+
+        # 4) Overwrite all relevant fields
+        stat.total = (cash + card_total + other_total) + stat.initial_cash
+        stat.date = timezone.localdate()
+        stat.started_by = user or stat.started_by
+        stat.cash_total = cash
+        stat.card_total = card_total
+        stat.other_total = other_total
+        stat.withdrawn_amount = Decimal('0.00')
+        stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
+        stat.save()
+        logging.error("Updated statistics record fields and saved.")
+
+        # 5) Refresh linked orders
+        stat.orders.set(orders)
+        logging.error("Linked orders updated for the statistics record.")
+
+        return stat
 
 
 class Statistics(DateTimeModel, models.Model):
