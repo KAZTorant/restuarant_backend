@@ -373,12 +373,6 @@ class Statistics(DateTimeModel, models.Model):
     def cash(self):
         return round(self.cash_total + self.initial_cash, 2)
 
-    def clean(self):
-        if self.withdrawn_amount and (self.withdrawn_amount > self.cash):
-            raise ValidationError(
-                {'withdrawn_amount': 'Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.'}
-            )
-
     def __str__(self):
         status = 'Bağlandı' if self.is_closed else 'Açıq'
         return f"{self.started_by} tərəfindən {self.start_time:%Y-%m-%d %H:%M} tarixində başlayan növbə ({status})"
