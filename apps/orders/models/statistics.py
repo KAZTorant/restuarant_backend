@@ -155,7 +155,10 @@ class StatisticsManager(models.Manager):
         shift.is_z_checked = True
         shift.save()
 
-        shift.orders.update(is_deleted=True)
+        for o in shift.orders:
+            o.is_deleted = True
+            o.save()
+        # shift.orders.update(is_deleted=True)
         return shift
 
     def delete_orders_for_statistics_day(self, date):
@@ -167,7 +170,10 @@ class StatisticsManager(models.Manager):
         orders = Order.objects.filter(
             created_at__range=(start, end), is_paid=True)
         count = orders.count()
-        orders.update(is_deleted=True)
+        for o in orders:
+            o.is_deleted = True
+            o.save()
+        # orders.update(is_deleted=True)
         return count
 
 

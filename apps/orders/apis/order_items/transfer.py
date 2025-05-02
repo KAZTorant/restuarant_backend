@@ -125,10 +125,15 @@ class TransferOrderItemsAPIView(APIView):
         """
         pks = list(items_qs.values_list('pk', flat=True))
         order_items = OrderItem.objects.filter(pk__in=pks)
-        order_items.update(
-            order=new_order,
-            transfer_comment=transfer_comment
-        )
+        # order_items.update(
+        #     order=new_order,
+        #     transfer_comment=transfer_comment
+        # )
+        for item in order_items:
+            item.order = new_order
+            item.transfer_comment = transfer_comment
+            item.save()
+
         return order_items
 
     @staticmethod

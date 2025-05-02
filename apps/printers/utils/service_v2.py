@@ -58,7 +58,11 @@ class PrinterService:
             )
 
             if response.status_code == 200:
-                orders.update(is_check_printed=True)
+                if not is_paid:
+                    for o in orders:
+                        o.is_check_printed = True
+                        o.save()
+                # orders.update(is_check_printed=True)
                 return True, "Çek uğurla çap edildi."
             return False, "Çek çap edilə bilmədi. Printer qoşulmayıb."
 

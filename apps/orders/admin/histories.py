@@ -6,9 +6,11 @@ from datetime import timedelta, datetime
 
 from apps.orders.models import Order, OrderItem
 
+# Retrieve the generated history models
 HistoricalOrder = get_history_model_for_model(Order)
 HistoricalOrderItem = get_history_model_for_model(OrderItem)
 
+# Friendly names in admin
 HistoricalOrder._meta.verbose_name = 'Arxiv (Sifariş)'
 HistoricalOrder._meta.verbose_name_plural = 'Arxiv (Sifarişlər) 🎞️'
 HistoricalOrderItem._meta.verbose_name = 'Arxiv (Sifariş məhsulu)'
@@ -16,8 +18,10 @@ HistoricalOrderItem._meta.verbose_name_plural = 'Arxiv (Sifariş məhsulu) 🎞�
 
 
 class SingleItemChangeList(ChangeList):
-    def get_results(self, *args, **kwargs):
-        super().get_results(*args, **kwargs)
+    """Show one history record per page."""
+
+    def get_results(self, request, *args, **kwargs):
+        super().get_results(request, *args, **kwargs)
         cnt = len(self.result_list)
         self.result_count = self.full_result_count = cnt
         self.paginator._count = cnt
@@ -28,62 +32,80 @@ class SingleItemChangeList(ChangeList):
 class HistoricalOrderAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'table', 'is_paid', 'waitress',
-        'total_price', 'history_type', 'created_at',
+        'total_price', 'history_type', 'history_date',
         'get_history_reason',
     ]
     list_filter = ['id', 'waitress', 'table']
+    list_per_page = 20
 
     def get_changelist(self, request, **kwargs):
         return SingleItemChangeList
 
     def get_history_reason(self, obj):
-        lines = []
-
-        # 1) Order‐level creation/deletion
+        # Creation or deletion
         if obj.history_type == '+':
             return format_html("<ul><li>Yeni sifariş yaradıldı</li></ul>")
         if obj.history_type == '-':
             return format_html("<ul><li>Sifariş silindi</li></ul>")
 
-        # 2) Order‐level field-diffs (including upgraded updated_at)
+        lines = []
+        lines += self._get_order_field_changes(obj)
+        lines += self._get_item_level_changes(obj)
+
+        if not lines:
+            lines = ["Dəyişiklik tapılmadı"]
+
+        return format_html(self._wrap_as_list(lines))
+
+    get_history_reason.short_description = "Dəyişiklik Səbəbi"
+
+    def _get_order_field_changes(self, obj):
+        """Detect changes on the Order itself; elapsed for any datetime field."""
         prev = obj.prev_record
-        if prev:
-            for fld in obj.instance._meta.fields:
-                name = fld.name
-                # skip non‐business fields
-                if name in ('id', 'history_id', 'history_date', 'history_user', 'created_at'):
-                    continue
+        if not prev:
+            return []
 
-                old = getattr(prev, name, None)
-                new = getattr(obj,  name, None)
-                if old == new:
-                    continue
+        changes = []
+        for fld in obj.instance._meta.fields:
+            name = fld.name
+            if name in ('id', 'history_id', 'history_date', 'history_user', 'created_at'):
+                continue
 
-                # special case for updated_at → show elapsed time
-                if name == 'updated_at' and isinstance(old, datetime) and isinstance(new, datetime):
-                    delta = new - old
-                    secs = delta.total_seconds()
-                    if secs < 1:
-                        label = f"{int(delta.microseconds/1000)} ms"
-                    elif secs < 60:
-                        label = f"{secs:.1f} s"
-                    else:
-                        mins = int(secs // 60)
-                        sec = int(secs % 60)
-                        label = f"{mins} m {sec} s"
-                    lines.append(f"Yeniləmə müddəti: {label}")
-                    continue
+            old, new = getattr(prev, name), getattr(obj, name)
+            if old == new:
+                continue
 
-                # other datetime fields: pretty format
-                if isinstance(old, datetime) and isinstance(new, datetime):
-                    old_str = old.strftime('%d %b %Y, %H:%M:%S')
-                    new_str = new.strftime('%d %b %Y, %H:%M:%S')
-                    lines.append(
-                        f"{fld.verbose_name or name}: {old_str} → {new_str}")
-                else:
-                    lines.append(f"{fld.verbose_name or name}: {old} → {new}")
+            # Any datetime → elapsed
+            if isinstance(old, datetime) and isinstance(new, datetime):
+                elapsed = self._format_elapsed(old, new)
+                changes.append(f"{fld.verbose_name}: {elapsed}")
+            # Booleans → Bəli/Xeyr
+            elif isinstance(old, bool) and isinstance(new, bool):
+                old_lbl = 'Bəli' if old else 'Xeyr'
+                new_lbl = 'Bəli' if new else 'Xeyr'
+                changes.append(f"{fld.verbose_name}: {old_lbl} → {new_lbl}")
+            else:
+                changes.append(f"{fld.verbose_name}: {old} → {new}")
+        return changes
 
-        # 3) OrderItem‐level incremental changes
+    def _format_elapsed(self, old, new):
+        """Return human-readable elapsed time between two datetimes."""
+        delta = new - old
+        secs = delta.total_seconds()
+        if secs < 1:
+            return f"{int(delta.microseconds/1000)} ms"
+        if secs < 60:
+            return f"{secs:.1f} s"
+        m, s = divmod(int(secs), 60)
+        return f"{m} m {s} s"
+
+    def _get_item_level_changes(self, obj):
+        """
+        Detect additions, removals, and field changes
+        between this record and the previous, excluding
+        updated_at elapsed from OrderItem level.
+        """
+        prev = obj.prev_record
         start = prev.history_date if prev else obj.history_date - \
             timedelta(seconds=1)
         end = obj.history_date
@@ -93,9 +115,7 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
             history_date__lte=end
         )
 
-        adds, removes = {}, {}
-        changes = {}  # (meal, field, old, new) → count
-
+        adds, removes, updates = {}, {}, {}
         for it in items:
             meal = str(it.meal) if it.meal else "—"
             qty = it.quantity
@@ -108,23 +128,35 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
                 prev_it = it.prev_record
                 for fld in it.instance._meta.fields:
                     nm = fld.name
-                    o = getattr(prev_it, nm, None)
-                    n = getattr(it,      nm, None)
-                    if o != n:
-                        key = (meal, nm, o, n)
-                        changes[key] = changes.get(key, 0) + 1
+                    if nm == 'updated_at':  # skip elapsed here
+                        continue
+                    old = getattr(prev_it, nm, None)
+                    new = getattr(it,       nm, None)
+                    if old != new:
+                        key = (meal, fld.verbose_name or nm, old, new)
+                        updates[key] = updates.get(key, 0) + 1
 
+        lines = []
         for meal, tot in adds.items():
-            lines.append(f"Əlavə edildi: {meal} ({tot})")
+            lines.append(f"Əlavə edildi: {meal} ({tot} ədəd)")
         for meal, tot in removes.items():
-            lines.append(f"Silindi: {meal} ({tot})")
-        for (meal, nm, o, n), cnt in changes.items():
-            lines.append(f"Dəyişdi: {meal} — {nm}: {o} → {n} ({cnt})")
+            lines.append(f"Silindi: {meal} ({tot} ədəd)")
+        for (meal, fname, old, new), cnt in updates.items():
+            # boolean fields
+            if isinstance(old, bool) and isinstance(new, bool):
+                o_lbl = 'Bəli' if old else 'Xeyr'
+                n_lbl = 'Bəli' if new else 'Xeyr'
+                lines.append(
+                    f"Dəyişdi: {meal} — {fname}: {o_lbl} → {n_lbl} ({cnt} ədəd)")
+            else:
+                lines.append(
+                    f"Dəyişdi: {meal} — {fname}: {old} → {new} ({cnt} ədəd)")
+        return lines
 
-        if not lines:
-            lines = ["Dəyişiklik tapılmadı"]
-
-        html = "<ul>" + "".join(f"<li>{line}</li>" for line in lines) + "</ul>"
-        return format_html(html)
-
-    get_history_reason.short_description = "Dəyişiklik Səbəbi"
+    def _wrap_as_list(self, lines):
+        """Wrap a list of strings into an HTML <ul> list."""
+        html = "<ul>"
+        for line in lines:
+            html += f"<li>{line}</li>"
+        html += "</ul>"
+        return html

@@ -57,7 +57,11 @@ class ChangeWaitressAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        orders.update(waitress=new_waitress)
+        for o in orders:
+            o.waitress = new_waitress
+            o.save()
+
+        # orders.update(waitress=new_waitress)
         return Response(
             {'error': 'Ofisiant uğurla dəyişdirildi.'},
             status=status.HTTP_200_OK

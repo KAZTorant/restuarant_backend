@@ -1,3 +1,4 @@
+from typing import List
 from rest_framework.views import APIView
 
 
@@ -55,8 +56,9 @@ class JoinTableOrdersAPIView(APIView):
                 return Response({"detail": "No valid tables found to join."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Get all unpaid orders from the tables to be joined
-            orders_to_join = Order.objects.filter(
-                table__in=other_tables, is_paid=False)
+            orders_to_join: List[Order] = Order.objects.filter(
+                table__in=other_tables, is_paid=False
+            )
             if not orders_to_join.exists():
                 return Response({"detail": "No unpaid orders found to join."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -65,12 +67,23 @@ class JoinTableOrdersAPIView(APIView):
                 return Response({"detail": "The target table must have a current order."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Update all orders to be linked to the target table
-            orders_to_join.update(
-                table=table,
-                is_main=False,
-                waitress=table.orders.exclude(is_deleted=True).filter(
-                    is_paid=False, is_main=True).first().waitress
-            )
+            # orders_to_join.update(
+            #     table=table,
+            #     is_main=False,
+            #     waitress=table.orders.exclude(is_deleted=True).filter(
+            #         is_paid=False, is_main=True).first().waitress
+            # )
+
+            main_order: Order = table.orders.exclude(is_deleted=True).filter(
+                is_paid=False,
+                is_main=True
+            ).first()
+
+            for order_to_join in orders_to_join:
+                order_to_join.table = table
+                order_to_join.is_main = False
+                order_to_join.waitress = main_order.waitress
+                order_to_join.save()
 
             return Response({"detail": "Tables successfully joined."}, status=status.HTTP_200_OK)
 

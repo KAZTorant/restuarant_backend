@@ -37,7 +37,11 @@ class CloseTableOrderAPIView(APIView):
         except Exception as e:
             print("Printer error", str(e))
 
-        orders.update(is_paid=True)
+        # orders.update(is_paid=True)
+        for o in orders:
+            o.is_paid = True
+            o.save()
+
         return Response(
             {"success": True, "message": "Sifariş uğurla bağlamşdır."},
             status=status.HTTP_200_OK

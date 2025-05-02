@@ -38,11 +38,17 @@ class Order(DateTimeModel, models.Model):
         through='OrderItem',
         verbose_name="Yemək"
     )
-    is_paid = models.BooleanField(default=False, verbose_name="Ödənilib")
+    is_paid = models.BooleanField(default=False, verbose_name="Ödənilib ?")
     is_check_printed = models.BooleanField(
-        default=False, verbose_name="Çek çıxarılıb")
-    is_deleted = models.BooleanField(default=False)
-    is_main = models.BooleanField(default=False)
+        default=False, verbose_name="Müştəri üçün çek çıxarılıb ?")
+    is_deleted = models.BooleanField(
+        default=False,
+        verbose_name="Silinmiş ?"
+    )
+    is_main = models.BooleanField(
+        default=False,
+        verbose_name="Masanın əsas sifarişi ?"
+    )
 
     waitress = models.ForeignKey(
         User,
@@ -54,7 +60,7 @@ class Order(DateTimeModel, models.Model):
     )
     total_price = models.DecimalField(
         default=0, max_digits=10, decimal_places=2,
-        verbose_name="Ümumi"
+        verbose_name="Ümumi məbləğ"
     )
 
     customer_count = models.PositiveIntegerField(
@@ -108,7 +114,10 @@ class OrderItem(DateTimeModel, models.Model):
     price = models.DecimalField(
         max_digits=15, decimal_places=2, default=0.00, verbose_name="Məbləğ"
     )
-    is_deleted_by_adminstrator = models.BooleanField(default=False)
+    is_deleted_by_adminstrator = models.BooleanField(
+        default=False,
+        verbose_name="Adminstrator tərəfindən silinib ?"
+    )
     item_added_at = models.DateTimeField(
         default=timezone.now, blank=True, null=True
     )
@@ -117,7 +126,10 @@ class OrderItem(DateTimeModel, models.Model):
         default=1,
         verbose_name="Müştəri №"
     )
-    confirmed = models.BooleanField(default=False)
+    confirmed = models.BooleanField(
+        default=False,
+        verbose_name="Hazırlanmaya göndərildi ?"
+    )
 
     comment = models.TextField(
         null=True,

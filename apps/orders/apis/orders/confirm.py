@@ -132,7 +132,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
             for items in printer_groups.values():
                 for item in items:
                     item.confirmed = True
-                    item.save(update_fields=['confirmed'])
+                    item.save()
 
     def prepare_receipt_data(self, orders, items):
         # Determine the order ID string and table reference
