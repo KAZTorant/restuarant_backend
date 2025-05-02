@@ -110,6 +110,8 @@ class StatisticsManager(models.Manager):
 
         print(">>>>>>>", list(payments.values_list("final_price", flat=True)))
 
+        print(totals)
+
         cash = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CASH),  Decimal('0.00'))
         card_total = next(
