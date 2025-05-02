@@ -1,3 +1,4 @@
+import logging
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -113,6 +114,8 @@ class StatisticsManager(models.Manager):
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.CARD),  Decimal('0.00'))
         other_total = next(
             (t['sum'] for t in totals if t['payment_type'] == Payment.PaymentType.OTHER), Decimal('0.00'))
+
+        logging.error(f"TOTAL: {cash + card_total + other_total}")
 
         # 4) Overwrite all relevant fields
         stat.total = (cash + card_total + other_total) + stat.initial_cash
