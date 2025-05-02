@@ -257,7 +257,7 @@ class StatisticsManager(models.Manager):
         # 5) Refresh linked orders
         stat.orders.set(orders)
         logging.error("Linked orders updated for the statistics record.")
-
+        print("cash_total", stat.cash_total)
         return stat
 
 
