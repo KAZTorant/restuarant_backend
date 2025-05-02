@@ -100,13 +100,14 @@ class StatisticsManager(models.Manager):
             return None
 
         # 2) All paid orders
-        # orders = Order.objects.filter(is_paid=True)
-        orders = stat.orders.all()
+        orders = Order.objects.filter(is_paid=True)
+
         # total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
 
         # 3) Payment‐type breakdown
         payments = Payment.objects.filter(orders__in=orders).distinct()
 
+        print(payments.values_list("pk", flat=True))
         totals = payments.values('payment_type').annotate(
             sum=Sum('final_price'))
 
