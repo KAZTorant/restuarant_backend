@@ -43,7 +43,7 @@ class PrintCheckAPIView(APIView):
 
         if table.can_print_check():
             return Response({"error": "Masa üçün çek print etmək mümkündür."}, status=status.HTTP_404_NOT_FOUND)
-        orders.update(is_check_printed=False)
+        orders.update()
         table.save()
 
         return Response({"success": True, "message": "Masa üçün yenidən çek print etmək mümkündür."}, status=status.HTTP_200_OK)
