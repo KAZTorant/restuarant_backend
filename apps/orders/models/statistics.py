@@ -249,6 +249,11 @@ class StatisticsManager(models.Manager):
         stat.save()
         logging.error("Updated statistics record fields and saved.")
 
+        print("Cash IDs from aggregation:", list(payments.filter(
+            payment_type='cash').values_list("id", flat=True)))
+        print("Cash IDs from loop:", list(
+            cash_payments.values_list("id", flat=True)))
+
         # 5) Refresh linked orders
         stat.orders.set(orders)
         logging.error("Linked orders updated for the statistics record.")
