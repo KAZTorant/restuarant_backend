@@ -89,7 +89,9 @@ class CompleteTablePaymentAPIView(APIView):
         )
 
         # STEP 4: Mark as paid
-        orders_or_error.update(is_paid=True)
+        for order in orders_or_error:
+            order.is_paid = True
+            order.save()
 
         return Response(
             {

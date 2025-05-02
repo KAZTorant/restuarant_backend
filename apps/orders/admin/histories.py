@@ -26,6 +26,7 @@ HistoricalOrderItem._meta.verbose_name_plural = 'Arxiv (Sifariş məhsulu) 🎞�
 @admin.register(HistoricalOrder)
 class HistoricalOrderAdmin(admin.ModelAdmin):
     list_display = [
+        'id',
         'table',
         'is_paid',
         'waitress',
@@ -34,9 +35,10 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
         'created_at',
     ]
     list_filter = [
+        'id',
         'waitress',
         'table',
-        ('created_at', DateRangeFilter)
+        # ('created_at', DateRangeFilter)
     ]
 
 
@@ -56,7 +58,8 @@ class HistoricalOrderItemAdmin(admin.ModelAdmin):
         'meal',
         'order__waitress',
         'order__table',
-        ('created_at', DateRangeFilter)
+        'order__id',
+        # ('created_at', DateRangeFilter)
     ]
 
     def changelist_view(self, request, extra_context=None):
@@ -83,3 +86,10 @@ class HistoricalOrderItemAdmin(admin.ModelAdmin):
         except (AttributeError, KeyError):
             pass
         return response
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        order_id = request.GET.get('order__id__exact')
+        if order_id:
+            return qs.filter(order__id=order_id)
+        return qs
