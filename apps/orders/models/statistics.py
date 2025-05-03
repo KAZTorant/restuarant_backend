@@ -1,9 +1,12 @@
+import logging
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from decimal import Decimal
+from collections import Counter
+from django.db.models import Sum, Count, Q
 
 from simple_history.models import HistoricalRecords
 
@@ -83,51 +86,6 @@ class StatisticsManager(models.Manager):
             return
         return self.update_or_create(title='yearly', date=first, defaults={'total': total})
 
-    def calculate_till_now(self, user=None):
-        """
-        Update the existing 'till_now' Statistics record with fresh
-        cumulative totals and payment‐type breakdowns; do nothing if none exists.
-        """
-        # 1) Find the existing till_now stat
-        stat = self.filter(
-            title='till_now', is_z_checked=False, is_closed=False,
-            started_by=user
-        ).first()
-        if not stat:
-            # nothing to update if no open till_now record
-            return None
-
-        # 2) All paid orders
-        orders = Order.objects.filter(is_paid=True)
-        total = orders.aggregate(sum=Sum('total_price'))['sum'] or 0
-
-        # 3) Payment‐type breakdown
-        payments = Payment.objects.filter(orders__in=orders).distinct()
-        totals = payments.values('payment_type').annotate(
-            sum=Sum('final_price'))
-        cash = next((t['sum'] for t in totals if t['payment_type']
-                     == Payment.PaymentType.CASH),  Decimal('0.00'))
-        card_total = next((t['sum'] for t in totals if t['payment_type']
-                          == Payment.PaymentType.CARD),  Decimal('0.00'))
-        other_total = next((t['sum'] for t in totals if t['payment_type']
-                           == Payment.PaymentType.OTHER), Decimal('0.00'))
-
-        # 4) Overwrite all relevant fields
-        stat.total = total + stat.initial_cash
-        stat.date = timezone.localdate()
-        stat.started_by = user or stat.started_by
-        stat.cash_total = cash
-        stat.card_total = card_total
-        stat.other_total = other_total
-        stat.withdrawn_amount = Decimal('0.00')
-        stat.remaining_cash = cash + stat.initial_cash - stat.withdrawn_amount
-        stat.save()
-
-        # 5) Refresh linked orders
-        stat.orders.set(orders)
-
-        return stat
-
     def start_shift(self, user):
         if self.filter(is_closed=False).exists():
             raise ValidationError("Açıq növbən var.")
@@ -145,7 +103,8 @@ class StatisticsManager(models.Manager):
 
         if withdrawn_amount > shift.cash:
             raise ValidationError(
-                "Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.")
+                f"Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz. {withdrawn_amount} > {shift.cash}"
+            )
 
         shift.withdrawn_amount = withdrawn_amount
         shift.remaining_cash = shift.cash - withdrawn_amount
@@ -155,7 +114,10 @@ class StatisticsManager(models.Manager):
         shift.is_z_checked = True
         shift.save()
 
-        shift.orders.update(is_deleted=True)
+        for o in shift.orders.all():
+            o.is_deleted = True
+            o.save()
+        # shift.orders.update(is_deleted=True)
         return shift
 
     def delete_orders_for_statistics_day(self, date):
@@ -167,8 +129,127 @@ class StatisticsManager(models.Manager):
         orders = Order.objects.filter(
             created_at__range=(start, end), is_paid=True)
         count = orders.count()
-        orders.update(is_deleted=True)
+        for o in orders:
+            o.is_deleted = True
+            o.save()
+        # orders.update(is_deleted=True)
         return count
+
+    def calculate_till_now(self, user=None):
+        """
+        Update the existing 'till_now' Statistics record with fresh
+        cumulative totals and payment‐type breakdowns; do nothing if none exists.
+        """
+        # 1) Find the existing till_now stat
+        stat = self.filter(
+            title='till_now',
+            is_z_checked=False,
+            is_closed=False,
+            started_by=user
+        ).first()
+        # logging.error(f"TOTAL: TILL NOW, {user} {stat}")
+        if not stat:
+            return None
+        # logging.error("Found existing 'till_now' statistics record.")
+
+        # 2) All paid orders
+        orders = Order.objects.filter(is_paid=True)
+        # logging.error(f"Fetched {orders.count()} paid orders.")
+
+        # 3) All payments linked to those orders
+        all_payments = Payment.objects.filter(orders__in=orders)
+        payments = all_payments.distinct()
+        # logging.error(
+        #     f"Filtered payments linked to paid orders: {payments.count()} found.")
+
+        # Identify non-distinct payment IDs
+        # payment_ids = list(all_payments.values_list("id", flat=True))
+        # duplicates = [pid for pid, count in Counter(
+        #     payment_ids).items() if count > 1]
+        # if duplicates:
+        #     logging.warning(
+        #         f"Non-distinct (duplicated across orders) Payment IDs: {duplicates}")
+
+        # Manual breakdown and accumulation
+        cash_total = Decimal('0.00')
+        card_total = Decimal('0.00')
+        other_total = Decimal('0.00')
+
+        cash_count = 0
+        card_count = 0
+        other_count = 0
+
+        cash_discount = Decimal('0.00')
+        card_discount = Decimal('0.00')
+        other_discount = Decimal('0.00')
+
+        total_total_price = Decimal('0.00')
+        total_final_price = Decimal('0.00')
+        total_discount = Decimal('0.00')
+
+        # Log detailed cash payment table header
+        # logging.error(
+        #     "┌────────────┬───────────────┬──────────────┬────────────────┐")
+        # logging.error(
+        #     "│ Payment ID │ Total Price   │ Final Price  │ Discount Amount│")
+        # logging.error(
+        #     "├────────────┼───────────────┼──────────────┼────────────────┤")
+
+        for payment in payments:
+            total_total_price += payment.total_price
+            total_final_price += payment.final_price
+            total_discount += payment.discount_amount
+
+            if payment.payment_type == Payment.PaymentType.CASH:
+                cash_total += payment.final_price
+                cash_discount += payment.discount_amount
+                cash_count += 1
+                logging.error(
+                    f"│ {str(payment.id).rjust(10)} │ {str(payment.total_price).rjust(13)} │ "
+                    f"{str(payment.final_price).rjust(12)} │ {str(payment.discount_amount).rjust(14)} │"
+                )
+            elif payment.payment_type == Payment.PaymentType.CARD:
+                card_total += payment.final_price
+                card_discount += payment.discount_amount
+                card_count += 1
+            elif payment.payment_type == Payment.PaymentType.OTHER:
+                other_total += payment.final_price
+                other_discount += payment.discount_amount
+                other_count += 1
+
+        # logging.error(
+        #     "├────────────┼───────────────┼──────────────┼────────────────┤")
+        # logging.error(
+        #     f"│ {'TOTAL'.rjust(10)} │ {str(total_total_price).rjust(13)} │ "
+        #     f"{str(total_final_price).rjust(12)} │ {str(total_discount).rjust(14)} │"
+        # )
+        # logging.error(
+        #     "└────────────┴───────────────┴──────────────┴────────────────┘")
+
+        # logging.error(
+        #     f"Breakdown - Cash: {cash_total} ({cash_count} payments, {cash_discount} discount), "
+        #     f"Card: {card_total} ({card_count} payments, {card_discount} discount), "
+        #     f"Other: {other_total} ({other_count} payments, {other_discount} discount)"
+        # )
+
+        # 4) Overwrite all relevant fields
+        stat.total = (cash_total + card_total +
+                      other_total) + stat.initial_cash
+        stat.date = timezone.localdate()
+        stat.started_by = user or stat.started_by
+        stat.cash_total = cash_total
+        stat.card_total = card_total
+        stat.other_total = other_total
+        stat.withdrawn_amount = Decimal('0.00')
+        stat.remaining_cash = cash_total + stat.initial_cash - stat.withdrawn_amount
+        stat.save()
+        # logging.error("Updated statistics record fields and saved.")
+
+        # 5) Refresh linked orders
+        stat.orders.set(orders)
+        # logging.error("Linked orders updated for the statistics record.")
+
+        return stat
 
 
 class Statistics(DateTimeModel, models.Model):
@@ -285,12 +366,6 @@ class Statistics(DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Statistika"
         verbose_name_plural = "Statistikalar 📊"
-
-    def clean(self):
-        if self.withdrawn_amount > self.cash_total:
-            raise ValidationError(
-                {'withdrawn_amount': 'Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz.'}
-            )
 
     @property
     def cash(self):

@@ -1,18 +1,24 @@
+from datetime import datetime
 from django.contrib import admin, messages
 from django.forms import ValidationError
 from django.urls import path
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.utils.dateformat import format
 from django.utils.timezone import localtime
-
+from django.db.models import Min
+from django.db.models import Max
 from django.db.models import Sum
+from django.utils.html import format_html
+
 from decimal import Decimal
 
 from simple_history.admin import SimpleHistoryAdmin
 
 from apps.orders.models import Statistics, Order
 
+from apps.orders.models.order import OrderItem
 from apps.payments.models.pay_table_orders import Payment
+from apps.printers.models.receipt import Receipt
 from apps.printers.utils.service import PrinterService
 from apps.printers.utils.service_v2 import PrinterService as PrinterServiceV2
 
@@ -164,6 +170,11 @@ class StatisticsAdmin(SimpleHistoryAdmin):
                 self.end_shift_view), name='orders_statistics_end_shift'),
             path('<int:shift_id>/print-shift-summary/', self.admin_site.admin_view(
                 self.print_shift_summary), name='orders_statistics_print_shift_summary'),
+            path(
+                '<int:shift_id>/print-order-items-summary/',
+                self.admin_site.admin_view(self.print_order_items_summary),
+                name='orders_statistics_print_order_items_summary'
+            ),
         ]
         return custom + urls
 
@@ -215,6 +226,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     def response_change(self, request, obj):
         # Legacy Z-check buttons
         if '_print_z_receipt' in request.POST:
+            obj.refresh_from_db()
             success, msg = PrinterServiceV2.print_z_hesabat(
                 stat_id=obj.pk, user=request.user
             )
@@ -223,8 +235,19 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             return HttpResponseRedirect('.')
 
         if '_print_shift_summary' in request.POST:
+            obj.refresh_from_db()
             success, msg = PrinterServiceV2.print_shift_summary(
                 stat_id=obj.pk, user=request.user)
+            level = messages.SUCCESS if success else messages.ERROR
+            self.message_user(request, msg, level=level)
+            return HttpResponseRedirect('.')
+
+        if '_print_order_items_summary' in request.POST:
+            obj.refresh_from_db()
+            success, msg = PrinterServiceV2.print_order_items_summary(
+                stat_id=obj.pk,
+                user=request.user
+            )
             level = messages.SUCCESS if success else messages.ERROR
             self.message_user(request, msg, level=level)
             return HttpResponseRedirect('.')
@@ -236,6 +259,8 @@ class StatisticsAdmin(SimpleHistoryAdmin):
                     'withdrawn_amount', '0') or '0')
                 Statistics.objects.calculate_till_now()
                 Statistics.objects.end_shift(obj, request.user, withdrawn)
+                obj.refresh_from_db()
+
                 self.message_user(request,
                                   (
                                       "Növbə uğurla bağlandı."
@@ -337,11 +362,170 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         self.message_user(request, "Shift summary sent to printer.")
         return HttpResponseRedirect('../..')
 
-    # === Display helpers ===
-    def display_per_waitress(self, obj):
-        return Statistics.display_per_waitress(self, obj)
-
-    def display_order_items(self, obj):
-        return Statistics.display_order_items(self, obj)
+    def print_order_items_summary(self, request, shift_id):
+        obj = self.get_object(request, shift_id)
+        PrinterServiceV2.print_order_items_summary(
+            stat_id=obj.pk, user=request.user
+        )
+        self.message_user(request, "Shift summary sent to printer.")
+        return HttpResponseRedirect('../..')
 
     title_with_date = SimpleHistoryAdmin.date_hierarchy
+
+    def display_per_waitress(self, obj):
+        # Get all orders related to this statistic
+        orders = Order.objects.all_orders().filter(statistics=obj)
+
+        # Get the oldest and latest created_at dates
+        order_dates = orders.aggregate(
+            oldest_order=Min('created_at'),
+            latest_order=Max('created_at')
+        )
+
+        oldest_order = order_dates['oldest_order']
+        latest_order = order_dates['latest_order']
+
+        # Group by waitress and sum the total_price
+        waitress_totals = orders.values('waitress__first_name', 'waitress__last_name').annotate(
+            total_served=Sum('total_price')
+        )
+        return self.create_table_for_per_waitress(waitress_totals, oldest_order, latest_order)
+
+    def display_order_items(self, obj):
+        # Get all orders related to this statistic
+        orders = Order.objects.all_orders().filter(statistics=obj)
+
+        # Get the oldest and latest created_at dates
+        order_dates = orders.aggregate(
+            oldest_order=Min('created_at'),
+            latest_order=Max('created_at')
+        )
+
+        oldest_order = order_dates['oldest_order']
+        latest_order = order_dates['latest_order']
+
+        # Get all order items related to these orders
+        order_items = OrderItem.objects.all_order_items().filter(order__in=orders)
+        order_items = order_items.values('meal__name').annotate(
+            total_quantity=Sum('quantity')
+        ).annotate(total_price=Sum('price'))
+
+        if not order_items.exists():
+            return "No orders found."
+        return self.create_table_for_order_items(order_items, oldest_order, latest_order)
+
+    def create_table_for_per_waitress(self, waitress_totals, oldest_order, latest_order):
+        # Format dates to include time (hours and minutes)
+        oldest_order_str = oldest_order.strftime('%d %B %Y, %H:%M')
+        latest_order_str = latest_order.strftime('%d %B %Y, %H:%M')
+
+        # Styled help text
+        help_text_html = f"""
+        <small style="display: block; font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+            <span> Hər ofisiantın xidmət etdiyi sifarişlərin cəm məbləğidir.
+            <br>
+            *<span style="font-weight: bold;">{oldest_order_str}</span> tarixdən <span style="font-weight: bold;">{latest_order_str}</span> tarixədək</span>
+        </small>
+        """
+
+        # Start building the table
+        table_html = """
+        <hr>
+        <table class='table table-striped' style="border-collapse: collapse; width: 100%; margin-top: 20px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
+            <caption style="caption-side: top; text-align: center; font-weight: bold; font-size: 1.5rem; padding-bottom: 8px; color: #444;">
+                Ofisiantların xidməti
+            </caption>
+            <thead style="background-color: #f2f2f2;">
+                <tr>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">#</th>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">Ofisiant</th>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">Ümumi Məbləğ</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        total_server_by_waitresses = 0
+        # Iterate through each waitress and display their total served amount
+        for index, waitress in enumerate(waitress_totals, start=1):
+            waitress_name = f"{waitress['waitress__first_name']} {waitress['waitress__last_name']}" or "Məlum deyil"
+            total_served = waitress['total_served'] or 0
+            total_server_by_waitresses += float(total_served)
+            table_html += f"""
+                <tr style="background-color: {'#ffffff' if index % 2 == 0 else '#f9f9f9'};">
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{index}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{waitress_name}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{total_served} (AZN)</td>
+                </tr>
+            """
+        # Adding total row at the end
+        table_html += f"""
+            <tr style="font-weight: bold; background-color: #e6e6e6;">
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">Cəmi</td>
+                <td></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">{total_server_by_waitresses} (AZN)</td>
+            </tr>
+        """
+
+        table_html += "</tbody></table> <br>"
+        table_html += help_text_html
+        return format_html(table_html)
+
+    def create_table_for_order_items(self, order_items, oldest_order, latest_order):
+        # Format dates to include time (hours and minutes)
+        oldest_order_str = oldest_order.strftime('%d %B %Y, %H:%M')
+        latest_order_str = latest_order.strftime('%d %B %Y, %H:%M')
+
+        # Styled help text
+        help_text_html = f"""
+        <small style="display: block; font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+            <span> Sifarişlər <span style="font-weight: bold;">{oldest_order_str}</span> tarixdən <span style="font-weight: bold;">{latest_order_str}</span> tarixədək satılıb.</span>
+        </small>
+        """
+
+        # Start building the table
+        table_html = """
+        <hr>
+        <table class='table table-striped' style="border-collapse: collapse; width: 100%; margin-top: 20px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
+            <caption style="caption-side: top; text-align: center; font-weight: bold; font-size: 1.5rem; padding-bottom: 8px; color: #444;">
+                Satılmış Məhsullar
+            </caption>
+            <thead style="background-color: #f2f2f2;">
+                <tr>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">#</th>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">Məhsul</th>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">Miqdar</th>
+                    <th style="padding: 10px; border-bottom: 1px solid #ddd;">Qiymət</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+
+        total_price, total_quantity = 0, 0
+        for index, item in enumerate(order_items, start=1):
+            # Summing total price and quantity
+            total_price += float(item["total_price"])
+            total_quantity += int(item["total_quantity"])
+
+            # Adding numbered rows
+            table_html += f"""
+                <tr style="background-color: {'#ffffff' if index % 2 == 0 else '#f9f9f9'};">
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{index}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item["meal__name"]}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item["total_quantity"]}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item["total_price"]} (AZN)</td>
+                </tr>
+            """
+
+        # Adding total row at the end
+        table_html += f"""
+            <tr style="font-weight: bold; background-color: #e6e6e6;">
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">Cəmi</td>
+                <td></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">{total_quantity}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">{total_price} (AZN)</td>
+            </tr>
+        """
+
+        table_html += "</tbody></table> <br>"
+        table_html += help_text_html
+        return format_html(table_html)

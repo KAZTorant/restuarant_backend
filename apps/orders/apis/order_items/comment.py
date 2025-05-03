@@ -71,7 +71,10 @@ class AddCommentToOrderItemAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        updated_count = items_qs.update(comment=comment)
+        for i in items_qs:
+            i.comment = comment
+            i.save()
+        # updated_count = items_qs.update(comment=comment)
 
         # 5) Return summary
-        return Response({"updated": updated_count}, status=status.HTTP_200_OK)
+        return Response({"updated": items_qs.count()}, status=status.HTTP_200_OK)

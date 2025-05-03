@@ -132,7 +132,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
             for items in printer_groups.values():
                 for item in items:
                     item.confirmed = True
-                    item.save(update_fields=['confirmed'])
+                    item.save()
 
     def prepare_receipt_data(self, orders, items):
         # Determine the order ID string and table reference
@@ -148,7 +148,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
         for item in items:
             if item.meal.is_extra:
                 mid = f'{item.meal.id}_{item.id}'
-                name = item.description
+                name = f"{item.meal.name}: {item.description}"
                 price = item.price
             else:
                 mid = item.meal.id
