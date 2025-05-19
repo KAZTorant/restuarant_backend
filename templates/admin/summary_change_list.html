@@ -1,0 +1,355 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        /* The Modal (background) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+
+        /* Modal Content/Box */
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%; /* Smaller width */
+            text-align: center; /* Center text */
+            position: relative; /* To position the close button at bottom right */
+        }
+
+        /* The Close Button at top right */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Centering the table */
+        .modal-body table {
+            margin: 0 auto; /* Center table */
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .modal-body th, .modal-body td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        .modal-body th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: center;
+            background-color: #f2f2f2;
+        }
+
+        /* The Close Button at bottom right */
+        .modal-footer .close-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .date-field {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .submit-btn {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #79aec8;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .submit-btn:hover {
+            background-color: #609ab6;
+        }
+
+        /* Action buttons in the table rows */
+        .row-actions {
+            white-space: nowrap;
+        }
+        
+        .action-btn {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            color: white !important;
+            font-size: 12px;
+            text-decoration: none !important;
+        }
+        
+        .preview-btn {
+            background-color: #17a2b8;
+        }
+        
+        .preview-btn:hover {
+            background-color: #138496;
+        }
+        
+        .print-btn {
+            background-color: #28a745;
+        }
+        
+        .print-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Preview modal */
+        #previewModal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        #previewModal .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        #previewModal .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        #previewModal .close:hover,
+        #previewModal .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .summary-totals {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        #previewContent table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        #previewContent th, 
+        #previewContent td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        #previewContent th {
+            background-color: #f2f2f2;
+        }
+        
+        #previewContent tfoot {
+            font-weight: bold;
+            background-color: #e9ecef;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the modal
+            var modal = document.getElementById("dateRangeModal");
+
+            // Get the button that opens the modal
+            var btn = document.getElementById("openDateRangeModal");
+
+            // Get the <span> element that closes the modal
+            var span = document.getElementsByClassName("close")[0];
+
+            // When the user clicks on the button, open the modal
+            if (btn) {
+                btn.onclick = function() {
+                    modal.style.display = "block";
+                }
+            }
+
+            // When the user clicks on <span> (x), close the modal
+            if (span) {
+                span.onclick = function() {
+                    modal.style.display = "none";
+                }
+            }
+
+            // When the user clicks anywhere outside of the modal, close it
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+            
+            // Set default dates
+            var today = new Date();
+            var startDateField = document.getElementById("start_date");
+            var endDateField = document.getElementById("end_date");
+            
+            if (startDateField && endDateField) {
+                // Default to one week ago for start date
+                var oneWeekAgo = new Date();
+                oneWeekAgo.setDate(today.getDate() - 7);
+                
+                // Format dates as YYYY-MM-DD
+                startDateField.value = oneWeekAgo.toISOString().split('T')[0];
+                endDateField.value = today.toISOString().split('T')[0];
+            }
+        });
+
+        // Function to preview summary data
+        function previewSummary(summaryId) {
+            fetch(`${summaryId}/preview-summary/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Format and display the preview data in the modal
+                    const previewContent = document.getElementById('previewContent');
+                    
+                    // Create HTML for the preview content
+                    let html = `
+                        <h3>Tarix aralığı: ${data.date_range || ''}</h3>
+                        <div class="summary-totals">
+                            <p><strong>Ümumi məbləğ:</strong> ${data.total || '0.00'} AZN</p>
+                            <p><strong>Nağd məbləğ:</strong> ${data.cash_total || '0.00'} AZN</p>
+                            <p><strong>Kart məbləği:</strong> ${data.card_total || '0.00'} AZN</p>
+                            <p><strong>Digər ödənişlər:</strong> ${data.other_total || '0.00'} AZN</p>
+                        </div>
+                    `;
+
+                    // Add table of products if available
+                    if (data.items && data.items.length > 0) {
+                        html += `
+                            <h4>Satılmış Məhsullar</h4>
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Məhsul</th>
+                                        <th>Miqdar</th>
+                                        <th>Qiymət (AZN)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        data.items.forEach((item, index) => {
+                            html += `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${item.meal_name || ''}</td>
+                                    <td>${item.quantity || 0}</td>
+                                    <td>${item.price || '0.00'}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2"><strong>Cəmi</strong></td>
+                                        <td><strong>${data.total_quantity || 0}</strong></td>
+                                        <td><strong>${data.total || '0.00'} AZN</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        `;
+                    }
+
+                    previewContent.innerHTML = html;
+                    document.getElementById('previewModal').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching preview data:', error);
+                    alert('Hesabat məlumatlarını əldə edərkən xəta baş verdi.');
+                });
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            var modal = document.getElementById('previewModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+{% endblock %}
+
+{% block object-tools %}
+    <div class="object-tools">
+        {% block object-tools-items %}
+            {% if has_add_permission %}
+                {{ block.super }}
+            {% endif %}
+        {% endblock %}
+    </div>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePreviewModal()">&times;</span>
+            <h2>{% trans "Hesabat önizləməsi" %}</h2>
+            <div id="previewContent" class="modal-body">
+                <!-- Preview content will be injected here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePreviewModal()">
+                    {% trans "Bağla" %}
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %} 

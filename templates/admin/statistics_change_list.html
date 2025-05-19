@@ -72,8 +72,22 @@
         }
     </style>
     <script>
-
         document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates for the date range modal
+            var today = new Date();
+            var startDateField = document.getElementById("start_date");
+            var endDateField = document.getElementById("end_date");
+            
+            if (startDateField && endDateField) {
+                // Default to one week ago for start date
+                var oneWeekAgo = new Date();
+                oneWeekAgo.setDate(today.getDate() - 7);
+                
+                // Format dates as YYYY-MM-DD
+                startDateField.value = oneWeekAgo.toISOString().split('T')[0];
+                endDateField.value = today.toISOString().split('T')[0];
+            }
+
             // Toggle Start vs End button
             fetch("{% url 'admin:orders_statistics_current_shift_info' %}")
               .then(res => { if (!res.ok) throw ''; return res.json() })
@@ -86,6 +100,15 @@
                 document.getElementById('endShiftBtn').style.display   = 'none';
               });
           });
+
+        // Date Range Modal functions
+        function showDateRangeModal() {
+            document.getElementById('dateRangeModal').style.display = 'block';
+        }
+        
+        function closeDateRangeModal() {
+            document.getElementById('dateRangeModal').style.display = 'none';
+        }
         
         function showEndShiftModal() {
             fetch("{% url 'admin:orders_statistics_current_shift_info' %}")
@@ -161,19 +184,26 @@
             if (event.target == modal) {
                 modal.style.display = "none";
             }
+            
+            var dateRangeModal = document.getElementById('dateRangeModal');
+            if (event.target == dateRangeModal) {
+                dateRangeModal.style.display = "none";
+            }
         }
     
         document.addEventListener('DOMContentLoaded', function() {
             var toggleButton = document.getElementById('toggleStatisticsLinks');
             var statisticsLinks = document.getElementById('statisticsLinks');
 
-            toggleButton.addEventListener('click', function() {
-                if (statisticsLinks.style.display === 'none' || statisticsLinks.style.display === '') {
-                    statisticsLinks.style.display = 'block';
-                } else {
-                    statisticsLinks.style.display = 'none';
-                }
-            });
+            if (toggleButton && statisticsLinks) {
+                toggleButton.addEventListener('click', function() {
+                    if (statisticsLinks.style.display === 'none' || statisticsLinks.style.display === '') {
+                        statisticsLinks.style.display = 'block';
+                    } else {
+                        statisticsLinks.style.display = 'none';
+                    }
+                });
+            }
         });
 
         function showStatisticsModal() {
@@ -203,6 +233,14 @@
 
 {% block object-tools-items %}
     <button type="button" class="btn btn-primary" onclick="fetchTodaysOrders()">{% trans "Aktiv sifarişlər" %}</button>
+
+    <button 
+        type="button" 
+        class="btn btn-primary ml-2" 
+        onclick="showDateRangeModal()"
+    >
+        {% trans "Ümumi Hesabat" %}
+    </button>
 
     {# Start Shift button #}
     <button
@@ -252,6 +290,54 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-warning close-btn" onclick="closeModal()">Bağla</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Date Range Modal -->
+    <div id="dateRangeModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeDateRangeModal()">&times;</span>
+            <h3>{% trans "Ümumi Hesabat" %}</h3>
+            <form action="{% url 'admin:orders_summary_create' %}" method="post">
+                {% csrf_token %}
+                <div class="form-group mt-3">
+                    <label for="start_date" class="font-weight-bold">
+                        {% trans "Başlanğıc tarixi" %}
+                    </label>
+                    <input 
+                        type="date" 
+                        id="start_date" 
+                        name="start_date" 
+                        class="form-control"
+                        required
+                    >
+                </div>
+                <div class="form-group mt-3">
+                    <label for="end_date" class="font-weight-bold">
+                        {% trans "Bitiş tarixi" %}
+                    </label>
+                    <input 
+                        type="date" 
+                        id="end_date" 
+                        name="end_date" 
+                        class="form-control"
+                        required
+                    >
+                </div>
+                
+                <div class="modal-footer justify-content-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg mr-2">
+                        {% trans "Hesabat yarat" %}
+                    </button>
+                    <button 
+                        type="button" 
+                        class="btn btn-secondary btn-lg" 
+                        onclick="closeDateRangeModal()"
+                    >
+                        {% trans "Bağla" %}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -394,19 +480,17 @@
                 </div>
             </div>
             
-            
               
-    
-              <div class="modal-footer justify-content-center mt-3">
+            <div class="modal-footer justify-content-center mt-3">
                 <button type="submit" class="btn btn-warning btn-lg mr-2">
-                  {% trans "Bitir" %}
+                    {% trans "Bitir" %}
                 </button>
                 <button
-                  type="button"
-                  class="btn btn-secondary btn-lg"
-                  onclick="closeEndShiftModal()"
+                    type="button"
+                    class="btn btn-secondary btn-lg"
+                    onclick="closeEndShiftModal()"
                 >
-                  {% trans "Ləğv et" %}
+                    {% trans "Ləğv et" %}
                 </button>
             </div>
         </form>

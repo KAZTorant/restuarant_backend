@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.contrib import admin, messages
 from django.forms import ValidationError
-from django.urls import path
+from django.urls import path, reverse
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.utils.dateformat import format
 from django.utils.timezone import localtime
@@ -176,6 +176,10 @@ class StatisticsAdmin(SimpleHistoryAdmin):
                 self.admin_site.admin_view(self.print_order_items_summary),
                 name='orders_statistics_print_order_items_summary'
             ),
+            # Date range summary actions
+            path('date-range-summary/',
+                 self.admin_site.admin_view(self.date_range_summary_view),
+                 name='orders_statistics_date_range_summary'),
         ]
         return custom + urls
 
@@ -383,6 +387,12 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         )
         self.message_user(request, "Shift summary sent to printer.")
         return HttpResponseRedirect('../..')
+
+    def date_range_summary_view(self, request):
+        """
+        Redirect to the Summary admin date range form.
+        """
+        return HttpResponseRedirect(reverse('admin:orders_summary_date_range'))
 
     title_with_date = SimpleHistoryAdmin.date_hierarchy
 
