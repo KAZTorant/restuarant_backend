@@ -86,7 +86,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         'started_by', 'start_time', 'initial_cash',
         'ended_by', 'end_time', 'is_closed',
         'initial_cash', 'cash_total', 'card_total', 'other_total',
-        'withdrawn_amount', 'remaining_cash', 'notes',
+        'withdrawn_amount', 'remaining_cash', 'notes', 'withdrawn_notes',
         'display_per_waitress', 'display_order_items',
 
 
@@ -107,12 +107,13 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         ('⏱️ Növbə Detalları', {
             'fields': (
                 'started_by', 'start_time',
-                'ended_by', 'end_time', 'is_closed'
+                'ended_by', 'end_time', 'is_closed',
             ),
         }),
         ('📝 Qeydlər və Hesabatlar', {
             'classes': ('collapse',),
             'fields': (
+                'withdrawn_notes',
                 'notes',
                 'display_per_waitress',
                 'display_order_items',
@@ -255,10 +256,18 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         if '_end_shift' in request.POST:
             try:
                 # if you have a withdrawn_amount field in the form, grab it here:
-                withdrawn = Decimal(request.POST.get(
-                    'withdrawn_amount', '0') or '0')
+                withdrawn = Decimal(
+                    request.POST.get('withdrawn_amount', '0') or '0'
+                )
+                withdrawn_notes = request.POST.get(
+                    'withdrawn_notes', '-') or '-'
                 Statistics.objects.calculate_till_now()
-                Statistics.objects.end_shift(obj, request.user, withdrawn)
+                Statistics.objects.end_shift(
+                    obj,
+                    request.user,
+                    withdrawn,
+                    withdrawn_notes,
+                )
                 obj.refresh_from_db()
 
                 self.message_user(request,
@@ -347,9 +356,14 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     def end_shift_view(self, request, shift_id):
         shift = self.get_object(request, shift_id)
         withdrawn = Decimal(request.POST.get('withdrawn_amount', '0') or '0')
+        withdrawn_notes = request.POST.get('withdrawn_notes', '-') or '-'
         try:
             shift = Statistics.objects.end_shift(
-                shift, request.user, withdrawn)
+                shift,
+                request.user,
+                withdrawn,
+                withdrawn_notes,
+            )
             self.message_user(
                 request, f"Shift ended. Remaining cash: {shift.remaining_cash}")
         except ValidationError as e:

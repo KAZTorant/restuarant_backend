@@ -94,7 +94,11 @@ class StatisticsManager(models.Manager):
         initial = last.remaining_cash if last else Decimal('0.00')
         return self.create(title="till_now", started_by=user, start_time=timezone.now(), initial_cash=initial)
 
-    def end_shift(self, shift, user, withdrawn_amount=Decimal('0.00')):
+    def end_shift(
+        self, shift, user,
+        withdrawn_amount=Decimal('0.00'),
+        withdrawn_notes='',
+    ):
         if shift.started_by != user:
             raise ValidationError(
                 "Növbəni bitirə bilmək üçün onu açan admin olmalısınız.")
@@ -107,6 +111,7 @@ class StatisticsManager(models.Manager):
             )
 
         shift.withdrawn_amount = withdrawn_amount
+        shift.withdrawn_notes = withdrawn_notes
         shift.remaining_cash = shift.cash - withdrawn_amount
         shift.end_time = timezone.now()
         shift.ended_by = user
@@ -349,6 +354,11 @@ class Statistics(DateTimeModel, models.Model):
         default=0,
         verbose_name='Çıxarılan məbləğ'
     )
+    withdrawn_notes = models.TextField(
+        blank=True,
+        verbose_name='Bağlanma Qeydi'
+    )
+
     remaining_cash = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -357,7 +367,7 @@ class Statistics(DateTimeModel, models.Model):
     )
     notes = models.TextField(
         blank=True,
-        verbose_name='Qeydlər'
+        verbose_name='Başlanma Qeydi'
     )
     history = HistoricalRecords()
 

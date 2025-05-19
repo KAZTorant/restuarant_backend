@@ -510,7 +510,7 @@ class PrinterService:
             return False, f"Statistika id={stat_id} tapılmadı."
 
         orders = Order.objects.all_orders().filter(statistics=stat)
-        active_items = OrderItem.objects.all().filter(order__in=orders)
+        order_items = OrderItem.objects.all_order_items().filter(order__in=orders).distinct()
 
         # Determine actual shift time range
         order_dates = orders.aggregate(earliest=Min('created_at'))
@@ -524,7 +524,7 @@ class PrinterService:
         width = 48
         lines = []
         lines.append("=" * width)
-        lines.append("SATILMIŞ MƏHSULLAR (AKTİV)".center(width))
+        lines.append("SATILMIŞ MƏHSULLAR".center(width))
         lines.append("=" * width)
         lines.append(f"Kassa növbəsi: {stat.id}")
         lines.append(f"Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
@@ -535,7 +535,7 @@ class PrinterService:
 
         # Group active items first by MealGroup, then by Meal name
         grouped = {}
-        for item in active_items.select_related("meal__category__group"):
+        for item in order_items.select_related("meal__category__group"):
             group_name = (
                 item.meal.category.group.name
                 if item.meal and item.meal.category and item.meal.category.group
@@ -572,7 +572,7 @@ class PrinterService:
             grand_total_price += group_price
 
         lines.append(
-            f"{'CƏMİ (Aktiv)':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
+            f"{'CƏMİ':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
         lines.append("=" * width)
 
         # Append deleted items summary (unchanged logic, but also sums per meal)
@@ -621,7 +621,7 @@ class PrinterService:
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.SHIFT_SUMMARY
+            type=Receipt.ReceiptType.ORDER_SUMMARY
         )
 
         return (response.status_code == 200), (
@@ -629,3 +629,65 @@ class PrinterService:
             if response.status_code == 200
             else "Çap alınmadı."
         )
+
+    @staticmethod
+    def send_deletion_receipt(receipt_data, worker_printer):
+        """
+        New entrypoint for printing deletion receipts.
+        """
+        try:
+            formatted = PrinterService._format_deletion_receipt(receipt_data)
+            resp = PrinterService._send_text_to_printer(formatted,
+                                                        worker_printer.ip_address,
+                                                        worker_printer.port)
+            Receipt.objects.create(
+                type=Receipt.ReceiptType.PREPERATION_PLACE,
+                text=formatted,
+                printer_response_status_code=resp.status_code,
+            )
+            return resp
+        except Exception as e:
+            print(f"Silinmə cekini printerə göndərərkən xəta: {e}")
+            return DummyResponse(500)
+
+    @staticmethod
+    def _format_deletion_receipt(data):
+        """
+        Builds a clear, tabular receipt for removed items,
+        showing name, qty, reason, who deleted and comments.
+        """
+        ESC = '\x1B'
+        GS = '\x1D'
+        MED = GS + '!' + '\x10'  # large
+        NORM = GS + '!' + '\x00'
+        width = 48
+
+        lines = []
+        lines.append(MED)
+        lines.append('=' * width)
+        lines.append('SİLİNƏN MƏHSUL ÇƏKİ'.center(width))
+        lines.append('=' * width)
+        lines.append(f"Tarix: {data['date']}")
+        lines.append(
+            f"Masa: {data['table']['room']} - {data['table']['number']}")
+        lines.append(f"Ofisiant: {data['waitress']}")
+        lines.append('-' * width)
+
+        for order in data['orders']:
+            lines.append(f"Sifariş #{order['order_id']}")
+            lines.append(f"{'Ad':<20}{'Miqdar':>6}{'Səbəb':>10}")
+            lines.append('-' * width)
+            for item in order['items']:
+                # main row: name, qty, reason
+                lines.append(
+                    f"{item['name']:<20}{item['quantity']:>6}{item['reason']:<10}")
+                # who deleted & customer no.
+                lines.append(
+                    f"Silən: {item['deleted_by']}  Müştəri№: {item['customer_number']}")
+                if item['comment']:
+                    lines.append(f"Qeyd: {item['comment']}")
+                lines.append('-' * width)
+
+        lines.append(NORM)
+        lines.append("\n\n\n")
+        return "\n".join(lines)

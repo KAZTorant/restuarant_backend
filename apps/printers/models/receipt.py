@@ -10,6 +10,7 @@ class Receipt(models.Model):
         PREPERATION_PLACE = 'preperation_places', _('Hazırlanma yeri üçün')
         SHIFT_SUMMARY = 'shift_summary', _("Növbə yekunu")
         Z_SUMMRY = 'z_summary', _("Z Hesabat")
+        ORDER_SUMMARY = 'order_summary', _("Sifariş yekunu")
 
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name=_("Çap tarixi")
