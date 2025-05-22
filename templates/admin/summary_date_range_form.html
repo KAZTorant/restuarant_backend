@@ -1,0 +1,95 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+    <style>
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-row {
+            margin: 15px 0;
+        }
+        
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-row input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .submit-row {
+            margin-top: 20px;
+            text-align: right;
+        }
+        
+        .submit-row input[type="submit"] {
+            padding: 10px 15px;
+            background-color: #79aec8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .submit-row input[type="submit"]:hover {
+            background-color: #609ab6;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        <h1>{{ title }}</h1>
+        
+        <div class="form-container">
+            <form action="{% url 'admin:orders_summary_create' %}" method="post">
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <label for="start_date">{% trans "Başlanğıc tarixi:" %}</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="end_date">{% trans "Bitiş tarixi:" %}</label>
+                    <input type="date" id="end_date" name="end_date" required>
+                </div>
+                
+                <div class="submit-row">
+                    <input type="submit" value="{% trans 'Ümumi Hesabat Yarat' %}">
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            var today = new Date();
+            var startDateField = document.getElementById("start_date");
+            var endDateField = document.getElementById("end_date");
+            
+            // Default to one week ago for start date
+            var oneWeekAgo = new Date();
+            oneWeekAgo.setDate(today.getDate() - 7);
+            
+            // Format dates as YYYY-MM-DD
+            startDateField.value = oneWeekAgo.toISOString().split('T')[0];
+            endDateField.value = today.toISOString().split('T')[0];
+        });
+    </script>
+{% endblock %} 

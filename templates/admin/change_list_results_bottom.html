@@ -1,0 +1,36 @@
+{% load i18n %}
+
+{% if request.path|slice:":18" == "/admin/orders/stat" %}
+<div class="action-buttons" style="margin-top: 20px; text-align: center;">
+    <button class="btn btn-primary" id="dateRangeReportBtn" style="margin-right: 10px; background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+        {% trans "Ümumi Hesabat" %}
+    </button>
+    
+    <button class="btn btn-info" id="todaysOrdersBtn" style="margin-right: 10px; background-color: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+        {% trans "Bugünkü Sifarişlər" %}
+    </button>
+    
+    <button class="btn btn-success" id="startShiftBtn" style="background-color: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+        {% trans "Növbəni başla" %}
+    </button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Bind click event to the Ümumi Hesabat button
+    document.getElementById('dateRangeReportBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = '/admin/orders/summary/date-range-summary/';
+    });
+    
+    // Bind click event to Today's Orders button
+    var startShiftBtn = document.getElementById('startShiftBtn');
+    if (startShiftBtn) {
+        startShiftBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = "{% url 'admin:orders_statistics_start_shift_info' %}";
+        });
+    }
+});
+</script>
+{% endif %} 
