@@ -161,14 +161,36 @@ class SummaryAdmin(SimpleHistoryAdmin):
         other_total = Decimal('0.00')
 
         for payment in payments:
-            payment_amount = payment.final_price or Decimal('0.00')
+            # Check if payment has payment methods, otherwise use payment_type
+            if payment.payment_methods.exists():
+                # Use the new payment methods
+                # Calculate change amount (assumed returned in cash)
+                change_amount = payment.change or Decimal('0.00')
 
-            if payment.payment_type == Payment.PaymentType.CASH:
-                cash_total += payment_amount
-            elif payment.payment_type == Payment.PaymentType.CARD:
-                card_total += payment_amount
+                for method in payment.payment_methods.all():
+                    method_amount = method.amount
+
+                    # If this is cash and there's change, subtract the change from cash
+                    if method.payment_type == Payment.PaymentType.CASH and change_amount > 0:
+                        method_amount = method_amount - change_amount
+                        # Only subtract once from the first cash method
+                        change_amount = Decimal('0.00')
+
+                    if method.payment_type == Payment.PaymentType.CASH:
+                        cash_total += method_amount
+                    elif method.payment_type == Payment.PaymentType.CARD:
+                        card_total += method_amount
+                    elif method.payment_type == Payment.PaymentType.OTHER:
+                        other_total += method_amount
             else:
-                other_total += payment_amount
+                # Fallback to old payment_type field
+                payment_amount = payment.final_price or Decimal('0.00')
+                if payment.payment_type == Payment.PaymentType.CASH:
+                    cash_total += payment_amount
+                elif payment.payment_type == Payment.PaymentType.CARD:
+                    card_total += payment_amount
+                else:
+                    other_total += payment_amount
 
         total = cash_total + card_total + other_total
 
