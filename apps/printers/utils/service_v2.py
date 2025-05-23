@@ -8,7 +8,7 @@ from apps.printers.models import Printer
 
 from django.db.models import Sum
 
-from apps.payments.models.pay_table_orders import Payment
+from apps.payments.models.pay_table_orders import Payment, PaymentMethod
 
 
 class DummyResponse:
@@ -28,6 +28,7 @@ class PrinterService:
         is_paid=False,
         force_print=False,
         payment_type=None,
+        payment_methods=None,
         discount_amount=0,
         discount_comment="",
         paid_amount=0,
@@ -46,7 +47,7 @@ class PrinterService:
                 return False, "Sifariş mövcud deyil."
 
             receipt_data = PrinterService._build_receipt_data(
-                table, orders, is_paid, payment_type,
+                table, orders, is_paid, payment_type, payment_methods,
                 discount_amount, discount_comment, paid_amount, change
             )
 
@@ -101,7 +102,7 @@ class PrinterService:
     # ============================= #
 
     @staticmethod
-    def _build_receipt_data(table, orders, is_paid, payment_type, discount_amount, discount_comment, paid_amount, change):
+    def _build_receipt_data(table, orders, is_paid, payment_type, payment_methods, discount_amount, discount_comment, paid_amount, change):
         order_data = []
         waitress = table.waitress
         total = 0
@@ -128,6 +129,7 @@ class PrinterService:
             "paid_amount": paid_amount,
             "change": change,
             "payment_type": payment_type,
+            "payment_methods": payment_methods,
             "is_paid": is_paid
         }
 
@@ -225,8 +227,20 @@ class PrinterService:
             lines.append(f"Ödənildi: {data['paid_amount']:>28.2f} AZN")
         if data['change']:
             lines.append(f"Qaytarıldı: {data['change']:>28.2f} AZN")
-        if data['payment_type']:
-            lines.append(f"Ödəniş növü: {data['payment_type'].capitalize()}")
+
+        # Handle payment methods
+        if data['payment_methods']:
+            lines.append("-" * width)
+            lines.append("Ödəniş növləri:")
+            for method in data['payment_methods']:
+                payment_type = PaymentMethod.PaymentType(
+                    method['payment_type']).label
+                amount = float(method['amount'])
+                lines.append(f"{payment_type}: {amount:>32.2f} AZN")
+        elif data['payment_type']:
+            payment_type = PaymentMethod.PaymentType(
+                data['payment_type']).label
+            lines.append(f"Ödəniş növü: {payment_type}")
 
         lines.append("=" * width)
         lines.append("Bizi seçdiyiniz üçün təşəkkür edirik!")

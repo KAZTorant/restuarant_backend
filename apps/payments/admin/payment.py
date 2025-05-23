@@ -1,6 +1,13 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentMethod
+
+
+class PaymentMethodInline(admin.TabularInline):
+    model = PaymentMethod
+    extra = 0
+    readonly_fields = ('created_at',)
 
 
 @admin.register(Payment)
@@ -9,7 +16,7 @@ class PaymentAdmin(admin.ModelAdmin):
         'id',
         'table',
         'final_price',
-        'payment_type',
+        'payment_methods_display',
         'paid_by',
         'paid_at',
     )
@@ -29,6 +36,7 @@ class PaymentAdmin(admin.ModelAdmin):
         'paid_by',
         'orders_display',
     )
+    inlines = [PaymentMethodInline]
     fieldsets = (
         (None, {
             'fields': (
@@ -40,7 +48,6 @@ class PaymentAdmin(admin.ModelAdmin):
                 'final_price',
                 'paid_amount',
                 'change',
-                'payment_type',
                 'paid_by',
                 'paid_at',
             )
@@ -52,5 +59,13 @@ class PaymentAdmin(admin.ModelAdmin):
             f"#{order.id} - {order.total_price}₼"
             for order in obj.orders.all()
         ]) or "Yoxdur"
+    orders_display.short_description = _("Əlaqəli sifarişlər")
 
-    orders_display.short_description = "Əlaqəli sifarişlər"
+    def payment_methods_display(self, obj):
+        if obj.payment_methods.exists():
+            return ", ".join([
+                f"{method.get_payment_type_display()}: {method.amount}₼"
+                for method in obj.payment_methods.all()
+            ])
+        return f"{obj.get_payment_type_display()}: {obj.paid_amount}₼"
+    payment_methods_display.short_description = _("Ödəniş növləri")

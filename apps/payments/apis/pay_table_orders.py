@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.printers.utils.service_v2 import PrinterService
 from apps.tables.models import Table
 from apps.users.permissions import IsAdmin
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentMethod
 
 from decimal import Decimal
 
@@ -27,6 +27,25 @@ class CompleteTablePaymentAPIView(APIView):
                     type=openapi.TYPE_STRING,
                     description="Ödəniş növü (cash, card, other)",
                     enum=["cash", "card", "other"]
+                ),
+                "payment_methods": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="Multiple payment methods (optional)",
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        required=["payment_type", "amount"],
+                        properties={
+                            "payment_type": openapi.Schema(
+                                type=openapi.TYPE_STRING,
+                                description="Ödəniş növü (cash, card, other)",
+                                enum=["cash", "card", "other"]
+                            ),
+                            "amount": openapi.Schema(
+                                type=openapi.TYPE_NUMBER,
+                                description="Bu ödəniş növü üçün məbləğ (₼)"
+                            )
+                        }
+                    )
                 ),
                 "discount_amount": openapi.Schema(
                     type=openapi.TYPE_NUMBER,
@@ -58,7 +77,25 @@ class CompleteTablePaymentAPIView(APIView):
         if not table:
             return orders_or_error  # It's a Response object with error
 
-        # STEP 2: Calculate totals
+        # STEP 2: Handle payment methods
+        payment_methods = data.get('payment_methods', [])
+        if payment_methods:
+            # Validate payment methods
+            total_paid = sum(Decimal(str(method['amount']))
+                             for method in payment_methods)
+            if total_paid != Decimal(str(data.get('paid_amount', 0))):
+                return Response({
+                    "success": False,
+                    "message": _("Ödəniş metodlarının cəmi ödənilən məbləğə bərabər olmalıdır.")
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Use single payment type (backward compatibility)
+            payment_methods = [{
+                'payment_type': data.get('payment_type'),
+                'amount': data.get('paid_amount')
+            }]
+
+        # STEP 3: Calculate totals
         totals, error = self._calculate_payment_details(
             orders=orders_or_error,
             discount=float(data.get('discount_amount', 0)),
@@ -67,28 +104,30 @@ class CompleteTablePaymentAPIView(APIView):
         if error:
             return error  # Response with error
 
-        # STEP 3: Try printing
+        # STEP 4: Try printing
         self._handle_printing(
             table_id=table_id,
             is_paid=True,
             payment_type=data.get('payment_type'),
+            payment_methods=payment_methods,
             discount_amount=totals['discount'],
             discount_comment=data.get('discount_comment', ''),
             paid_amount=totals['paid'],
             change=totals['change']
         )
 
-        # STEP 4: Save payment
+        # STEP 5: Save payment
         payment = self._create_payment_record(
             table=table,
             orders=orders_or_error,
             totals=totals,
             user=request.user,
             payment_type=data.get('payment_type'),
+            payment_methods=payment_methods,
             discount_comment=data.get('discount_comment', '')
         )
 
-        # STEP 4: Mark as paid
+        # STEP 6: Mark as paid
         for order in orders_or_error:
             order.is_paid = True
             order.save()
@@ -103,7 +142,14 @@ class CompleteTablePaymentAPIView(APIView):
                     "discount": totals['discount'],
                     "final_price": totals['final'],
                     "paid_amount": totals['paid'],
-                    "change": totals['change']
+                    "change": totals['change'],
+                    "payment_methods": [
+                        {
+                            "type": method.payment_type,
+                            "amount": float(method.amount)
+                        }
+                        for method in payment.payment_methods.all()
+                    ]
                 }
             },
             status=status.HTTP_200_OK
@@ -126,13 +172,14 @@ class CompleteTablePaymentAPIView(APIView):
         return table, orders
 
     @staticmethod
-    def _handle_printing(table_id, is_paid, payment_type, discount_amount, discount_comment, paid_amount, change):
+    def _handle_printing(table_id, is_paid, payment_type, payment_methods, discount_amount, discount_comment, paid_amount, change):
         try:
             PrinterService.print_orders_for_table(
                 table_id=table_id,
                 is_paid=is_paid,
                 force_print=True,
                 payment_type=payment_type,
+                payment_methods=payment_methods,
                 discount_amount=discount_amount,
                 discount_comment=discount_comment,
                 paid_amount=paid_amount,
@@ -142,7 +189,7 @@ class CompleteTablePaymentAPIView(APIView):
             print("Printer error:", str(e))
 
     @staticmethod
-    def _create_payment_record(table, orders, totals, user, payment_type, discount_comment):
+    def _create_payment_record(table, orders, totals, user, payment_type, payment_methods, discount_comment):
         payment = Payment.objects.create(
             table=table,
             total_price=totals['total'],
@@ -155,10 +202,17 @@ class CompleteTablePaymentAPIView(APIView):
             paid_by=user
         )
         payment.orders.set(orders)
+
+        # Create payment methods
+        for method_data in payment_methods:
+            PaymentMethod.objects.create(
+                payment=payment,
+                amount=Decimal(str(method_data['amount'])),
+                payment_type=method_data['payment_type']
+            )
+
         payment.save()
         return payment
-
-    from decimal import Decimal
 
     @staticmethod
     def _calculate_payment_details(orders, discount, paid):

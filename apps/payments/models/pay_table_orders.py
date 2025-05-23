@@ -8,6 +8,31 @@ from apps.tables.models import Table
 User = get_user_model()
 
 
+class PaymentMethod(models.Model):
+    class PaymentType(models.TextChoices):
+        CASH = 'cash', _('Nağd')
+        CARD = 'card', _('Kart')
+        OTHER = 'other', _('Digər')
+
+    payment = models.ForeignKey(
+        'Payment', on_delete=models.CASCADE, related_name='payment_methods'
+    )
+    amount = models.DecimalField(
+        _("Məbləğ"), max_digits=10, decimal_places=2
+    )
+    payment_type = models.CharField(
+        _("Ödəniş növü"), max_length=20, choices=PaymentType.choices
+    )
+    created_at = models.DateTimeField(_("Yaradılma tarixi"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Ödəniş növü")
+        verbose_name_plural = _("Ödəniş növləri")
+
+    def __str__(self):
+        return f"{self.get_payment_type_display()} - {self.amount}₼"
+
+
 class Payment(models.Model):
     class PaymentType(models.TextChoices):
         CASH = 'cash', _('Nağd')
@@ -51,3 +76,10 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.table} üçün {self.final_price}₼ ödəniş"
+
+    @property
+    def payment_methods_display(self):
+        return ", ".join([
+            f"{method.get_payment_type_display()}: {method.amount}₼"
+            for method in self.payment_methods.all()
+        ])
