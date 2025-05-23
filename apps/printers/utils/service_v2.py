@@ -492,8 +492,6 @@ class PrinterService:
 
         lines.append(f"{'YERİNƏ YETİRİLƏN ƏMƏLİYYATLAR':<30}{op_count}")
         lines.append("-" * width)
-
-        lines.append("Diqqət! Göstərilən məbləğlər fiskal registr...")
         lines.append("=" * width)
         lines.append("\n\n\n")
 
