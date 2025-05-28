@@ -63,7 +63,7 @@ class Payment(models.Model):
         _("Qaytarılacaq məbləğ"), max_digits=10, decimal_places=2, default=0
     )
     payment_type = models.CharField(
-        _("Ödəniş növü"), max_length=20, choices=PaymentType.choices
+        _("Ödəniş növü"), max_length=20, choices=PaymentType.choices, blank=True, null=True
     )
     paid_by = models.ForeignKey(User, verbose_name=_(
         "Operator"), on_delete=models.SET_NULL, null=True
