@@ -364,6 +364,18 @@ class PrinterService:
         cash = stat.cash_total
         card = stat.card_total
         other = stat.other_total
+
+        # Calculate total change amount returned to customers
+        from decimal import Decimal
+        total_change = Decimal('0.00')
+
+        # Get all payments in this statistics period
+        payments = Payment.objects.filter(orders__statistics=stat).distinct()
+
+        for payment in payments:
+            if payment.change:
+                total_change += payment.change
+
         open_sum = Order.objects.filter(is_paid=False).aggregate(
             total=Sum('total_price'))['total'] or 0
 
@@ -409,7 +421,7 @@ class PrinterService:
         lines.append(
             f"{'Növbənin evvəlində kassada':<30}{stat.initial_cash:>15.2f}")
         lines.append(f"{'+ Nağd satışlar':<30}{cash:>15.2f}")
-        lines.append(f"{'- Qaytarılan nağd pullar':<30}{0.00:>15.2f}")
+        lines.append(f"{'- Qaytarılan nağd pullar':<30}{total_change:>15.2f}")
         lines.append(
             f"{'= Kassada olmalıdır':<30}{stat.remaining_cash:>15.2f}")
         lines.append("=" * width)
@@ -448,6 +460,17 @@ class PrinterService:
         other = stat.other_total
         total = cash + card + other
 
+        # Calculate total change amount returned to customers
+        from decimal import Decimal
+        total_change = Decimal('0.00')
+
+        # Get all payments in this statistics period
+        payments = Payment.objects.filter(orders__statistics=stat).distinct()
+
+        for payment in payments:
+            if payment.change:
+                total_change += payment.change
+
         op_count = stat.orders.count()
         open_sum = Order.objects.filter(is_paid=False).aggregate(
             total=Sum('total_price'))['total'] or 0
@@ -475,13 +498,10 @@ class PrinterService:
         lines.append("-" * width)
 
         lines.append(f"{'Nağd Satış':<30}{cash:>15.2f}")
-        lines.append(f"{'Qaytarılma':<30}{0.00:>15.2f}")
-        lines.append(f"{'Alış':<30}{0.00:>15.2f}")
-        lines.append(f"{'Alış qaytarılması':<30}{0.00:>15.2f}")
+        lines.append(f"{'Qaytarılma':<30}{total_change:>15.2f}")
         lines.append("-" * width)
 
         lines.append(f"{'Bank kartı Satış':<30}{card:>15.2f}")
-        lines.append(f"{'Bank kartı Qaytarılma':<30}{0.00:>15.2f}")
         lines.append("-" * width)
 
         lines.append(f"{'CƏMİ':<30}{total:>15.2f}")
