@@ -1,0 +1,82 @@
+[
+    {
+        "model": "meals.MealCategory",
+        "pk": 1,
+        "fields": {
+            "name": "Kabablar",
+            "description": "Various kebabs",
+            "group": 1,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 2,
+        "fields": {
+            "name": "Lülələr",
+            "description": "Lule kebabs",
+            "group": 1,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 3,
+        "fields": {
+            "name": "Balıq sacı",
+            "description": "Fish sac dishes",
+            "group": 1,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 4,
+        "fields": {
+            "name": "Ət və Toyuq kabablar",
+            "description": "Meat and chicken kebabs",
+            "group": 1,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 5,
+        "fields": {
+            "name": "Setlər",
+            "description": "Combination sets",
+            "group": 2,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 6,
+        "fields": {
+            "name": "Sushi",
+            "description": "Sushi dishes",
+            "group": 3,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 7,
+        "fields": {
+            "name": "Dəniz Məhsuları",
+            "description": "Seafood dishes",
+            "group": 3,
+            "is_extra": false
+        }
+    },
+    {
+        "model": "meals.MealCategory",
+        "pk": 8,
+        "fields": {
+            "name": "Sərin İçkilər",
+            "description": "Cold beverages",
+            "group": 4,
+            "is_extra": false
+        }
+    }
+]
