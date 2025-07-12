@@ -1,0 +1,490 @@
+[
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 1,
+            "name": "Qızıl balıq",
+            "price": "8.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 1,
+            "name": "Beluqa",
+            "price": "11.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 1,
+            "name": "Ət",
+            "price": "9.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 1,
+            "name": "Toyuq",
+            "price": "7.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 1,
+            "name": "Dorado",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Beluqa",
+            "price": "15.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Nərə",
+            "price": "20.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Qızıl balıq",
+            "price": "13.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Forel",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Dorado",
+            "price": "15.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 2,
+            "name": "Sibas",
+            "price": "17.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "Beluqa sacı",
+            "price": "28.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "Nərə sacı",
+            "price": "28.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "Qızıl balıq sacı",
+            "price": "28.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 3,
+            "name": "Forel sacı",
+            "price": "28.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Lülə set",
+            "price": "35.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Balığ set",
+            "price": "70.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Ət və toyuq set",
+            "price": "32.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Mx set",
+            "price": "120.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 5,
+            "name": "Sush set",
+            "price": "40.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Tkə",
+            "price": "9.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Antrk ot",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Toyuq",
+            "price": "6.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Çolpa",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Dana basdırma",
+            "price": "7.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Tərəvəz",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 4,
+            "name": "Semçk a",
+            "price": "5.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 6,
+            "name": "Fladelfiya",
+            "price": "9.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 6,
+            "name": "Kalfornya",
+            "price": "9.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 6,
+            "name": "Draqon",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 6,
+            "name": "Teka maki",
+            "price": "11.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 6,
+            "name": "Seka maki",
+            "price": "7.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "Krevetka manqalda (okean)",
+            "price": "10.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "Korolevsky krevetka (okean)",
+            "price": "13.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "Kalmar",
+            "price": "0.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 7,
+            "name": "Lobster",
+            "price": "50.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Pepsi, Cola (200 ml)",
+            "price": "2.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Pepsi, Cola (250 ml)",
+            "price": "1.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Pepsi, Cola (330 ml)",
+            "price": "2.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Pepsi, Cola (0.5 lt)",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Pepsi, Cola (1 lt)",
+            "price": "2.40"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Mirinda Portagal (0.5/1 lt)",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Mirinda Alma (0.5/1 lt)",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "7up (0.5/1 lt)",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Mountain Dew (0.5/1 lt)",
+            "price": "1.50"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Lipton Lemon (0.5/1 lt)",
+            "price": "2.10"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Lipton Peach (0.5/1 lt)",
+            "price": "2.10"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Şaftalı (200 ml/0.95 lt)",
+            "price": "1.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Multivitamin (200 ml/0.95 lt)",
+            "price": "1.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Yaşıl Alma (200 ml/0.95 lt)",
+            "price": "1.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Mandarig Mix (200 ml)",
+            "price": "1.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Albalı (0.95 lt)",
+            "price": "3.40"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Fruktoviy Sad Portağal (0.95 lt)",
+            "price": "3.40"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Mia Düşeş (şüşə) (0.5 lt)",
+            "price": "2.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Mia Limon (şüşə) (0.5 lt)",
+            "price": "2.20"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Im Tea Limon (0.5/1 lt)",
+            "price": "1.80"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Im Tea Şaftalı (0.5/1 lt)",
+            "price": "1.80"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Im Tea Mohto (0.5 lt)",
+            "price": "1.80"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Im Tea Qarpız (1 lt)",
+            "price": "2.40"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Srab qazlı (şüşə) (0.5 lt)",
+            "price": "2.00"
+        }
+    },
+    {
+        "model": "meals.Meal",
+        "fields": {
+            "category": 8,
+            "name": "Srab qazsız (şüşə) (0.5 lt)",
+            "price": "2.00"
+        }
+    }
+]
