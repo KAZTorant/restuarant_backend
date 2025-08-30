@@ -1,0 +1,331 @@
+[
+  {
+    "model": "inventory.category",
+    "pk": 1,
+    "fields": {
+      "name": "Əsas məhsul",
+      "description": "Əsas mətbəx məhsulları"
+    }
+  },
+  {
+    "model": "inventory.category", 
+    "pk": 2,
+    "fields": {
+      "name": "Ət məhsulları",
+      "description": "Müxtəlif növ ət məhsulları"
+    }
+  },
+  {
+    "model": "inventory.category",
+    "pk": 3,
+    "fields": {
+      "name": "Tərəvəz",
+      "description": "Təzə tərəvəz məhsulları"
+    }
+  },
+  {
+    "model": "inventory.supplier",
+    "pk": 1,
+    "fields": {
+      "name": "Təchizat",
+      "contact_info": "Tel: +994501234567"
+    }
+  },
+  {
+    "model": "inventory.supplier",
+    "pk": 2,
+    "fields": {
+      "name": "Qəssab",
+      "contact_info": "Tel: +994551234567"
+    }
+  },
+  {
+    "model": "inventory.supplier",
+    "pk": 3,
+    "fields": {
+      "name": "Bazar",
+      "contact_info": "Təzə bazar"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$abcdef$abcdef",
+      "last_login": null,
+      "is_superuser": true,
+      "username": "admin",
+      "first_name": "İdarəçi",
+      "last_name": "Admin",
+      "email": "admin@restaurant.az",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2024-01-01T00:00:00Z",
+      "type": "restaurant",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$abcdef$abcdef",
+      "last_login": null,
+      "is_superuser": false,
+      "username": "aysel",
+      "first_name": "Aysel",
+      "last_name": "Məmmədova",
+      "email": "aysel@restaurant.az",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2024-01-01T00:00:00Z",
+      "type": "waitress",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "inventory.inventoryitem",
+    "pk": 1,
+    "fields": {
+      "name": "Un",
+      "category": 1,
+      "unit": "kq",
+      "supplier": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryitem",
+    "pk": 2,
+    "fields": {
+      "name": "Ət (mal)",
+      "category": 2,
+      "unit": "kq",
+      "supplier": 2,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryitem",
+    "pk": 3,
+    "fields": {
+      "name": "Toyuq əti",
+      "category": 2,
+      "unit": "kq", 
+      "supplier": 2,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryitem",
+    "pk": 4,
+    "fields": {
+      "name": "Düyü",
+      "category": 1,
+      "unit": "kq",
+      "supplier": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryitem",
+    "pk": 5,
+    "fields": {
+      "name": "Pomidor",
+      "category": 3,
+      "unit": "kq",
+      "supplier": 3,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tables.room", 
+    "pk": 1,
+    "fields": {
+      "name": "Əsas zal",
+      "description": "",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tables.table",
+    "pk": 1,
+    "fields": {
+      "number": "1",
+      "capacity": 4,
+      "room": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tables.table", 
+    "pk": 2,
+    "fields": {
+      "number": "2",
+      "capacity": 2,
+      "room": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "printers.preparationplace",
+    "pk": 1,
+    "fields": {
+      "name": "Mətbəx",
+      "printer": null
+    }
+  },
+  {
+    "model": "meals.mealgroup",
+    "pk": 1,
+    "fields": {
+      "name": "Əsas yeməklər",
+      "description": ""
+    }
+  },
+  {
+    "model": "meals.mealcategory",
+    "pk": 1,
+    "fields": {
+      "name": "Plov",
+      "description": "",
+      "group": 1,
+      "is_extra": false
+    }
+  },
+  {
+    "model": "meals.meal",
+    "pk": 1,
+    "fields": {
+      "name": "Toyuq plov",
+      "description": "",
+      "price": "15.00",
+      "category": 1,
+      "preparation_place": 1
+    }
+  },
+  {
+    "model": "meals.meal",
+    "pk": 2, 
+    "fields": {
+      "name": "Ət plov",
+      "description": "",
+      "price": "18.00",
+      "category": 1,
+      "preparation_place": 1
+    }
+  },
+  {
+    "model": "inventory_connector.mealinventoryconnector",
+    "pk": 1,
+    "fields": {
+      "meal": 1
+    }
+  },
+  {
+    "model": "inventory_connector.mealinventorymapping",
+    "pk": 1,
+    "fields": {
+      "connector": 1,
+      "inventory_item": 3,
+      "quantity": "0.300",
+      "price": "8.00"
+    }
+  },
+  {
+    "model": "inventory_connector.mealinventorymapping",
+    "pk": 2,
+    "fields": {
+      "connector": 1,
+      "inventory_item": 4,
+      "quantity": "0.200",
+      "price": "3.50"
+    }
+  },
+  {
+    "model": "inventory.inventoryrecord",
+    "pk": 1,
+    "fields": {
+      "inventory_item": 1,
+      "quantity": "25.000",
+      "record_type": "add",
+      "reason": "purchase",
+      "price": 2.5,
+      "operation_date": "2024-01-02",
+      "expiration_date": null,
+      "created_at": "2024-01-02T10:00:00Z",
+      "updated_at": "2024-01-02T10:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryrecord",
+    "pk": 2,
+    "fields": {
+      "inventory_item": 2,
+      "quantity": "10.000",
+      "record_type": "add",
+      "reason": "purchase",
+      "price": 12.0,
+      "operation_date": "2024-01-02",
+      "expiration_date": null,
+      "created_at": "2024-01-02T11:00:00Z",
+      "updated_at": "2024-01-02T11:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryrecord",
+    "pk": 3,
+    "fields": {
+      "inventory_item": 3,
+      "quantity": "15.000",
+      "record_type": "add",
+      "reason": "purchase",
+      "price": 6.5,
+      "operation_date": "2024-01-03",
+      "expiration_date": null,
+      "created_at": "2024-01-03T09:30:00Z",
+      "updated_at": "2024-01-03T09:30:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryrecord",
+    "pk": 4,
+    "fields": {
+      "inventory_item": 4,
+      "quantity": "40.000",
+      "record_type": "add",
+      "reason": "purchase",
+      "price": 3.0,
+      "operation_date": "2024-01-03",
+      "expiration_date": null,
+      "created_at": "2024-01-03T10:00:00Z",
+      "updated_at": "2024-01-03T10:00:00Z"
+    }
+  },
+  {
+    "model": "inventory.inventoryrecord",
+    "pk": 5,
+    "fields": {
+      "inventory_item": 5,
+      "quantity": "30.000",
+      "record_type": "add",
+      "reason": "purchase",
+      "price": 1.2,
+      "operation_date": "2024-01-04",
+      "expiration_date": null,
+      "created_at": "2024-01-04T10:00:00Z",
+      "updated_at": "2024-01-04T10:00:00Z"
+    }
+  }
+]
