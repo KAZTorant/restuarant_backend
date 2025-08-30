@@ -61,7 +61,7 @@ class Meal(DateTimeModel, models.Model):
         verbose_name_plural = "Yeməklər"
 
     def __str__(self):
-        return self.name
+        return f"{self.category.name if self.category else 'Kateqoriya yoxdur'} - {self.name} - {self.price} AZN"
 
     @property
     def is_extra(self):

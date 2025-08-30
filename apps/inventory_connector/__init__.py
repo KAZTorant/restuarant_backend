@@ -1,1 +1,1 @@
-default_app_config = 'apps.inventory_connector.apps.InventoryConnectorConfig'
+# App configuration moved to INSTALLED_APPS in settings.py
