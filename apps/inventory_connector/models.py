@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from apps.meals.models import Meal
 from inventory.models import InventoryItem
 
@@ -58,6 +59,17 @@ class MealInventoryMapping(models.Model):
 
     def __str__(self):
         return f"{self.connector.meal.name} üçün {self.inventory_item.name} - {self.quantity}"
+    
+    def clean(self):
+        """Validate model data"""
+        if self.quantity is not None and self.quantity <= 0:
+            raise ValidationError({
+                'quantity': 'Miqdar müsbət olmalıdır.'
+            })
+        if self.price is not None and self.price < 0:
+            raise ValidationError({
+                'price': 'Qiymət mənfi ola bilməz.'
+            })
 
     class Meta:
         verbose_name = "Yemək-Anbar Miqdarı Əlaqəsi"
