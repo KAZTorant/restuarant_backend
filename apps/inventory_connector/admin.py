@@ -47,7 +47,7 @@ class MealInventoryMappingInline(admin.StackedInline):
 
 
 class MealInventoryConnectorAdmin(admin.ModelAdmin):
-    list_display = ('meal', 'get_meal_category', 'get_meal_price', 'get_inventory_count')
+    list_display = ('meal', 'get_meal_category', 'get_meal_price', 'get_cost_price', 'get_inventory_count')
     inlines = [MealInventoryMappingInline]
     search_fields = ('meal__name', 'meal__category__name')
     list_filter = ('meal__category',)
@@ -61,6 +61,15 @@ class MealInventoryConnectorAdmin(admin.ModelAdmin):
     def get_meal_price(self, obj):
         return f"{obj.meal.price} AZN" if obj.meal else "Yoxdur"
     get_meal_price.short_description = 'Menu Qiyməti'
+    
+    def get_cost_price(self, obj):
+        """Calculate total cost price based on ingredient costs and quantities"""
+        total_cost = 0
+        for mapping in obj.mappings.all():
+            ingredient_cost = mapping.quantity * mapping.price
+            total_cost += ingredient_cost
+        return f"{total_cost:.3f} AZN"
+    get_cost_price.short_description = 'Maya Dəyəri'
     
     def get_inventory_count(self, obj):
         return obj.mappings.count()
