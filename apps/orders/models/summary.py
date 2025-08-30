@@ -24,7 +24,7 @@ class Summary(DateTimeModel, models.Model):
         Statistics,
         blank=True,
         related_name="summaries",
-        verbose_name="Statistikalar"
+        verbose_name="Hesabatlar"
     )
     cash_total = models.DecimalField(
         max_digits=10,

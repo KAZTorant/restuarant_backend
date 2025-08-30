@@ -407,7 +407,7 @@ class Statistics(DateTimeModel, models.Model):
 
     class Meta:
         verbose_name = "Statistika"
-        verbose_name_plural = "Statistikalar 📊"
+        verbose_name_plural = "Hesabatlar 📊"
 
     @property
     def cash(self):
