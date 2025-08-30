@@ -51,21 +51,8 @@ class MealInventoryConnectorAdmin(admin.ModelAdmin):
     inlines = [MealInventoryMappingInline]
     search_fields = ('meal__name', 'meal__category__name')
     list_filter = ('meal__category',)
-    readonly_fields = ('get_meal_info',)
     
-    fieldsets = (
-        ('Menu Məlumatları', {
-            'fields': ('meal', 'get_meal_info'),
-            'description': 'Menunun əsas məlumatları'
-        }),
-    )
-    
-    def get_meal_info(self, obj):
-        if obj.meal:
-            category = obj.meal.category.name if obj.meal.category else "Kateqoriya yoxdur"
-            return f"Ad: {obj.meal.name} | Kateqoriya: {category} | Qiymət: {obj.meal.price} AZN"
-        return "Meal məlumatı yoxdur"
-    get_meal_info.short_description = 'Menu Təfərrüatları'
+    fields = ('meal',)
     
     def get_meal_category(self, obj):
         return obj.meal.category.name if obj.meal and obj.meal.category else "Yoxdur"
