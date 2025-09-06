@@ -27,10 +27,55 @@ class PreparationPlaceActionForm(forms.Form):
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'preparation_place', 'price']
+    list_display = ['name', 'category', 'preparation_place',
+                    'price', 'cost_price', 'marja_amount', 'marja_percentage']
     list_filter = ['category', 'preparation_place']
     search_fields = ['name', 'description']
     actions = ['set_preparation_place']
+    readonly_fields = ['cost_price', 'marja_amount', 'marja_percentage']
+
+    def cost_price(self, obj):
+        """Calculate total cost price from inventory mappings"""
+        try:
+            connector = obj.inventory_connector
+            total_cost = 0
+            for mapping in connector.mappings.all():
+                total_cost += mapping.quantity * mapping.price
+            return f"{total_cost:.2f} AZN"
+        except:
+            return "0.00 AZN"
+    cost_price.short_description = "Xərc Qiyməti"
+    cost_price.admin_order_field = 'price'  # For sorting
+
+    def marja_amount(self, obj):
+        """Calculate marja amount (profit amount)"""
+        try:
+            connector = obj.inventory_connector
+            total_cost = 0
+            for mapping in connector.mappings.all():
+                total_cost += mapping.quantity * mapping.price
+            marja_amount = obj.price - total_cost
+            return f"{marja_amount:.2f} AZN"
+        except:
+            return f"{obj.price:.2f} AZN"
+    marja_amount.short_description = "Marja (Məbləğ)"
+    marja_amount.admin_order_field = 'price'
+
+    def marja_percentage(self, obj):
+        """Calculate marja percentage"""
+        try:
+            connector = obj.inventory_connector
+            total_cost = 0
+            for mapping in connector.mappings.all():
+                total_cost += mapping.quantity * mapping.price
+            if obj.price > 0:
+                marja_percentage = ((obj.price - total_cost) / obj.price) * 100
+                return f"{marja_percentage:.1f}%"
+            return "0.0%"
+        except:
+            return "100.0%"
+    marja_percentage.short_description = "Marja (%)"
+    marja_percentage.admin_order_field = 'price'
 
     def get_urls(self):
         urls = super().get_urls()
