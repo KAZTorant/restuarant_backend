@@ -13,7 +13,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -270,3 +272,4 @@ JAZZMIN_SETTINGS = {
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
+TELEGRAM_BOT_TOKEN = '8417102339:AAHswWwkyAR5_zCewPS3Poc6wRH7cUv5Has'  # Get this from @BotFather
