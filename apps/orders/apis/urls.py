@@ -1,26 +1,27 @@
 from django.urls import path
 
-from apps.orders.apis import CreateOrderAPIView
-from apps.orders.apis import CheckOrderAPIView
-
-from apps.orders.apis import AddOrderItemAPIView
-from apps.orders.apis import ListOrderItemsAPIView
-from apps.orders.apis import DeleteOrderItemAPIView
-
-from apps.orders.apis import CloseTableOrderAPIView
-from apps.orders.apis import ChangeTableOrderAPIView
-from apps.orders.apis import JoinTableOrdersAPIView
-from apps.orders.apis import ListTableOrdersAPIView
-
-from apps.orders.apis import ListWaitressAPIView
-from apps.orders.apis import ChangeWaitressAPIView
-
+# Import your new API view
+from apps.orders.api_views import active_orders_api
+from apps.orders.apis import (AddOrderItemAPIView, ChangeTableOrderAPIView,
+                              ChangeWaitressAPIView, CheckOrderAPIView,
+                              CloseTableOrderAPIView, CreateOrderAPIView,
+                              DeleteOrderItemAPIView, JoinTableOrdersAPIView,
+                              ListOrderItemsAPIView, ListTableOrdersAPIView,
+                              ListWaitressAPIView)
 from apps.orders.apis.order_items.comment import AddCommentToOrderItemAPIView
 from apps.orders.apis.order_items.transfer import TransferOrderItemsAPIView
-from apps.orders.apis.orders.confirm import ConfirmOrderItemsToWorkerPrintersAPIView
+from apps.orders.apis.orders.confirm import \
+    ConfirmOrderItemsToWorkerPrintersAPIView
 from apps.printers.apis import PrintCheckAPIView
 
 urlpatterns = [
+    # Add your new API endpoint at the top
+    path(
+        'active-orders/',
+        active_orders_api,
+        name='active-orders'
+    ),
+
     path(
         '<int:table_id>/check-status/',
         CheckOrderAPIView.as_view(),
