@@ -57,7 +57,9 @@ class MealAdmin(admin.ModelAdmin):
             marja_amount = obj.price - total_cost
             return f"{marja_amount:.2f} AZN"
         except:
-            return f"{obj.price:.2f} AZN"
+            if obj.price is not None:
+                return f"{obj.price:.2f} AZN"
+            return "0.00 AZN"
     marja_amount.short_description = "Marja (Məbləğ)"
     marja_amount.admin_order_field = 'price'
 
