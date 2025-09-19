@@ -205,10 +205,13 @@ Seçimlər:
                 if temp_response.status_code == 200:
                     temp_data = temp_response.json()
                     if 'error' not in temp_data:
-                        # Parse work period start time
+                        # Parse work period start time (convert to local timezone)
+                        from django.utils import timezone as django_timezone
                         period_start = datetime.fromisoformat(
                             temp_data['period_start'].replace('Z', '+00:00'))
-                        work_start_time = period_start.time()
+                        period_start_local = django_timezone.localtime(
+                            period_start)
+                        work_start_time = period_start_local.time()
 
                         # If current time is before work start time, we're still in previous day's work period
                         if current_time < work_start_time:
@@ -238,11 +241,14 @@ Seçimlər:
                     if response.status_code == 200:
                         data = response.json()
                         if 'error' not in data:
-                            # Parse the actual report start date
+                            # Parse the actual report start date (convert to local timezone)
                             from datetime import datetime
+                            from django.utils import timezone as django_timezone
                             report_start = datetime.fromisoformat(
                                 data['period_start'].replace('Z', '+00:00'))
-                            report_start_date = report_start.date()
+                            report_start_local = django_timezone.localtime(
+                                report_start)
+                            report_start_date = report_start_local.date()
 
                             report_dates.append({
                                 'api_date': date_str,  # Date to send to API
@@ -319,17 +325,20 @@ Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
                     await query.edit_message_text(message, reply_markup=reply_markup)
                     return
 
-                # Parse datetime strings for display
+                # Parse datetime strings for display (convert to local timezone)
                 from datetime import datetime
+                from django.utils import timezone as django_timezone
                 period_start = datetime.fromisoformat(
                     data['period_start'].replace('Z', '+00:00'))
                 period_end = datetime.fromisoformat(
                     data['period_end'].replace('Z', '+00:00'))
+                period_start_local = django_timezone.localtime(period_start)
+                period_end_local = django_timezone.localtime(period_end)
 
                 # Format date display
                 display_date = datetime.strptime(
                     date_str, '%Y-%m-%d').strftime('%d.%m.%Y')
-                time_range = f"({period_start.strftime('%H:%M')} - {period_end.strftime('%H:%M')})"
+                time_range = f"({period_start_local.strftime('%H:%M')} - {period_end_local.strftime('%H:%M')})"
 
                 message = f"""
 📈 Günün Hesabatı
