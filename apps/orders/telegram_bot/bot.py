@@ -6,8 +6,10 @@ from decimal import Decimal
 import requests
 from django.conf import settings
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import (Application, CallbackQueryHandler, CommandHandler,
-                          ContextTypes, MessageHandler, filters)
+from telegram.ext import (
+    Application, CallbackQueryHandler, CommandHandler,
+    ContextTypes, MessageHandler, filters
+)
 
 # Set up detailed logging
 logging.basicConfig(
@@ -16,32 +18,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class RestaurantBot:
     def __init__(self, token):
         self.token = token
         self.base_url = getattr(settings, 'BASE_URL', 'http://127.0.0.1:8000')
         logger.info(f"Initializing bot with token: {token[:10]}...")
         logger.info(f"Base URL: {self.base_url}")
-        
+
         self.application = Application.builder().token(token).build()
         self.setup_handlers()
 
     def setup_handlers(self):
         """Setup bot command and callback handlers"""
         logger.info("Setting up handlers...")
-        
+
         # Add handlers in this order (most specific first)
         self.application.add_handler(CommandHandler("start", self.start))
         self.application.add_handler(CommandHandler("help", self.help_command))
-        self.application.add_handler(CommandHandler("orders", self.orders_menu))
-        self.application.add_handler(CallbackQueryHandler(self.button_callback))
-        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text_input))
-        
+        self.application.add_handler(
+            CommandHandler("orders", self.orders_menu))
+        self.application.add_handler(
+            CallbackQueryHandler(self.button_callback))
+        self.application.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND, self.handle_text_input))
+
         logger.info("Handlers set up successfully")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Send welcome message when /start command is issued"""
-        logger.info(f"Start command received from user: {update.effective_user.id}")
+        logger.info(
+            f"Start command received from user: {update.effective_user.id}")
         welcome_text = """
 🍽️ Restoran Bot-a xoş gəldiniz!
 
@@ -61,7 +68,8 @@ Başlamaq üçün /orders düyməsini basın.
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Send help message"""
-        logger.info(f"Help command received from user: {update.effective_user.id}")
+        logger.info(
+            f"Help command received from user: {update.effective_user.id}")
         help_text = """
 🆘 Kömək
 
@@ -79,24 +87,46 @@ Düymələr vasitəsilə naviqasiya edə bilərsiniz.
             logger.error(f"Error sending help message: {e}")
 
     async def orders_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Show orders menu with two main options"""
+        """Show orders menu with main options"""
         keyboard = [
-            [InlineKeyboardButton("📅 Bugünkü Hesabat", callback_data='today_report')],
-            [InlineKeyboardButton("📆 Tarix/Vaxt Aralığı", callback_data='date_range_menu')],
-            [InlineKeyboardButton("🏠 Ana Səhifə", callback_data='main_menu')]
+            [
+                InlineKeyboardButton(
+                    "📈 Günün Hesabatı",
+                    callback_data='daily_report'
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "📆 Tarix/Vaxt Aralığı",
+                    callback_data='date_range_menu'
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "📅 Bugünkü Hesabat",
+                    callback_data='today_report'
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "🏠 Ana Səhifə",
+                    callback_data='main_menu'
+                )
+            ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         text = """
 📋 Sifariş Hesabatları
 
 Seçimlər:
-📅 Bugünkü Hesabat - Bu günün sifarişləri
+📈 Günün Hesabatı - En son hesabatdan beri
 📆 Tarix/Vaxt Aralığı - Seçdiyiniz dövrün sifarişləri
+📅 Bugünkü Hesabat - Bu günün sifarişləri
 
 İstədiyiniz hesabat növünü seçin:
         """
-        
+
         if update.message:
             await update.message.reply_text(text, reply_markup=reply_markup)
         else:
@@ -109,6 +139,8 @@ Seçimlər:
 
         if query.data == 'today_report':
             await self.show_today_report(query)
+        elif query.data == 'daily_report':
+            await self.show_daily_report(query)
         elif query.data == 'date_range_menu':
             await self.show_date_range_menu(query)
         elif query.data == 'main_menu':
@@ -121,13 +153,14 @@ Seçimlər:
         try:
             # Get today's date in YYYY-MM-DD format
             today = date.today().isoformat()
-            
+
             # Call API for today's orders
-            response = requests.get(f"{self.base_url}/orders/active-orders/?date={today}")
-            
+            response = requests.get(
+                f"{self.base_url}/orders/active-orders/?date={today}")
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 message = f"""
 📅 Bugünkü Hesabat ({today})
 
@@ -143,32 +176,104 @@ Seçimlər:
 
 🔄 Yenilənmə: {self.get_current_time()}
                 """
-                
+
                 keyboard = [
-                    [InlineKeyboardButton("🔄 Yenilə", callback_data='today_report')],
-                    [InlineKeyboardButton("⬅️ Geri", callback_data='main_menu')]
+                    [InlineKeyboardButton(
+                        "🔄 Yenilə", callback_data='today_report')],
+                    [InlineKeyboardButton(
+                        "⬅️ Geri", callback_data='main_menu')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
-                
+
                 await query.edit_message_text(message, reply_markup=reply_markup)
             else:
                 await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
-                
+
         except Exception as e:
             logger.error(f"Error fetching today's report: {e}")
+            await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
+
+    async def show_daily_report(self, query):
+        """Show daily report since last closed report"""
+        try:
+            # Call daily report API
+            response = requests.get(f"{self.base_url}/orders/daily-report/")
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # Check if there's an error (no closed reports)
+                if 'error' in data:
+                    message = f"""
+📈 Günün Hesabatı
+
+❌ {data.get('message', 'Hələ bağlanmış hesabat yoxdur')}
+
+Əvvəlcə bir hesabat bağlanmalıdır.
+                    """
+                    keyboard = [
+                        [InlineKeyboardButton(
+                            "⬅️ Geri", callback_data='main_menu')]
+                    ]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    await query.edit_message_text(message, reply_markup=reply_markup)
+                    return
+
+                # Parse datetime strings for display
+                last_report_time = datetime.fromisoformat(
+                    data['last_report_end_time'].replace('Z', '+00:00'))
+                current_time = datetime.fromisoformat(
+                    data['current_time'].replace('Z', '+00:00'))
+
+                message = f"""
+📈 Günün Hesabatı
+({last_report_time.strftime('%d.%m.%Y %H:%M')} - {current_time.strftime('%d.%m.%Y %H:%M')})
+
+💰 Ödəniş Statistikası:
+├ 💵 Nağd: {data['cash_total']:.2f} AZN
+├ 💳 Kart: {data['card_total']:.2f} AZN  
+├ 🔄 Digər: {data['other_total']:.2f} AZN
+└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+
+📊 Ümumi:
+├ Ödənilmiş: {data['paid_total']:.2f} AZN
+└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
+
+👤 Son hesabatı bağlayan: {data['last_report_ended_by']}
+🔄 Yenilənmə: {self.get_current_time()}
+                """
+
+                keyboard = [
+                    [InlineKeyboardButton(
+                        "🔄 Yenilə", callback_data='daily_report')],
+                    [InlineKeyboardButton(
+                        "⬅️ Geri", callback_data='main_menu')]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await query.edit_message_text(message, reply_markup=reply_markup)
+            else:
+                await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
+
+        except Exception as e:
+            logger.error(f"Error fetching daily report: {e}")
             await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
 
     async def show_date_range_menu(self, query):
         """Show date range selection menu"""
         keyboard = [
-            [InlineKeyboardButton("📅 Bu həftə", callback_data='date_range_this_week')],
-            [InlineKeyboardButton("📅 Keçən həftə", callback_data='date_range_last_week')],
-            [InlineKeyboardButton("📅 Bu ay", callback_data='date_range_this_month')],
-            [InlineKeyboardButton("📝 Əl ilə daxil et", callback_data='date_range_manual')],
+            [InlineKeyboardButton(
+                "📅 Bu həftə", callback_data='date_range_this_week')],
+            [InlineKeyboardButton(
+                "📅 Keçən həftə", callback_data='date_range_last_week')],
+            [InlineKeyboardButton(
+                "📅 Bu ay", callback_data='date_range_this_month')],
+            [InlineKeyboardButton("📝 Əl ilə daxil et",
+                                  callback_data='date_range_manual')],
             [InlineKeyboardButton("⬅️ Geri", callback_data='main_menu')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         text = """
 📆 Tarix/Vaxt Aralığı Seçin
 
@@ -180,42 +285,44 @@ Hazır seçimlər:
 
 Seçiminizi edin:
         """
-        
+
         await query.edit_message_text(text, reply_markup=reply_markup)
 
     async def handle_date_range_selection(self, query):
         """Handle predefined date range selections"""
         try:
             from datetime import timedelta
-            
+
             today = date.today()
             start_date = None
             end_date = None
             range_name = ""
-            
+
             logger.info(f"Processing date range selection: {query.data}")
-            
+
             if query.data == 'date_range_this_week':
                 # Monday to Sunday of current week
                 start_date = today - timedelta(days=today.weekday())
                 end_date = start_date + timedelta(days=6)
                 range_name = "Bu həftə"
-            
+
             elif query.data == 'date_range_last_week':
                 # Monday to Sunday of last week
                 start_date = today - timedelta(days=today.weekday() + 7)
                 end_date = start_date + timedelta(days=6)
                 range_name = "Keçən həftə"
-            
+
             elif query.data == 'date_range_this_month':
                 # First day to last day of current month
                 start_date = today.replace(day=1)
                 if today.month == 12:
-                    end_date = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+                    end_date = today.replace(
+                        year=today.year + 1, month=1, day=1) - timedelta(days=1)
                 else:
-                    end_date = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+                    end_date = today.replace(
+                        month=today.month + 1, day=1) - timedelta(days=1)
                 range_name = "Bu ay"
-            
+
             elif query.data == 'date_range_manual':
                 await self.request_manual_date_input(query)
                 return
@@ -223,14 +330,15 @@ Seçiminizi edin:
                 logger.error(f"Unknown date range selection: {query.data}")
                 await query.edit_message_text("❌ Naməlum seçim.")
                 return
-            
+
             if start_date and end_date:
-                logger.info(f"Calculated date range: {start_date} to {end_date}")
+                logger.info(
+                    f"Calculated date range: {start_date} to {end_date}")
                 await self.show_date_range_report(query, start_date, end_date, range_name)
             else:
                 logger.error("Failed to calculate date range")
                 await query.edit_message_text("❌ Tarix hesablamasında xəta baş verdi.")
-                
+
         except Exception as e:
             logger.error(f"Error handling date range selection: {e}")
             await query.edit_message_text("❌ Tarix hesablamasında xəta baş verdi.")
@@ -241,15 +349,15 @@ Seçiminizi edin:
             # Format dates for API call
             start_datetime = f"{start_date.isoformat()}T00:00:00"
             end_datetime = f"{end_date.isoformat()}T23:59:59"
-            
+
             # Call API with date range
             response = requests.get(
                 f"{self.base_url}/orders/active-orders/?start_date={start_datetime}&end_date={end_datetime}"
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
-                
+
                 message = f"""
 📆 {range_name} Hesabatı
 ({start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')})
@@ -266,18 +374,21 @@ Seçiminizi edin:
 
 🔄 Yenilənmə: {self.get_current_time()}
                 """
-                
+
                 keyboard = [
-                    [InlineKeyboardButton("🔄 Yenilə", callback_data=query.data)],
-                    [InlineKeyboardButton("📆 Başqa dövrü", callback_data='date_range_menu')],
-                    [InlineKeyboardButton("⬅️ Ana menyu", callback_data='main_menu')]
+                    [InlineKeyboardButton(
+                        "🔄 Yenilə", callback_data=query.data)],
+                    [InlineKeyboardButton(
+                        "📆 Başqa dövrü", callback_data='date_range_menu')],
+                    [InlineKeyboardButton(
+                        "⬅️ Ana menyu", callback_data='main_menu')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
-                
+
                 await query.edit_message_text(message, reply_markup=reply_markup)
             else:
                 await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
-                
+
         except Exception as e:
             logger.error(f"Error fetching date range report: {e}")
             await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
@@ -307,14 +418,14 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 
 İndi tarixi yazın və göndərin...
         """
-        
+
         keyboard = [
             [InlineKeyboardButton("⬅️ Geri", callback_data='date_range_menu')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         await query.edit_message_text(text, reply_markup=reply_markup)
-        
+
         # Note: We'll use a simpler approach - just wait for the next text message
         # The user state management is handled in handle_text_input
 
@@ -322,9 +433,9 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
         """Handle text input from users"""
         user_id = update.effective_user.id
         text = update.message.text.strip()
-        
+
         logger.info(f"🔍 Received text input from user {user_id}: '{text}'")
-        
+
         # Try to parse as date input first
         if self.looks_like_date_input(text):
             await self.process_manual_date_input(update, text)
@@ -333,27 +444,27 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             await update.message.reply_text(
                 f"🤖 Mətn alındı: {text}\n\nSifariş hesabatları üçün /orders komandası istifadə edin."
             )
-    
+
     def looks_like_date_input(self, text):
         """Check if text looks like a date input"""
         parts = text.split()
         if len(parts) == 0 or len(parts) > 2:
             return False
-        
+
         # Check if all parts look like dates and use the same format
         detected_format = None
         for part in parts:
             part_format = self.detect_date_format(part)
             if part_format is None:
                 return False  # Invalid date format
-            
+
             if detected_format is None:
                 detected_format = part_format
             elif detected_format != part_format:
                 return False  # Mixed formats not allowed
-        
+
         return True
-    
+
     def detect_date_format(self, date_str):
         """Detect the format of a date string"""
         formats = [
@@ -362,20 +473,20 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             ('%d/%m/%Y', 'slash'),      # 15/01/2025
             ('%d-%m-%Y', 'dash'),       # 15-01-2025
         ]
-        
+
         for fmt, format_name in formats:
             try:
                 datetime.strptime(date_str, fmt)
                 return format_name
             except ValueError:
                 continue
-        
+
         return None
-    
+
     def is_valid_date_format(self, date_str):
         """Check if a string is a valid date in any supported format"""
         return self.detect_date_format(date_str) is not None
-    
+
     def parse_date_string(self, date_str):
         """Parse a date string in any supported format to a date object"""
         formats = [
@@ -384,13 +495,13 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             '%d/%m/%Y',     # 15/01/2025
             '%d-%m-%Y',     # 15-01-2025
         ]
-        
+
         for fmt in formats:
             try:
                 return datetime.strptime(date_str, fmt).date()
             except ValueError:
                 continue
-        
+
         raise ValueError(f"Invalid date format: {date_str}")
 
     async def process_manual_date_input(self, update, text):
@@ -398,7 +509,7 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
         try:
             logger.info(f"Processing manual date input: '{text}'")
             parts = text.split()
-            
+
             if len(parts) == 1:
                 # Single date
                 try:
@@ -415,19 +526,20 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                         "• 15/01/2025\n"
                         "• 15-01-2025"
                     )
-                    
+
             elif len(parts) == 2:
                 # Date range
                 try:
                     start_date = self.parse_date_string(parts[0])
                     end_date = self.parse_date_string(parts[1])
-                    
-                    logger.info(f"Parsed date range: {start_date} to {end_date}")
-                    
+
+                    logger.info(
+                        f"Parsed date range: {start_date} to {end_date}")
+
                     if start_date > end_date:
                         await update.message.reply_text("❌ Başlanğıc tarixi bitiş tarixindən böyük ola bilməz!")
                         return
-                    
+
                     await self.show_manual_date_range_report(update, start_date, end_date)
                 except ValueError as e:
                     logger.error(f"Invalid date range format: {e}")
@@ -442,7 +554,7 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             else:
                 logger.warning(f"Wrong number of date parts: {len(parts)}")
                 await update.message.reply_text("❌ Yanlış format! Bir tarix və ya iki tarix daxil edin.")
-                
+
         except Exception as e:
             logger.error(f"Error processing manual date input: {e}")
             await update.message.reply_text("❌ Tarix işləməsində xəta baş verdi.")
@@ -451,17 +563,17 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
         """Show report for a single date"""
         try:
             logger.info(f"Fetching single date report for: {target_date}")
-            
+
             # Call API for specific date
             api_url = f"{self.base_url}/orders/active-orders/?date={target_date.isoformat()}"
             logger.info(f"API call: {api_url}")
-            
+
             response = requests.get(api_url, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f"API response successful: {data}")
-                
+
                 message = f"""
 📅 {target_date.strftime('%d.%m.%Y')} Hesabatı
 
@@ -477,12 +589,13 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 
 🔄 Yenilənmə: {self.get_current_time()}
                 """
-                
+
                 await update.message.reply_text(message.strip())
             else:
-                logger.error(f"API error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"API error: {response.status_code} - {response.text}")
                 await update.message.reply_text("❌ Məlumat alınarkən xəta baş verdi.")
-                
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Connection error fetching single date report: {e}")
             await update.message.reply_text("❌ Serverlə əlaqə yaradılmadı.")
@@ -493,22 +606,23 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
     async def show_manual_date_range_report(self, update, start_date, end_date):
         """Show report for manually entered date range"""
         try:
-            logger.info(f"Fetching manual date range report: {start_date} to {end_date}")
-            
+            logger.info(
+                f"Fetching manual date range report: {start_date} to {end_date}")
+
             # Format dates for API call
             start_datetime = f"{start_date.isoformat()}T00:00:00"
             end_datetime = f"{end_date.isoformat()}T23:59:59"
-            
+
             api_url = f"{self.base_url}/orders/active-orders/?start_date={start_datetime}&end_date={end_datetime}"
             logger.info(f"API call: {api_url}")
-            
+
             # Call API with date range
             response = requests.get(api_url, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f"API response successful: {data}")
-                
+
                 message = f"""
 📆 Seçilmiş Dövrün Hesabatı
 ({start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')})
@@ -525,14 +639,16 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 
 🔄 Yenilənmə: {self.get_current_time()}
                 """
-                
+
                 await update.message.reply_text(message.strip())
             else:
-                logger.error(f"API error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"API error: {response.status_code} - {response.text}")
                 await update.message.reply_text("❌ Məlumat alınarkən xəta baş verdi.")
-                
+
         except requests.exceptions.RequestException as e:
-            logger.error(f"Connection error fetching manual date range report: {e}")
+            logger.error(
+                f"Connection error fetching manual date range report: {e}")
             await update.message.reply_text("❌ Serverlə əlaqə yaradılmadı.")
         except Exception as e:
             logger.error(f"Error fetching manual date range report: {e}")
@@ -540,18 +656,19 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 
     def get_current_time(self):
         """Get current time formatted"""
-        from datetime import datetime
         return datetime.now().strftime("%H:%M:%S")
 
     def run(self):
         """Start the bot (synchronous method)"""
         logger.info("Starting Restaurant Bot...")
-        
+
         # Use the synchronous run_polling method
         self.application.run_polling(drop_pending_updates=True)
 
+
 # Bot instance
 bot_instance = None
+
 
 def get_bot():
     """Get bot instance"""
