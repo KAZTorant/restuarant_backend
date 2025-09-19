@@ -103,12 +103,6 @@ Düymələr vasitəsilə naviqasiya edə bilərsiniz.
             ],
             [
                 InlineKeyboardButton(
-                    "📅 Bugünkü Hesabat",
-                    callback_data='today_report'
-                )
-            ],
-            [
-                InlineKeyboardButton(
                     "🏠 Ana Səhifə",
                     callback_data='main_menu'
                 )
@@ -122,7 +116,6 @@ Düymələr vasitəsilə naviqasiya edə bilərsiniz.
 Seçimlər:
 📈 Günün Hesabatı - En son hesabatdan beri
 📆 Tarix/Vaxt Aralığı - Seçdiyiniz dövrün sifarişləri
-📅 Bugünkü Hesabat - Bu günün sifarişləri
 
 İstədiyiniz hesabat növünü seçin:
         """
@@ -137,9 +130,7 @@ Seçimlər:
         query = update.callback_query
         await query.answer()
 
-        if query.data == 'today_report':
-            await self.show_today_report(query)
-        elif query.data == 'daily_report':
+        if query.data == 'daily_report':
             await self.show_daily_report(query)
         elif query.data == 'date_range_menu':
             await self.show_date_range_menu(query)
@@ -202,14 +193,12 @@ Seçimlər:
             if response.status_code == 200:
                 data = response.json()
 
-                # Check if there's an error (no closed reports)
+                # Check if there's an error
                 if 'error' in data:
                     message = f"""
 📈 Günün Hesabatı
 
-❌ {data.get('message', 'Hələ bağlanmış hesabat yoxdur')}
-
-Əvvəlcə bir hesabat bağlanmalıdır.
+❌ {data.get('message', 'Xəta baş verdi')}
                     """
                     keyboard = [
                         [InlineKeyboardButton(
@@ -220,14 +209,19 @@ Seçimlər:
                     return
 
                 # Parse datetime strings for display
-                last_report_time = datetime.fromisoformat(
-                    data['last_report_end_time'].replace('Z', '+00:00'))
+                if data.get('last_report_end_time'):
+                    last_report_time = datetime.fromisoformat(
+                        data['last_report_end_time'].replace('Z', '+00:00'))
+                    time_range = f"({last_report_time.strftime('%d.%m.%Y %H:%M')} - {datetime.fromisoformat(data['current_time'].replace('Z', '+00:00')).strftime('%d.%m.%Y %H:%M')})"
+                else:
+                    time_range = "(Bütün sifarişlər)"
+
                 current_time = datetime.fromisoformat(
                     data['current_time'].replace('Z', '+00:00'))
 
                 message = f"""
 📈 Günün Hesabatı
-({last_report_time.strftime('%d.%m.%Y %H:%M')} - {current_time.strftime('%d.%m.%Y %H:%M')})
+{time_range}
 
 💰 Ödəniş Statistikası:
 ├ 💵 Nağd: {data['cash_total']:.2f} AZN
@@ -239,7 +233,7 @@ Seçimlər:
 ├ Ödənilmiş: {data['paid_total']:.2f} AZN
 └ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
 
-👤 Son hesabatı bağlayan: {data['last_report_ended_by']}
+{('👤 Son hesabatı bağlayan: ' + data['last_report_ended_by']) if data.get('last_report_ended_by') else '📊 Bütün sifarişlər hesablanır'}
 🔄 Yenilənmə: {self.get_current_time()}
                 """
 

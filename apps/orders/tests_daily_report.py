@@ -143,16 +143,17 @@ class DailyReportTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
 
-        # Should return error with zero amounts
-        self.assertIn('error', data)
+        # Should return zero amounts but no error (new behavior)
+        self.assertNotIn('error', data)
         self.assertEqual(data['cash_total'], 0.0)
         self.assertEqual(data['card_total'], 0.0)
         self.assertEqual(data['other_total'], 0.0)
         self.assertEqual(data['unpaid_total'], 0.0)
         self.assertEqual(data['paid_total'], 0.0)
-        self.assertIn('Hələ bağlanmış hesabat yoxdur', data['message'])
+        self.assertIsNone(data['last_report_end_time'])
+        self.assertIsNone(data['last_report_ended_by'])
 
-        print("✅ Correctly handles no closed reports")
+        print("✅ Correctly handles no closed reports - calculates all orders")
 
     def test_api_closed_report_no_orders(self):
         """Test 3: API with closed report but no orders after it"""

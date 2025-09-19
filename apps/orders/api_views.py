@@ -152,26 +152,32 @@ def daily_report_api(request):
             is_closed=True).order_by('-end_time').first()
 
         if not last_report or not last_report.end_time:
-            return JsonResponse({
-                'error': 'No closed reports found',
-                'cash_total': 0.0,
-                'card_total': 0.0,
-                'other_total': 0.0,
-                'unpaid_total': 0.0,
-                'paid_total': 0.0,
-                'message': 'Hələ bağlanmış hesabat yoxdur'
-            })
-
-        # Use last report's end time as start date, current time as end date
-        start_datetime = last_report.end_time
-        end_datetime = timezone.now()
+            # If no closed report exists, calculate ALL orders (from beginning of time)
+            start_datetime = None  # No start date limit
+            end_datetime = timezone.now()
+            last_report_end_time = None
+            last_report_ended_by = None
+        else:
+            # Use last report's end time as start date, current time as end date
+            start_datetime = last_report.end_time
+            end_datetime = timezone.now()
+            last_report_end_time = last_report.end_time.isoformat()
+            last_report_ended_by = last_report.ended_by.username if last_report.ended_by else 'Unknown'
 
         # Build queryset with date range
-        orders_queryset = Order.objects.filter(
-            is_deleted=False,
-            created_at__gte=start_datetime,
-            created_at__lte=end_datetime
-        )
+        if start_datetime:
+            # If there's a closed report, get orders after that report
+            orders_queryset = Order.objects.filter(
+                is_deleted=False,
+                created_at__gte=start_datetime,
+                created_at__lte=end_datetime
+            )
+        else:
+            # If no closed report, get ALL orders (from beginning of time)
+            orders_queryset = Order.objects.filter(
+                is_deleted=False,
+                created_at__lte=end_datetime
+            )
 
         # Get all paid orders in this range
         paid_orders = orders_queryset.filter(is_paid=True)
@@ -228,9 +234,9 @@ def daily_report_api(request):
             'other_total': float(other_total),
             'unpaid_total': float(unpaid_total),
             'paid_total': float(cash_total + card_total + other_total),
-            'last_report_end_time': last_report.end_time.isoformat(),
+            'last_report_end_time': last_report_end_time,
             'current_time': end_datetime.isoformat(),
-            'last_report_ended_by': last_report.ended_by.username if last_report.ended_by else 'Unknown'
+            'last_report_ended_by': last_report_ended_by
         })
 
     except Exception as e:
