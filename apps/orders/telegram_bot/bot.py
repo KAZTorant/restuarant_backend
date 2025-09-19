@@ -114,7 +114,7 @@ Düymələr vasitəsilə naviqasiya edə bilərsiniz.
 📋 Sifariş Hesabatları
 
 Seçimlər:
-📈 Günün Hesabatı - En son hesabatdan beri
+📈 Günün Hesabatı
 📆 Tarix/Vaxt Aralığı - Seçdiyiniz dövrün sifarişləri
 
 İstədiyiniz hesabat növünü seçin:
@@ -131,7 +131,10 @@ Seçimlər:
         await query.answer()
 
         if query.data == 'daily_report':
-            await self.show_daily_report(query)
+            await self.show_daily_report_menu(query)
+        elif query.data.startswith('period_report_'):
+            date_str = query.data.replace('period_report_', '')
+            await self.show_period_report(query, date_str)
         elif query.data == 'date_range_menu':
             await self.show_date_range_menu(query)
         elif query.data == 'main_menu':
@@ -184,11 +187,119 @@ Seçimlər:
             logger.error(f"Error fetching today's report: {e}")
             await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
 
-    async def show_daily_report(self, query):
-        """Show daily report since last closed report"""
+    async def show_daily_report_menu(self, query):
+        """Show date selection menu for daily reports based on report start dates"""
         try:
-            # Call daily report API
-            response = requests.get(f"{self.base_url}/orders/daily-report/")
+            from datetime import date, timedelta, datetime, time
+            import requests
+
+            # Determine the correct "today" based on work period
+            current_time = datetime.now().time()
+            calendar_today = date.today()
+
+            # Get work period config to determine actual "today"
+            try:
+                # First, try to get active config from API call
+                temp_response = requests.get(
+                    f"{self.base_url}/orders/period-report/?date={calendar_today.strftime('%Y-%m-%d')}")
+                if temp_response.status_code == 200:
+                    temp_data = temp_response.json()
+                    if 'error' not in temp_data:
+                        # Parse work period start time
+                        period_start = datetime.fromisoformat(
+                            temp_data['period_start'].replace('Z', '+00:00'))
+                        work_start_time = period_start.time()
+
+                        # If current time is before work start time, we're still in previous day's work period
+                        if current_time < work_start_time:
+                            actual_today = calendar_today - timedelta(days=1)
+                        else:
+                            actual_today = calendar_today
+                    else:
+                        actual_today = calendar_today
+                else:
+                    actual_today = calendar_today
+            except:
+                # Fallback to calendar today if API fails
+                actual_today = calendar_today
+
+            # Get last 7 report dates starting from actual today
+            report_dates = []
+
+            # Generate potential dates and check which ones have valid reports
+            for i in range(7):
+                check_date = actual_today - timedelta(days=i)
+                date_str = check_date.strftime('%Y-%m-%d')
+
+                # Call API to get report info (this will create report if needed)
+                try:
+                    response = requests.get(
+                        f"{self.base_url}/orders/period-report/?date={date_str}")
+                    if response.status_code == 200:
+                        data = response.json()
+                        if 'error' not in data:
+                            # Parse the actual report start date
+                            from datetime import datetime
+                            report_start = datetime.fromisoformat(
+                                data['period_start'].replace('Z', '+00:00'))
+                            report_start_date = report_start.date()
+
+                            report_dates.append({
+                                'api_date': date_str,  # Date to send to API
+                                'report_start_date': report_start_date,  # Actual report start date
+                                'display_date': report_start_date.strftime('%d.%m.%Y'),
+                                'period_name': data.get('period_name', 'İş Dövrü')
+                            })
+                except:
+                    # If API fails, still add the date
+                    report_dates.append({
+                        'api_date': date_str,
+                        'report_start_date': check_date,
+                        'display_date': check_date.strftime('%d.%m.%Y'),
+                        'period_name': 'İş Dövrü'
+                    })
+
+            # Create keyboard with report start date options
+            keyboard = []
+            for i, report_info in enumerate(report_dates):
+                display_text = report_info['display_text'] = report_info['display_date']
+
+                # Add "Bugün" for today's report
+                if i == 0:  # First item is most recent
+                    display_text = f"📅 Bugün ({display_text})"
+                else:
+                    display_text = f"📅 {display_text}"
+
+                keyboard.append([InlineKeyboardButton(
+                    display_text,
+                    callback_data=f'period_report_{report_info["api_date"]}'
+                )])
+
+            # Add back button
+            keyboard.append([InlineKeyboardButton(
+                "⬅️ Geri", callback_data='main_menu')])
+
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            text = """
+📈 Günün Hesabatı
+
+Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
+(Tarixlər iş dövrünün başlama vaxtına görədir)
+            """
+
+            await query.edit_message_text(text, reply_markup=reply_markup)
+
+        except Exception as e:
+            logger.error(f"Error showing daily report menu: {e}")
+            await query.edit_message_text("❌ Menyu yüklənərkən xəta baş verdi.")
+
+    async def show_period_report(self, query, date_str):
+        """Show period report for specific date"""
+        try:
+            # Call period report API with date
+            response = requests.get(
+                f"{self.base_url}/orders/period-report/?date={date_str}")
 
             if response.status_code == 200:
                 data = response.json()
@@ -196,32 +307,33 @@ Seçimlər:
                 # Check if there's an error
                 if 'error' in data:
                     message = f"""
-📈 Günün Hesabatı
+📈 Günün Hesabatı ({date_str})
 
-❌ {data.get('message', 'Xəta baş verdi')}
+❌ {data.get('error', 'Xəta baş verdi')}
                     """
                     keyboard = [
                         [InlineKeyboardButton(
-                            "⬅️ Geri", callback_data='main_menu')]
+                            "⬅️ Geri", callback_data='daily_report')]
                     ]
                     reply_markup = InlineKeyboardMarkup(keyboard)
                     await query.edit_message_text(message, reply_markup=reply_markup)
                     return
 
                 # Parse datetime strings for display
-                if data.get('last_report_end_time'):
-                    last_report_time = datetime.fromisoformat(
-                        data['last_report_end_time'].replace('Z', '+00:00'))
-                    time_range = f"({last_report_time.strftime('%d.%m.%Y %H:%M')} - {datetime.fromisoformat(data['current_time'].replace('Z', '+00:00')).strftime('%d.%m.%Y %H:%M')})"
-                else:
-                    time_range = "(Bütün sifarişlər)"
+                from datetime import datetime
+                period_start = datetime.fromisoformat(
+                    data['period_start'].replace('Z', '+00:00'))
+                period_end = datetime.fromisoformat(
+                    data['period_end'].replace('Z', '+00:00'))
 
-                current_time = datetime.fromisoformat(
-                    data['current_time'].replace('Z', '+00:00'))
+                # Format date display
+                display_date = datetime.strptime(
+                    date_str, '%Y-%m-%d').strftime('%d.%m.%Y')
+                time_range = f"({period_start.strftime('%H:%M')} - {period_end.strftime('%H:%M')})"
 
                 message = f"""
 📈 Günün Hesabatı
-{time_range}
+{display_date} {time_range}
 
 💰 Ödəniş Statistikası:
 ├ 💵 Nağd: {data['cash_total']:.2f} AZN
@@ -233,15 +345,15 @@ Seçimlər:
 ├ Ödənilmiş: {data['paid_total']:.2f} AZN
 └ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
 
-{('👤 Son hesabatı bağlayan: ' + data['last_report_ended_by']) if data.get('last_report_ended_by') else '📊 Bütün sifarişlər hesablanır'}
+📋 Dövrü: {data['period_name']}
 🔄 Yenilənmə: {self.get_current_time()}
                 """
 
                 keyboard = [
                     [InlineKeyboardButton(
-                        "🔄 Yenilə", callback_data='daily_report')],
+                        "🔄 Yenilə", callback_data=f'period_report_{date_str}')],
                     [InlineKeyboardButton(
-                        "⬅️ Geri", callback_data='main_menu')]
+                        "⬅️ Geri", callback_data='daily_report')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -250,7 +362,7 @@ Seçimlər:
                 await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
 
         except Exception as e:
-            logger.error(f"Error fetching daily report: {e}")
+            logger.error(f"Error fetching period report for {date_str}: {e}")
             await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
 
     async def show_date_range_menu(self, query):

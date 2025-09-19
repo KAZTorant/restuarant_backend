@@ -136,6 +136,55 @@ def active_orders_api(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+def period_report_api(request):
+    """
+    API endpoint to get period report for specific date using Report model
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        from datetime import datetime
+        from apps.orders.models import Report
+
+        # Get date parameter
+        date_str = request.GET.get('date')
+        if not date_str:
+            return JsonResponse({'error': 'Date parameter required'}, status=400)
+
+        # Parse date
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+
+        # Get or create report for this date
+        report, created = Report.objects.get_or_create_for_date(date_obj)
+
+        # Update totals to ensure current data
+        report.update_totals()
+
+        # Calculate paid total
+        paid_total = float(report.cash_total +
+                           report.card_total + report.other_total)
+
+        return JsonResponse({
+            'cash_total': float(report.cash_total),
+            'card_total': float(report.card_total),
+            'other_total': float(report.other_total),
+            'unpaid_total': float(report.unpaid_total),
+            'paid_total': paid_total,
+            'total_amount': float(report.total_amount),
+            'period_start': report.start_datetime.isoformat(),
+            'period_end': report.end_datetime.isoformat(),
+            'period_name': report.work_period_config.name,
+            'date': date_str
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def daily_report_api(request):
     """
     API endpoint to get payment amounts since last closed report (daily report)

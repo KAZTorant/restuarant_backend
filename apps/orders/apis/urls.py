@@ -1,7 +1,7 @@
 from django.urls import path
 
 # Import your new API view
-from apps.orders.api_views import active_orders_api, daily_report_api
+from apps.orders.api_views import active_orders_api, daily_report_api, period_report_api
 from apps.orders.apis import (AddOrderItemAPIView, ChangeTableOrderAPIView,
                               ChangeWaitressAPIView, CheckOrderAPIView,
                               CloseTableOrderAPIView, CreateOrderAPIView,
@@ -26,6 +26,12 @@ urlpatterns = [
         'daily-report/',
         daily_report_api,
         name='daily-report'
+    ),
+
+    path(
+        'period-report/',
+        period_report_api,
+        name='period-report'
     ),
 
     path(
