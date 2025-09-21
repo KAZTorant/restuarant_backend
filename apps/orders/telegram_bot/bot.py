@@ -142,7 +142,11 @@ Seçimlər:
         elif query.data.startswith('date_range_'):
             await self.handle_date_range_selection(query)
         elif query.data == 'daily_report_other':
-            await self.request_manual_date_input(query)
+            await self.request_daily_custom_date_input(query)
+        elif query.data.startswith('refresh_single_date_'):
+            await self.handle_refresh_single_date(query)
+        elif query.data.startswith('refresh_date_range_'):
+            await self.handle_refresh_date_range(query)
 
     async def show_today_report(self, query):
         """Show today's order report"""
@@ -550,6 +554,34 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
         # Note: We'll use a simpler approach - just wait for the next text message
         # The user state management is handled in handle_text_input
 
+    async def request_daily_custom_date_input(self, query):
+        """Request manual date input from user for daily reports"""
+        text = """
+📝 Əl ilə Tarix Daxil Etmə
+
+Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
+
+🔹 Dəstəklənən formatlar:
+• 2025-09-10 (ISO formatı)
+• 10.09.2025 (Avropa formatı) 
+• 10/09/2025 (Slash formatı)
+• 10-09-2025 (Dash formatı)
+
+🔹 Bir tarix üçün misallar:
+• 2025-09-10
+• 10.09.2025
+• 10/09/2025
+
+İndi tarixi yazın və göndərin...
+        """
+
+        keyboard = [
+            [InlineKeyboardButton("⬅️ Geri", callback_data='daily_report')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await query.edit_message_text(text, reply_markup=reply_markup)
+
     async def handle_text_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text input from users"""
         user_id = update.effective_user.id
@@ -636,7 +668,7 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                 try:
                     input_date = self.parse_date_string(parts[0])
                     logger.info(f"Parsed single date: {input_date}")
-                    await self.show_single_date_report(update, input_date)
+                    await self.show_single_date_report_with_context(update, input_date, 'daily_report')
                 except ValueError as e:
                     logger.error(f"Invalid single date format: {e}")
                     await update.message.reply_text(
@@ -661,7 +693,7 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                         await update.message.reply_text("❌ Başlanğıc tarixi bitiş tarixindən böyük ola bilməz!")
                         return
 
-                    await self.show_manual_date_range_report(update, start_date, end_date)
+                    await self.show_manual_date_range_report_with_context(update, start_date, end_date, 'date_range_menu')
                 except ValueError as e:
                     logger.error(f"Invalid date range format: {e}")
                     await update.message.reply_text(
@@ -680,10 +712,11 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             logger.error(f"Error processing manual date input: {e}")
             await update.message.reply_text("❌ Tarix işləməsində xəta baş verdi.")
 
-    async def show_single_date_report(self, update, target_date):
-        """Show report for a single date"""
+    async def show_single_date_report_with_context(self, update, target_date, context='daily_report'):
+        """Show report for a single date with proper navigation context"""
         try:
-            logger.info(f"Fetching single date report for: {target_date}")
+            logger.info(
+                f"Fetching single date report for: {target_date} with context: {context}")
 
             # Call API for specific date
             api_url = f"{self.base_url}/orders/active-orders/?date={target_date.isoformat()}"
@@ -711,7 +744,16 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 🔄 Yenilənmə: {self.get_current_time()}
                 """
 
-                await update.message.reply_text(message.strip())
+                # Create navigation buttons based on context
+                keyboard = [
+                    [InlineKeyboardButton(
+                        f"🔄 Yenilə", callback_data=f'refresh_single_date_{target_date.isoformat()}_{context}')],
+                    [InlineKeyboardButton(
+                        "⬅️ Geri", callback_data=context)]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await update.message.reply_text(message.strip(), reply_markup=reply_markup)
             else:
                 logger.error(
                     f"API error: {response.status_code} - {response.text}")
@@ -724,11 +766,15 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             logger.error(f"Error fetching single date report: {e}")
             await update.message.reply_text("❌ Hesabat hazırlanarkən xəta baş verdi.")
 
-    async def show_manual_date_range_report(self, update, start_date, end_date):
-        """Show report for manually entered date range"""
+    async def show_single_date_report(self, update, target_date):
+        """Show report for a single date (legacy method for compatibility)"""
+        await self.show_single_date_report_with_context(update, target_date, 'main_menu')
+
+    async def show_manual_date_range_report_with_context(self, update, start_date, end_date, context='date_range_menu'):
+        """Show report for manually entered date range with proper navigation context"""
         try:
             logger.info(
-                f"Fetching manual date range report: {start_date} to {end_date}")
+                f"Fetching manual date range report: {start_date} to {end_date} with context: {context}")
 
             # Format dates for API call
             start_datetime = f"{start_date.isoformat()}T00:00:00"
@@ -761,7 +807,16 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
 🔄 Yenilənmə: {self.get_current_time()}
                 """
 
-                await update.message.reply_text(message.strip())
+                # Create navigation buttons based on context
+                keyboard = [
+                    [InlineKeyboardButton(
+                        f"🔄 Yenilə", callback_data=f'refresh_date_range_{start_date.isoformat()}_{end_date.isoformat()}_{context}')],
+                    [InlineKeyboardButton(
+                        "⬅️ Geri", callback_data=context)]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await update.message.reply_text(message.strip(), reply_markup=reply_markup)
             else:
                 logger.error(
                     f"API error: {response.status_code} - {response.text}")
@@ -774,6 +829,54 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
         except Exception as e:
             logger.error(f"Error fetching manual date range report: {e}")
             await update.message.reply_text("❌ Hesabat hazırlanarkən xəta baş verdi.")
+
+    async def show_manual_date_range_report(self, update, start_date, end_date):
+        """Show report for manually entered date range (legacy method for compatibility)"""
+        await self.show_manual_date_range_report_with_context(update, start_date, end_date, 'date_range_menu')
+
+    async def handle_refresh_single_date(self, query):
+        """Handle refresh button for single date reports"""
+        try:
+            # Parse callback data: refresh_single_date_2025-01-15_daily_report
+            parts = query.data.split('_')
+            date_str = parts[3]  # 2025-01-15
+            context = '_'.join(parts[4:])  # daily_report or date_range_menu
+
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+            # Create a mock update object for the refresh
+            class MockUpdate:
+                def __init__(self, query):
+                    self.message = query.message
+
+            mock_update = MockUpdate(query)
+            await self.show_single_date_report_with_context(mock_update, target_date, context)
+        except Exception as e:
+            logger.error(f"Error refreshing single date report: {e}")
+            await query.edit_message_text("❌ Yenilənmə zamanı xəta baş verdi.")
+
+    async def handle_refresh_date_range(self, query):
+        """Handle refresh button for date range reports"""
+        try:
+            # Parse callback data: refresh_date_range_2025-01-01_2025-01-31_date_range_menu
+            parts = query.data.split('_')
+            start_date_str = parts[3]  # 2025-01-01
+            end_date_str = parts[4]    # 2025-01-31
+            context = '_'.join(parts[5:])  # date_range_menu
+
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+            # Create a mock update object for the refresh
+            class MockUpdate:
+                def __init__(self, query):
+                    self.message = query.message
+
+            mock_update = MockUpdate(query)
+            await self.show_manual_date_range_report_with_context(mock_update, start_date, end_date, context)
+        except Exception as e:
+            logger.error(f"Error refreshing date range report: {e}")
+            await query.edit_message_text("❌ Yenilənmə zamanı xəta baş verdi.")
 
     def get_current_time(self):
         """Get current time formatted"""
