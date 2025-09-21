@@ -49,19 +49,17 @@ class RestaurantBot:
         """Send welcome message when /start command is issued"""
         logger.info(
             f"Start command received from user: {update.effective_user.id}")
-        welcome_text = """
-🍽️ Restoran Bot-a xoş gəldiniz!
+        welcome_text = """<b>🍽️ RESTORAN BOT-A XOŞ GƏLDİNİZ!</b>
 
-Bu bot vasitəsilə restoranın sifariş hesabatlarını izləyə bilərsiniz.
+📊 Bu bot vasitəsilə restoranın sifariş hesabatlarını izləyə bilərsiniz.
 
-Əmrlər:
-/orders - Sifariş hesabatları
-/help - Kömək
+<b>🔧 MÖVCUD ƏMRLƏR:</b>
+• 📈 /orders - Sifariş hesabatları
+• ❓ /help - Kömək məlumatları
 
-Başlamaq üçün /orders düyməsini basın.
-        """
+<i>🚀 Başlamaq üçün /orders düyməsini basın.</i>"""
         try:
-            await update.message.reply_text(welcome_text)
+            await update.message.reply_text(welcome_text, parse_mode='HTML')
             logger.info("Welcome message sent successfully")
         except Exception as e:
             logger.error(f"Error sending welcome message: {e}")
@@ -70,18 +68,20 @@ Başlamaq üçün /orders düyməsini basın.
         """Send help message"""
         logger.info(
             f"Help command received from user: {update.effective_user.id}")
-        help_text = """
-🆘 Kömək
+        help_text = """<b>🆘 KÖMƏK MƏLUMATİ</b>
 
-Mövcud əmrlər:
-/start - Başlanğıc mesajı
-/orders - Sifariş hesabatlarını göstər
-/help - Bu kömək mesajı
+<b>📋 MÖVCUD ƏMRLƏR:</b>
+• 🏠 /start - Başlanğıc mesajı
+• 📊 /orders - Sifariş hesabatlarını göstər
+• ❓ /help - Bu kömək mesajı
 
-Düymələr vasitəsilə naviqasiya edə bilərsiniz.
-        """
+<b>🧭 NAVİQASİYA:</b>
+• Düymələr vasitəsilə naviqasiya edə bilərsiniz
+• Hər səhifədə "Geri" düyməsi mövcuddur
+
+<i>💡 Suallarınız varsa /orders ilə başlayın.</i>"""
         try:
-            await update.message.reply_text(help_text)
+            await update.message.reply_text(help_text, parse_mode='HTML')
             logger.info("Help message sent successfully")
         except Exception as e:
             logger.error(f"Error sending help message: {e}")
@@ -110,20 +110,20 @@ Düymələr vasitəsilə naviqasiya edə bilərsiniz.
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        text = """
-📋 Sifariş Hesabatları
+        text = """<b>📊 SİFARİŞ HESABATLARI</b>
 
-Seçimlər:
-📈 Günün Hesabatı
-📆 Tarix/Vaxt Aralığı - Seçdiyiniz dövrün sifarişləri
+<b>📈 GÜNÜN HESABATI</b>
+İş dövrünün sifariş statistikaları
 
-İstədiyiniz hesabat növünü seçin:
-        """
+<b>📆 TARİX ARALIĞI</b>
+Seçdiyiniz dövrün sifarişləri
+
+<i>İstədiyiniz hesabat növünü seçin:</i>"""
 
         if update.message:
-            await update.message.reply_text(text, reply_markup=reply_markup)
+            await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='HTML')
         else:
-            await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
+            await self.safe_edit_message(update.callback_query, text, reply_markup, parse_mode='HTML')
 
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle button callbacks"""
@@ -161,21 +161,25 @@ Seçimlər:
             if response.status_code == 200:
                 data = response.json()
 
-                message = f"""
-📅 Bugünkü Hesabat ({today})
+                message = f"""<b>📅 Bugünkü Hesabat ({today})</b>
 
-💰 Ödəniş Statistikası:
-├ 💵 Nağd: {data['cash_total']:.2f} AZN
-├ 💳 Kart: {data['card_total']:.2f} AZN  
-├ 🔄 Digər: {data['other_total']:.2f} AZN
-└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+<pre>
+┌─────────────────────────────────┐
+│         ÖDƏNİŞ STATİSTİKASI     │
+├─────────────────────────────────┤
+│ 💵 Nağd        │ {data['cash_total']:>8.2f} AZN │
+│ 💳 Kart        │ {data['card_total']:>8.2f} AZN │
+│ 🔄 Digər       │ {data['other_total']:>8.2f} AZN │
+│ ❌ Ödənilməmiş │ {data['unpaid_total']:>8.2f} AZN │
+├─────────────────────────────────┤
+│         ÜMUMİ MƏBLƏĞ            │
+├─────────────────────────────────┤
+│ ✅ Ödənilmiş   │ {data['paid_total']:>8.2f} AZN │
+│ 📊 Toplam      │ {(data['paid_total'] + data['unpaid_total']):>8.2f} AZN │
+└─────────────────────────────────┘
+</pre>
 
-📊 Ümumi:
-├ Ödənilmiş: {data['paid_total']:.2f} AZN
-└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
-
-🔄 Yenilənmə: {self.get_current_time()}
-                """
+🕒 <i>Yenilənmə: {self.get_current_time()}</i>"""
 
                 keyboard = [
                     [InlineKeyboardButton(
@@ -185,13 +189,13 @@ Seçimlər:
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-                await query.edit_message_text(message, reply_markup=reply_markup)
+                await self.safe_edit_message(query, message, reply_markup, parse_mode='HTML')
             else:
-                await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
+                await self.safe_edit_message(query, "<b>❌ Məlumat alınarkən xəta baş verdi.</b>", parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error fetching today's report: {e}")
-            await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
+            await self.safe_edit_message(query, "<b>❌ Serverlə əlaqə yaradılmadı.</b>", parse_mode='HTML')
 
     async def show_daily_report_menu(self, query):
         """Show date selection menu for daily reports based on report start dates"""
@@ -297,18 +301,18 @@ Seçimlər:
 
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            text = """
-📈 Günün Hesabatı
+            text = """<b>📈 GÜNÜN HESABATI</b>
 
-Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
-(Tarixlər iş dövrünün başlama vaxtına görədir)
-            """
+📅 <i>Son 7 iş dövrünün hesabatları:</i>
+<code>(Tarixlər iş dövrünün başlama vaxtına görədir)</code>
 
-            await query.edit_message_text(text, reply_markup=reply_markup)
+<b>Tarixi seçin:</b>"""
+
+            await self.safe_edit_message(query, text, reply_markup, parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error showing daily report menu: {e}")
-            await query.edit_message_text("❌ Menyu yüklənərkən xəta baş verdi.")
+            await self.safe_edit_message(query, "<b>❌ Menyu yüklənərkən xəta baş verdi.</b>", parse_mode='HTML')
 
     async def show_period_report(self, query, date_str):
         """Show period report for specific date"""
@@ -322,17 +326,15 @@ Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
 
                 # Check if there's an error
                 if 'error' in data:
-                    message = f"""
-📈 Günün Hesabatı ({date_str})
+                    message = f"""<b>📈 Günün Hesabatı ({date_str})</b>
 
-❌ {data.get('error', 'Xəta baş verdi')}
-                    """
+<b>❌ {data.get('error', 'Xəta baş verdi')}</b>"""
                     keyboard = [
                         [InlineKeyboardButton(
                             "⬅️ Geri", callback_data='daily_report')]
                     ]
                     reply_markup = InlineKeyboardMarkup(keyboard)
-                    await query.edit_message_text(message, reply_markup=reply_markup)
+                    await self.safe_edit_message(query, message, reply_markup, parse_mode='HTML')
                     return
 
                 # Parse datetime strings for display (convert to local timezone)
@@ -350,39 +352,43 @@ Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
                     date_str, '%Y-%m-%d').strftime('%d.%m.%Y')
                 time_range = f"({period_start_local.strftime('%H:%M')} - {period_end_local.strftime('%H:%M')})"
 
-                message = f"""
-📈 Günün Hesabatı
-{display_date} {time_range}
+                message = f"""<b>📈 GÜNÜN HESABATI</b>
+📅 {display_date} {time_range}
+📋 Dövrü: <i>{data['period_name']}</i>
 
-💰 Ödəniş Statistikası:
-├ 💵 Nağd: {data['cash_total']:.2f} AZN
-├ 💳 Kart: {data['card_total']:.2f} AZN  
-├ 🔄 Digər: {data['other_total']:.2f} AZN
-└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+<pre>
+┌─────────────────────────────────┐
+│         ÖDƏNİŞ STATİSTİKASI     │
+├─────────────────────────────────┤
+│ 💵 Nağd        │ {data['cash_total']:>8.2f} AZN │
+│ 💳 Kart        │ {data['card_total']:>8.2f} AZN │
+│ 🔄 Digər       │ {data['other_total']:>8.2f} AZN │
+│ ❌ Ödənilməmiş │ {data['unpaid_total']:>8.2f} AZN │
+├─────────────────────────────────┤
+│         ÜMUMİ MƏBLƏĞ            │
+├─────────────────────────────────┤
+│ ✅ Ödənilmiş   │ {data['paid_total']:>8.2f} AZN │
+│ 📊 Toplam      │ {(data['paid_total'] + data['unpaid_total']):>8.2f} AZN │
+└─────────────────────────────────┘
+</pre>
 
-📊 Ümumi:
-├ Ödənilmiş: {data['paid_total']:.2f} AZN
-└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
-
-📋 Dövrü: {data['period_name']}
-🔄 Yenilənmə: {self.get_current_time()}
-                """
+🕒 <i>Yenilənmə: {self.get_current_time()}</i>"""
 
                 keyboard = [
                     [InlineKeyboardButton(
-                        "🔄 Yenilə", callback_data=f'period_report_{date_str}')],
+                        "🔄 Hesabatı Yenilə", callback_data=f'period_report_{date_str}')],
                     [InlineKeyboardButton(
-                        "⬅️ Geri", callback_data='daily_report')]
+                        "⬅️ Geri Qayıt", callback_data='daily_report')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-                await query.edit_message_text(message, reply_markup=reply_markup)
+                await self.safe_edit_message(query, message, reply_markup, parse_mode='HTML')
             else:
-                await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
+                await self.safe_edit_message(query, "<b>❌ Məlumat alınarkən xəta baş verdi.</b>", parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error fetching period report for {date_str}: {e}")
-            await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
+            await self.safe_edit_message(query, "<b>❌ Serverlə əlaqə yaradılmadı.</b>", parse_mode='HTML')
 
     async def show_date_range_menu(self, query):
         """Show date range selection menu"""
@@ -399,19 +405,19 @@ Son 7 iş dövrünün hesabatlarını görmək üçün tarixi seçin:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        text = """
-📆 Tarix/Vaxt Aralığı Seçin
+        text = """<b>📆 TARİX/VAXT ARALIĞI</b>
 
-Hazır seçimlər:
-📅 Bu həftə - Bu həftənin sifarişləri
-📅 Keçən həftə - Keçən həftənin sifarişləri  
-📅 Bu ay - Bu ayın sifarişləri
-📝 Əl ilə daxil et - Özünüz tarix seçin
+<b>📅 HAZIR SEÇİMLƏR:</b>
+• Bu həftə - Bu həftənin sifarişləri
+• Keçən həftə - Keçən həftənin sifarişləri  
+• Bu ay - Bu ayın sifarişləri
 
-Seçiminizi edin:
-        """
+<b>📝 FƏRDI SEÇİM:</b>
+• Əl ilə daxil et - Özünüz tarix seçin
 
-        await query.edit_message_text(text, reply_markup=reply_markup)
+<i>Seçiminizi edin:</i>"""
+
+        await self.safe_edit_message(query, text, reply_markup, parse_mode='HTML')
 
     async def handle_date_range_selection(self, query):
         """Handle predefined date range selections"""
@@ -453,7 +459,7 @@ Seçiminizi edin:
                 return
             else:
                 logger.error(f"Unknown date range selection: {query.data}")
-                await query.edit_message_text("❌ Naməlum seçim.")
+                await self.safe_edit_message(query, "<b>❌ Naməlum seçim.</b>", parse_mode='HTML')
                 return
 
             if start_date and end_date:
@@ -462,11 +468,11 @@ Seçiminizi edin:
                 await self.show_date_range_report(query, start_date, end_date, range_name)
             else:
                 logger.error("Failed to calculate date range")
-                await query.edit_message_text("❌ Tarix hesablamasında xəta baş verdi.")
+                await self.safe_edit_message(query, "<b>❌ Tarix hesablamasında xəta baş verdi.</b>", parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error handling date range selection: {e}")
-            await query.edit_message_text("❌ Tarix hesablamasında xəta baş verdi.")
+            await self.safe_edit_message(query, "<b>❌ Tarix hesablamasında xəta baş verdi.</b>", parse_mode='HTML')
 
     async def show_date_range_report(self, query, start_date, end_date, range_name):
         """Show report for specified date range"""
@@ -483,104 +489,100 @@ Seçiminizi edin:
             if response.status_code == 200:
                 data = response.json()
 
-                message = f"""
-📆 {range_name} Hesabatı
-({start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')})
+                message = f"""<b>📆 {range_name.upper()} HESABATI</b>
+📅 {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}
 
-💰 Ödəniş Statistikası:
-├ 💵 Nağd: {data['cash_total']:.2f} AZN
-├ 💳 Kart: {data['card_total']:.2f} AZN  
-├ 🔄 Digər: {data['other_total']:.2f} AZN
-└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+<pre>
+┌─────────────────────────────────┐
+│         ÖDƏNİŞ STATİSTİKASI     │
+├─────────────────────────────────┤
+│ 💵 Nağd        │ {data['cash_total']:>8.2f} AZN │
+│ 💳 Kart        │ {data['card_total']:>8.2f} AZN │
+│ 🔄 Digər       │ {data['other_total']:>8.2f} AZN │
+│ ❌ Ödənilməmiş │ {data['unpaid_total']:>8.2f} AZN │
+├─────────────────────────────────┤
+│         ÜMUMİ MƏBLƏĞ            │
+├─────────────────────────────────┤
+│ ✅ Ödənilmiş   │ {data['paid_total']:>8.2f} AZN │
+│ 📊 Toplam      │ {(data['paid_total'] + data['unpaid_total']):>8.2f} AZN │
+└─────────────────────────────────┘
+</pre>
 
-📊 Ümumi:
-├ Ödənilmiş: {data['paid_total']:.2f} AZN
-└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
-
-🔄 Yenilənmə: {self.get_current_time()}
-                """
+🕒 <i>Yenilənmə: {self.get_current_time()}</i>"""
 
                 keyboard = [
                     [InlineKeyboardButton(
-                        "🔄 Yenilə", callback_data=query.data)],
+                        "🔄 Hesabatı Yenilə", callback_data=query.data)],
                     [InlineKeyboardButton(
-                        "📆 Başqa dövrü", callback_data='date_range_menu')],
+                        "📆 Başqa Dövrü", callback_data='date_range_menu')],
                     [InlineKeyboardButton(
-                        "⬅️ Ana menyu", callback_data='main_menu')]
+                        "🏠 Ana Menyu", callback_data='main_menu')]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-                await query.edit_message_text(message, reply_markup=reply_markup)
+                await self.safe_edit_message(query, message, reply_markup, parse_mode='HTML')
             else:
-                await query.edit_message_text("❌ Məlumat alınarkən xəta baş verdi.")
+                await self.safe_edit_message(query, "<b>❌ Məlumat alınarkən xəta baş verdi.</b>", parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error fetching date range report: {e}")
-            await query.edit_message_text("❌ Serverlə əlaqə yaradılmadı.")
+            await self.safe_edit_message(query, "<b>❌ Serverlə əlaqə yaradılmadı.</b>", parse_mode='HTML')
 
     async def request_manual_date_input(self, query):
         """Request manual date input from user"""
-        text = """
-📝 Əl ilə Tarix Daxil Etmə
+        text = """<b>📝 TARİX DAXİL EDİN</b>
 
-Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
+<b>🔹 DƏSTƏKLƏNƏN FORMATLAR:</b>
+<code>📅 ISO Format:     2025-09-10
+🗓️ Avropa Format:   10.09.2025
+📋 Slash Format:    10/09/2025
+📊 Dash Format:     10-09-2025</code>
 
-🔹 Dəstəklənən formatlar:
-• 2025-09-10 (ISO formatı)
-• 10.09.2025 (Avropa formatı) 
-• 10/09/2025 (Slash formatı)
-• 10-09-2025 (Dash formatı)
+<b>🔹 BİR TARİX ÜÇÜN MİSALLAR:</b>
+• <code>2025-09-10</code>
+• <code>10.09.2025</code>
+• <code>10/09/2025</code>
 
-🔹 Bir tarix üçün misallar:
-• 2025-09-10
-• 10.09.2025
-• 10/09/2025
+<b>🔹 TARİX ARALIĞI ÜÇÜN MİSALLAR:</b>
+• <code>2025-09-01 2025-09-10</code>
+• <code>01.09.2025 10.09.2025</code>
+• <code>01/09/2025 10/09/2025</code>
 
-🔹 Tarix aralığı üçün misallar:
-• 2025-09-01 2025-09-10
-• 01.09.2025 10.09.2025
-• 01/09/2025 10/09/2025
-
-İndi tarixi yazın və göndərin...
-        """
+<i>📝 İndi tarixi yazın və göndərin...</i>"""
 
         keyboard = [
             [InlineKeyboardButton("⬅️ Geri", callback_data='date_range_menu')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await query.edit_message_text(text, reply_markup=reply_markup)
+        await self.safe_edit_message(query, text, reply_markup, parse_mode='HTML')
 
         # Note: We'll use a simpler approach - just wait for the next text message
         # The user state management is handled in handle_text_input
 
     async def request_daily_custom_date_input(self, query):
         """Request manual date input from user for daily reports"""
-        text = """
-📝 Əl ilə Tarix Daxil Etmə
+        text = """<b>📝 TARİX DAXİL EDİN</b>
 
-Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
+<b>🔹 DƏSTƏKLƏNƏN FORMATLAR:</b>
+<code>📅 ISO Format:     2025-09-10
+🗓️ Avropa Format:   10.09.2025
+📋 Slash Format:    10/09/2025
+📊 Dash Format:     10-09-2025</code>
 
-🔹 Dəstəklənən formatlar:
-• 2025-09-10 (ISO formatı)
-• 10.09.2025 (Avropa formatı) 
-• 10/09/2025 (Slash formatı)
-• 10-09-2025 (Dash formatı)
+<b>🔹 BİR TARİX ÜÇÜN MİSALLAR:</b>
+• <code>2025-09-10</code>
+• <code>10.09.2025</code>
+• <code>10/09/2025</code>
 
-🔹 Bir tarix üçün misallar:
-• 2025-09-10
-• 10.09.2025
-• 10/09/2025
-
-İndi tarixi yazın və göndərin...
-        """
+<i>📝 İndi tarixi yazın və göndərin...</i>"""
 
         keyboard = [
             [InlineKeyboardButton("⬅️ Geri", callback_data='daily_report')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await query.edit_message_text(text, reply_markup=reply_markup)
+        await self.safe_edit_message(query, text, reply_markup, parse_mode='HTML')
 
     async def handle_text_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text input from users"""
@@ -672,12 +674,15 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                 except ValueError as e:
                     logger.error(f"Invalid single date format: {e}")
                     await update.message.reply_text(
-                        "❌ Yanlış tarix formatı!\n\n"
-                        "Dəstəklənən formatlar:\n"
-                        "• 2025-01-15\n"
-                        "• 15.01.2025\n"
-                        "• 15/01/2025\n"
-                        "• 15-01-2025"
+                        "<b>❌ XƏTA BAŞ VERDİ</b>\n\n"
+                        "Yanlış tarix formatı!\n\n"
+                        "<b>🔹 DƏSTƏKLƏNƏN FORMATLAR:</b>\n"
+                        "<code>📅 2025-01-15\n"
+                        "🗓️ 15.01.2025\n"
+                        "📋 15/01/2025\n"
+                        "📊 15-01-2025</code>\n\n"
+                        "<i>💡 Yenidən cəhd edin...</i>",
+                        parse_mode='HTML'
                     )
 
             elif len(parts) == 2:
@@ -690,27 +695,30 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                         f"Parsed date range: {start_date} to {end_date}")
 
                     if start_date > end_date:
-                        await update.message.reply_text("❌ Başlanğıc tarixi bitiş tarixindən böyük ola bilməz!")
+                        await update.message.reply_text("<b>❌ Başlanğıc tarixi bitiş tarixindən böyük ola bilməz!</b>", parse_mode='HTML')
                         return
 
                     await self.show_manual_date_range_report_with_context(update, start_date, end_date, 'date_range_menu')
                 except ValueError as e:
                     logger.error(f"Invalid date range format: {e}")
                     await update.message.reply_text(
-                        "❌ Yanlış tarix formatı!\n\n"
-                        "Dəstəklənən formatlar:\n"
-                        "• 2025-01-15 2025-01-20\n"
-                        "• 15.01.2025 20.01.2025\n"
-                        "• 15/01/2025 20/01/2025\n"
-                        "• 15-01-2025 20-01-2025"
+                        "<b>❌ XƏTA BAŞ VERDİ</b>\n\n"
+                        "Yanlış tarix formatı!\n\n"
+                        "<b>🔹 TARİX ARALIĞI FORMATLAR:</b>\n"
+                        "<code>📅 2025-01-15 2025-01-20\n"
+                        "🗓️ 15.01.2025 20.01.2025\n"
+                        "📋 15/01/2025 20/01/2025\n"
+                        "📊 15-01-2025 20-01-2025</code>\n\n"
+                        "<i>💡 Yenidən cəhd edin...</i>",
+                        parse_mode='HTML'
                     )
             else:
                 logger.warning(f"Wrong number of date parts: {len(parts)}")
-                await update.message.reply_text("❌ Yanlış format! Bir tarix və ya iki tarix daxil edin.")
+                await update.message.reply_text("<b>❌ Yanlış format!</b> Bir tarix və ya iki tarix daxil edin.", parse_mode='HTML')
 
         except Exception as e:
             logger.error(f"Error processing manual date input: {e}")
-            await update.message.reply_text("❌ Tarix işləməsində xəta baş verdi.")
+            await update.message.reply_text("<b>❌ Tarix işləməsində xəta baş verdi.</b>", parse_mode='HTML')
 
     async def show_single_date_report_with_context(self, update, target_date, context='daily_report'):
         """Show report for a single date with proper navigation context"""
@@ -728,43 +736,47 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                 data = response.json()
                 logger.info(f"API response successful: {data}")
 
-                message = f"""
-📅 {target_date.strftime('%d.%m.%Y')} Hesabatı
+                message = f"""<b>📊 {target_date.strftime('%d.%m.%Y')} HESABATI</b>
 
-💰 Ödəniş Statistikası:
-├ 💵 Nağd: {data['cash_total']:.2f} AZN
-├ 💳 Kart: {data['card_total']:.2f} AZN  
-├ 🔄 Digər: {data['other_total']:.2f} AZN
-└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+<pre>
+┌─────────────────────────────────┐
+│         ÖDƏNİŞ STATİSTİKASI     │
+├─────────────────────────────────┤
+│ 💵 Nağd        │ {data['cash_total']:>8.2f} AZN │
+│ 💳 Kart        │ {data['card_total']:>8.2f} AZN │
+│ 🔄 Digər       │ {data['other_total']:>8.2f} AZN │
+│ ❌ Ödənilməmiş │ {data['unpaid_total']:>8.2f} AZN │
+├─────────────────────────────────┤
+│         ÜMUMİ MƏBLƏĞ            │
+├─────────────────────────────────┤
+│ ✅ Ödənilmiş   │ {data['paid_total']:>8.2f} AZN │
+│ 📊 Toplam      │ {(data['paid_total'] + data['unpaid_total']):>8.2f} AZN │
+└─────────────────────────────────┘
+</pre>
 
-📊 Ümumi:
-├ Ödənilmiş: {data['paid_total']:.2f} AZN
-└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
-
-🔄 Yenilənmə: {self.get_current_time()}
-                """
+🕒 <i>Yenilənmə: {self.get_current_time()}</i>"""
 
                 # Create navigation buttons based on context
                 keyboard = [
                     [InlineKeyboardButton(
-                        f"🔄 Yenilə", callback_data=f'refresh_single_date_{target_date.isoformat()}_{context}')],
+                        "🔄 Hesabatı Yenilə", callback_data=f'refresh_single_date_{target_date.isoformat()}_{context}')],
                     [InlineKeyboardButton(
-                        "⬅️ Geri", callback_data=context)]
+                        "⬅️ Geri Qayıt", callback_data=context)]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-                await update.message.reply_text(message.strip(), reply_markup=reply_markup)
+                await self.safe_reply_text(update, message.strip(), reply_markup=reply_markup, parse_mode='HTML')
             else:
                 logger.error(
                     f"API error: {response.status_code} - {response.text}")
-                await update.message.reply_text("❌ Məlumat alınarkən xəta baş verdi.")
+                await update.message.reply_text("<b>❌ Məlumat alınarkən xəta baş verdi.</b>", parse_mode='HTML')
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Connection error fetching single date report: {e}")
-            await update.message.reply_text("❌ Serverlə əlaqə yaradılmadı.")
+            await update.message.reply_text("<b>❌ Serverlə əlaqə yaradılmadı.</b>", parse_mode='HTML')
         except Exception as e:
             logger.error(f"Error fetching single date report: {e}")
-            await update.message.reply_text("❌ Hesabat hazırlanarkən xəta baş verdi.")
+            await update.message.reply_text("<b>❌ Hesabat hazırlanarkən xəta baş verdi.</b>", parse_mode='HTML')
 
     async def show_single_date_report(self, update, target_date):
         """Show report for a single date (legacy method for compatibility)"""
@@ -790,45 +802,49 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
                 data = response.json()
                 logger.info(f"API response successful: {data}")
 
-                message = f"""
-📆 Seçilmiş Dövrün Hesabatı
-({start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')})
+                message = f"""<b>📆 SEÇİLMİŞ DÖVRÜN HESABATI</b>
+📅 {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}
 
-💰 Ödəniş Statistikası:
-├ 💵 Nağd: {data['cash_total']:.2f} AZN
-├ 💳 Kart: {data['card_total']:.2f} AZN  
-├ 🔄 Digər: {data['other_total']:.2f} AZN
-└ ❌ Ödənilməmiş: {data['unpaid_total']:.2f} AZN
+<pre>
+┌─────────────────────────────────┐
+│         ÖDƏNİŞ STATİSTİKASI     │
+├─────────────────────────────────┤
+│ 💵 Nağd        │ {data['cash_total']:>8.2f} AZN │
+│ 💳 Kart        │ {data['card_total']:>8.2f} AZN │
+│ 🔄 Digər       │ {data['other_total']:>8.2f} AZN │
+│ ❌ Ödənilməmiş │ {data['unpaid_total']:>8.2f} AZN │
+├─────────────────────────────────┤
+│         ÜMUMİ MƏBLƏĞ            │
+├─────────────────────────────────┤
+│ ✅ Ödənilmiş   │ {data['paid_total']:>8.2f} AZN │
+│ 📊 Toplam      │ {(data['paid_total'] + data['unpaid_total']):>8.2f} AZN │
+└─────────────────────────────────┘
+</pre>
 
-📊 Ümumi:
-├ Ödənilmiş: {data['paid_total']:.2f} AZN
-└ Toplam: {(data['paid_total'] + data['unpaid_total']):.2f} AZN
-
-🔄 Yenilənmə: {self.get_current_time()}
-                """
+🕒 <i>Yenilənmə: {self.get_current_time()}</i>"""
 
                 # Create navigation buttons based on context
                 keyboard = [
                     [InlineKeyboardButton(
-                        f"🔄 Yenilə", callback_data=f'refresh_date_range_{start_date.isoformat()}_{end_date.isoformat()}_{context}')],
+                        "🔄 Hesabatı Yenilə", callback_data=f'refresh_date_range_{start_date.isoformat()}_{end_date.isoformat()}_{context}')],
                     [InlineKeyboardButton(
-                        "⬅️ Geri", callback_data=context)]
+                        "⬅️ Geri Qayıt", callback_data=context)]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-                await update.message.reply_text(message.strip(), reply_markup=reply_markup)
+                await self.safe_reply_text(update, message.strip(), reply_markup=reply_markup, parse_mode='HTML')
             else:
                 logger.error(
                     f"API error: {response.status_code} - {response.text}")
-                await update.message.reply_text("❌ Məlumat alınarkən xəta baş verdi.")
+                await update.message.reply_text("<b>❌ Məlumat alınarkən xəta baş verdi.</b>", parse_mode='HTML')
 
         except requests.exceptions.RequestException as e:
             logger.error(
                 f"Connection error fetching manual date range report: {e}")
-            await update.message.reply_text("❌ Serverlə əlaqə yaradılmadı.")
+            await update.message.reply_text("<b>❌ Serverlə əlaqə yaradılmadı.</b>", parse_mode='HTML')
         except Exception as e:
             logger.error(f"Error fetching manual date range report: {e}")
-            await update.message.reply_text("❌ Hesabat hazırlanarkən xəta baş verdi.")
+            await update.message.reply_text("<b>❌ Hesabat hazırlanarkən xəta baş verdi.</b>", parse_mode='HTML')
 
     async def show_manual_date_range_report(self, update, start_date, end_date):
         """Show report for manually entered date range (legacy method for compatibility)"""
@@ -853,7 +869,7 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             await self.show_single_date_report_with_context(mock_update, target_date, context)
         except Exception as e:
             logger.error(f"Error refreshing single date report: {e}")
-            await query.edit_message_text("❌ Yenilənmə zamanı xəta baş verdi.")
+            await self.safe_edit_message(query, "<b>❌ Yenilənmə zamanı xəta baş verdi.</b>", parse_mode='HTML')
 
     async def handle_refresh_date_range(self, query):
         """Handle refresh button for date range reports"""
@@ -876,11 +892,33 @@ Zəhmət olmasa tarixi aşağıdakı formatlardan birində daxil edin:
             await self.show_manual_date_range_report_with_context(mock_update, start_date, end_date, context)
         except Exception as e:
             logger.error(f"Error refreshing date range report: {e}")
-            await query.edit_message_text("❌ Yenilənmə zamanı xəta baş verdi.")
+            await self.safe_edit_message(query, "<b>❌ Yenilənmə zamanı xəta baş verdi.</b>", parse_mode='HTML')
 
     def get_current_time(self):
         """Get current time formatted"""
         return datetime.now().strftime("%H:%M:%S")
+
+    async def safe_edit_message(self, query, text, reply_markup=None, parse_mode=None):
+        """Safely edit message, handling duplicate content errors"""
+        try:
+            await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        except Exception as e:
+            if "Message is not modified" in str(e):
+                # Message content is the same, just acknowledge the callback
+                logger.info("Message content unchanged, skipping edit")
+                pass
+            else:
+                # Re-raise other errors
+                logger.error(f"Error editing message: {e}")
+                raise
+
+    async def safe_reply_text(self, update, text, reply_markup=None, parse_mode=None):
+        """Safely send reply text message"""
+        try:
+            await update.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        except Exception as e:
+            logger.error(f"Error sending reply: {e}")
+            raise
 
     def run(self):
         """Start the bot (synchronous method)"""
