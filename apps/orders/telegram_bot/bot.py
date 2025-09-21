@@ -141,6 +141,8 @@ Seçimlər:
             await self.orders_menu(update, context)
         elif query.data.startswith('date_range_'):
             await self.handle_date_range_selection(query)
+        elif query.data == 'daily_report_other':
+            await self.request_manual_date_input(query)
 
     async def show_today_report(self, query):
         """Show today's order report"""
@@ -280,6 +282,10 @@ Seçimlər:
                     display_text,
                     callback_data=f'period_report_{report_info["api_date"]}'
                 )])
+
+            # Add Digər (Other) button
+            keyboard.append([InlineKeyboardButton(
+                "📝 Digər", callback_data='daily_report_other')])
 
             # Add back button
             keyboard.append([InlineKeyboardButton(
