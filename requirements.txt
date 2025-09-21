@@ -39,5 +39,6 @@ uritemplate
 urllib3
 whitenoise
 python-escpos
+python-telegram-bot
 
 git+https://github.com/KAZTorant/kazza_inventory.git

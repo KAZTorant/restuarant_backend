@@ -272,4 +272,6 @@ JAZZMIN_SETTINGS = {
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
-TELEGRAM_BOT_TOKEN = '8417102339:AAHswWwkyAR5_zCewPS3Poc6wRH7cUv5Has'  # Get this from @BotFather
+# Get this from @BotFather
+TELEGRAM_BOT_TOKEN = os.environ.get(
+    'TELEGRAM_BOT_TOKEN', '8417102339:AAHswWwkyAR5_zCewPS3Poc6wRH7cUv5Has')
