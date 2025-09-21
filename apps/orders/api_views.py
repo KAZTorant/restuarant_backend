@@ -12,7 +12,7 @@ from apps.payments.models import Payment
 
 def active_orders_api(request):
     """
-    API endpoint to get payment amounts by type and unpaid amounts
+    API endpoint to get payment amounts by type and unpaid amounts using Report model
 
     Query parameters:
     - start_date: ISO format datetime string (e.g., '2025-09-10T00:00:00')
@@ -23,111 +23,80 @@ def active_orders_api(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
+        from datetime import datetime, timedelta
+        from apps.orders.models import Report
+
         # Parse datetime filters from query parameters
-        start_date = request.GET.get('start_date')
-        end_date = request.GET.get('end_date')
+        start_date_param = request.GET.get('start_date')
+        end_date_param = request.GET.get('end_date')
         date_filter = request.GET.get('date')
 
-        # Build base queryset
-        orders_queryset = Order.objects.filter(is_deleted=False)
-
-        # Apply datetime filtering
+        # Determine date range to process
         if date_filter:
-            # If date is provided, filter for that specific date (00:00:00 to 23:59:59)
+            # Single date - create report for that date
             try:
-                filter_date = datetime.fromisoformat(date_filter).date()
-                start_of_day = timezone.make_aware(
-                    datetime.combine(filter_date, datetime.min.time()))
-                end_of_day = timezone.make_aware(
-                    datetime.combine(filter_date, datetime.max.time()))
-                orders_queryset = orders_queryset.filter(
-                    created_at__gte=start_of_day,
-                    created_at__lte=end_of_day
-                )
+                target_date = datetime.fromisoformat(date_filter).date()
+                start_date = target_date
+                end_date = target_date
             except ValueError:
                 return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD format.'}, status=400)
         else:
-            # Apply start_date and end_date filters if provided
-            if start_date:
-                try:
-                    start_datetime = parse_datetime(start_date)
-                    if start_datetime is None:
-                        start_datetime = timezone.make_aware(
-                            datetime.fromisoformat(start_date))
-                    orders_queryset = orders_queryset.filter(
-                        created_at__gte=start_datetime)
-                except (ValueError, TypeError):
-                    return JsonResponse({'error': 'Invalid start_date format. Use ISO format: YYYY-MM-DDTHH:MM:SS'}, status=400)
+            # Date range - parse start and end dates
+            if not start_date_param or not end_date_param:
+                return JsonResponse({'error': 'Both start_date and end_date are required for date range queries'}, status=400)
 
-            if end_date:
-                try:
-                    end_datetime = parse_datetime(end_date)
-                    if end_datetime is None:
-                        end_datetime = timezone.make_aware(
-                            datetime.fromisoformat(end_date))
-                    orders_queryset = orders_queryset.filter(
-                        created_at__lte=end_datetime)
-                except (ValueError, TypeError):
-                    return JsonResponse({'error': 'Invalid end_date format. Use ISO format: YYYY-MM-DDTHH:MM:SS'}, status=400)
+            try:
+                start_datetime = parse_datetime(start_date_param)
+                if start_datetime is None:
+                    start_datetime = timezone.make_aware(
+                        datetime.fromisoformat(start_date_param))
+                start_date = start_datetime.date()
 
-        # Get all paid orders that are not deleted (with datetime filter applied)
-        paid_orders = orders_queryset.filter(is_paid=True)
+                end_datetime = parse_datetime(end_date_param)
+                if end_datetime is None:
+                    end_datetime = timezone.make_aware(
+                        datetime.fromisoformat(end_date_param))
+                end_date = end_datetime.date()
+            except (ValueError, TypeError):
+                return JsonResponse({'error': 'Invalid date format. Use ISO format: YYYY-MM-DDTHH:MM:SS'}, status=400)
 
-        # Get all unpaid orders that are not deleted (with datetime filter applied)
-        unpaid_orders = orders_queryset.filter(is_paid=False)
+        # Initialize aggregate totals
+        total_cash = Decimal('0.00')
+        total_card = Decimal('0.00')
+        total_other = Decimal('0.00')
+        total_unpaid = Decimal('0.00')
 
-        # Get all payments linked to paid orders
-        all_payments = Payment.objects.filter(
-            orders__in=paid_orders).distinct()
+        # Generate reports for each date in the range
+        current_date = start_date
+        while current_date <= end_date:
+            # Get or create report for this date
+            report, created = Report.objects.get_or_create_for_date(
+                current_date)
 
-        # Initialize totals
-        cash_total = Decimal('0.00')
-        card_total = Decimal('0.00')
-        other_total = Decimal('0.00')
+            # Update totals to ensure current data
+            report.update_totals()
 
-        # Process each payment (same logic as your Statistics model)
-        for payment in all_payments:
-            if payment.payment_methods.exists():
-                # Use the new payment methods
-                change_amount = payment.change or Decimal('0.00')
+            # Add to aggregate totals
+            total_cash += report.cash_total
+            total_card += report.card_total
+            total_other += report.other_total
+            total_unpaid += report.unpaid_total
 
-                for method in payment.payment_methods.all():
-                    method_amount = method.amount
+            # Move to next date
+            current_date += timedelta(days=1)
 
-                    # If this is cash and there's change, subtract the change from cash
-                    if method.payment_type == 'cash' and change_amount > 0:
-                        method_amount = method_amount - change_amount
-                        change_amount = Decimal('0.00')  # Only subtract once
-
-                    if method.payment_type == 'cash':
-                        cash_total += method_amount
-                    elif method.payment_type == 'card':
-                        card_total += method_amount
-                    elif method.payment_type == 'other':
-                        other_total += method_amount
-            else:
-                # Fallback to old payment_type field
-                if payment.payment_type == 'cash':
-                    cash_total += payment.final_price
-                elif payment.payment_type == 'card':
-                    card_total += payment.final_price
-                elif payment.payment_type == 'other':
-                    other_total += payment.final_price
-
-        # Calculate unpaid total
-        unpaid_total = unpaid_orders.aggregate(
-            total=Sum('total_price')
-        )['total'] or Decimal('0.00')
+        # Calculate paid total
+        paid_total = total_cash + total_card + total_other
 
         return JsonResponse({
-            'cash_total': float(cash_total),
-            'card_total': float(card_total),
-            'other_total': float(other_total),
-            'unpaid_total': float(unpaid_total),
-            'paid_total': float(cash_total + card_total + other_total),
+            'cash_total': float(total_cash),
+            'card_total': float(total_card),
+            'other_total': float(total_other),
+            'unpaid_total': float(total_unpaid),
+            'paid_total': float(paid_total),
             'filters_applied': {
-                'start_date': start_date,
-                'end_date': end_date,
+                'start_date': start_date_param,
+                'end_date': end_date_param,
                 'date': date_filter
             }
         })
