@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 
     # Apps
     'apps.inventory_connector',
+    'apps.bot.apps.BotConfig',
 ]
 
 MIDDLEWARE = [
@@ -275,3 +276,6 @@ X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
 # Get this from @BotFather
 TELEGRAM_BOT_TOKEN = os.environ.get(
     'TELEGRAM_BOT_TOKEN', '8417102339:AAHswWwkyAR5_zCewPS3Poc6wRH7cUv5Has')
+
+# Gemini API settings for AI analytics
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', None)

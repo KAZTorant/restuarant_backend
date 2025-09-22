@@ -11,6 +11,9 @@ from telegram.ext import (
     ContextTypes, MessageHandler, filters
 )
 
+# Import AI analyze command
+from apps.bot.business_owner.commands.ai_analyze import AIAnalyzeCommand
+
 # Set up detailed logging
 logging.basicConfig(
     level=logging.DEBUG,  # Change to DEBUG for more info
@@ -39,6 +42,8 @@ class RestaurantBot:
         self.application.add_handler(
             CommandHandler("orders", self.orders_menu))
         self.application.add_handler(
+            CommandHandler("ai_analyze", AIAnalyzeCommand.handle_command))
+        self.application.add_handler(
             CallbackQueryHandler(self.button_callback))
         self.application.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND, self.handle_text_input))
@@ -55,6 +60,7 @@ class RestaurantBot:
 
 <b>🔧 MÖVCUD ƏMRLƏR:</b>
 • 📈 /orders - Sifariş hesabatları
+• 🤖 /ai_analyze - AI analitik asistanı
 • ❓ /help - Kömək məlumatları
 
 <i>🚀 Başlamaq üçün /orders düyməsini basın.</i>"""
@@ -73,13 +79,19 @@ class RestaurantBot:
 <b>📋 MÖVCUD ƏMRLƏR:</b>
 • 🏠 /start - Başlanğıc mesajı
 • 📊 /orders - Sifariş hesabatlarını göstər
+• 🤖 /ai_analyze - AI analitik asistanı
 • ❓ /help - Bu kömək mesajı
 
 <b>🧭 NAVİQASİYA:</b>
 • Düymələr vasitəsilə naviqasiya edə bilərsiniz
 • Hər səhifədə "Geri" düyməsi mövcuddur
 
-<i>💡 Suallarınız varsa /orders ilə başlayın.</i>"""
+<b>🤖 AI ANALİTİK:</b>
+• Natural dildə suallar verin
+• Avtomatik məlumat analizi alın
+• Satış, menyu və sifarişlər haqqında məlumat
+
+<i>💡 Suallarınız varsa /orders və ya /ai_analyze ilə başlayın.</i>"""
         try:
             await update.message.reply_text(help_text, parse_mode='HTML')
             logger.info("Help message sent successfully")
@@ -138,6 +150,7 @@ Seçdiyiniz dövrün sifarişləri
         elif query.data == 'date_range_menu':
             await self.show_date_range_menu(query)
         elif query.data == 'main_menu':
+            AIAnalyzeCommand.deactivate_ai_analyze(context)
             await self.orders_menu(update, context)
         elif query.data.startswith('date_range_'):
             await self.handle_date_range_selection(query)
@@ -147,6 +160,11 @@ Seçdiyiniz dövrün sifarişləri
             await self.handle_refresh_single_date(query)
         elif query.data.startswith('refresh_date_range_'):
             await self.handle_refresh_date_range(query)
+        elif query.data == 'cancel_ai_analyze':
+            AIAnalyzeCommand.deactivate_ai_analyze(context)
+            await AIAnalyzeCommand.handle_cancel(query)
+        elif query.data == 'new_ai_analyze':
+            await AIAnalyzeCommand.handle_command(update, context)
 
     async def show_today_report(self, query):
         """Show today's order report"""
@@ -591,13 +609,26 @@ Seçdiyiniz dövrün sifarişləri
 
         logger.info(f"🔍 Received text input from user {user_id}: '{text}'")
 
+        # Check if user is in continuous AI analyze mode
+        if AIAnalyzeCommand.is_ai_analyze_active(context):
+            await AIAnalyzeCommand.handle_user_question(update, context)
         # Try to parse as date input first
-        if self.looks_like_date_input(text):
+        elif self.looks_like_date_input(text):
             await self.process_manual_date_input(update, text)
         else:
-            # Default response for non-date input
+            # Default response with back button
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton(
+                    "🤖 AI Analiz", callback_data='new_ai_analyze')],
+                [InlineKeyboardButton(
+                    "📊 Hesabatlar", callback_data='main_menu')]
+            ])
             await update.message.reply_text(
-                f"🤖 Mətn alındı: {text}\n\nSifariş hesabatları üçün /orders komandası istifadə edin."
+                f"🤖 Mətn alındı: <code>{text}</code>\n\n"
+                "Sifariş hesabatları üçün <b>📊 Hesabatlar</b> düyməsini basın.\n\n"
+                "AI analiz üçün <b>🤖 AI Analiz</b> düyməsini basın.",
+                reply_markup=keyboard,
+                parse_mode='HTML'
             )
 
     def looks_like_date_input(self, text):

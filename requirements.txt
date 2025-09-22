@@ -40,5 +40,6 @@ urllib3
 whitenoise
 python-escpos
 python-telegram-bot
+google-generativeai
 
 git+https://github.com/KAZTorant/kazza_inventory.git
