@@ -116,8 +116,8 @@ if DB_DEFAULT:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'mydatabaseNew',
-            'USER': 'myuserNew',
+            'NAME': 'mydatabasenew',
+            'USER': 'myusernew',
             'PASSWORD': 'adminadmin',
             'HOST': 'localhost',
             'PORT': '5432',
