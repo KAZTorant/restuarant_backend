@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.conf import settings
 import socket
 
 
@@ -20,7 +21,12 @@ class NetworkAPIView(APIView):
             s.connect(("8.8.8.8", 80))
             ip_address = s.getsockname()[0]
             s.close()
-            return ip_address
+
+            # Get port from settings.BACKEND_PORT (reads from .env, defaults to 8000)
+            port = settings.BACKEND_PORT
+            return f"{ip_address}:{port}"
         except Exception as e:
             print(str(e))
-            return 'localhost'
+            # Return localhost with port from settings
+            port = settings.BACKEND_PORT
+            return f'localhost:{port}'

@@ -263,6 +263,8 @@ PRINTER_SERVICE = os.environ.get(
     None
 )
 
+BACKEND_PORT = os.environ.get('BACKEND_PORT', '8000')
+
 JAZZMIN_SETTINGS = {
     "site_title": "KAZZA Admin",
     "site_header": "KAZZA Panel",
