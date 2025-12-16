@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from apps.payments.models import Payment, PaymentCalculation
@@ -109,7 +110,163 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'created_at',
         'date_range_display',
         'time_range_display',
+        'payments_display',
+        'product_sales_display',
     )
+
+    fieldsets = (
+        (_('Tarix və vaxt məlumatları'), {
+            'fields': (
+                'date_range_display',
+                'time_range_display',
+            )
+        }),
+        (_('Ödəniş məlumatları'), {
+            'fields': (
+                'payment_count',
+                'total_amount',
+                'cash_amount',
+                'card_amount',
+                'other_amount',
+            )
+        }),
+        (_('Yaradılma məlumatları'), {
+            'fields': (
+                'created_by',
+                'created_at',
+            )
+        }),
+        (_('Ödənişlər'), {
+            'fields': ('payments_display',),
+            'classes': ('collapse',),
+        }),
+        (_('Satılan məhsullar'), {
+            'fields': ('product_sales_display',),
+        }),
+    )
+
+    def payments_display(self, obj):
+        if not obj.pk:
+            return "-"
+        
+        payments = obj.get_payments()
+        
+        if not payments.exists():
+            return _("Ödəniş yoxdur")
+        
+        rows = []
+        for payment in payments:
+            # Get payment methods
+            payment_methods = []
+            if payment.payment_methods.exists():
+                for method in payment.payment_methods.all():
+                    payment_methods.append(
+                        f"{method.get_payment_type_display()}: {method.amount}₼"
+                    )
+            else:
+                payment_methods.append(
+                    f"{payment.get_payment_type_display()}: {payment.paid_amount}₼"
+                )
+            
+            # Get orders for this payment
+            orders_info = []
+            for order in payment.orders.all():
+                orders_info.append(f"Sifariş #{order.id}")
+            
+            # Convert to local timezone
+            from django.utils.timezone import localtime
+            local_paid_at = localtime(payment.paid_at)
+            
+            rows.append(f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{payment.id}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{payment.table.number}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{', '.join(orders_info)}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{payment.final_price}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{', '.join(payment_methods)}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{payment.paid_by.username if payment.paid_by else '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{local_paid_at.strftime('%d.%m.%Y %H:%M')}</td>
+                </tr>
+            """)
+        
+        html = f"""
+        <div style="margin: 20px 0;">
+            <h3>Cəmi {payments.count()} ödəniş</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">ID</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Masa</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Sifarişlər</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Məbləğ</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Ödəniş növü</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Operator</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Tarix</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+        return format_html(html)
+    
+    payments_display.short_description = _("Ödənişlər")
+
+    def product_sales_display(self, obj):
+        if not obj.pk:
+            return "-"
+        
+        products = obj.get_product_sales_summary()
+        
+        if not products:
+            return _("Məhsul satışı yoxdur")
+        
+        rows = []
+        total_quantity = 0
+        total_amount = 0
+        
+        for product in products:
+            total_quantity += product['quantity']
+            total_amount += product['total']
+            rows.append(f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{product['name']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{product['quantity']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{product['total']:.2f}₼</td>
+                </tr>
+            """)
+        
+        # Add total row
+        rows.append(f"""
+            <tr style="background-color: #e8f4f8; font-weight: bold;">
+                <td style="padding: 8px; border: 1px solid #ddd;">CƏMI</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{total_quantity}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_amount:.2f}₼</td>
+            </tr>
+        """)
+        
+        html = f"""
+        <div style="margin: 20px 0;">
+            <h3>Satılan məhsullar ({len(products)} növ məhsul)</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Məhsul adı</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Miqdar</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Cəmi məbləğ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+        return format_html(html)
+    
+    product_sales_display.short_description = _("Satılan məhsullar")
 
     def get_urls(self):
         urls = super().get_urls()
@@ -196,6 +353,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     other_amount=other_amount,
                     created_by=request.user
                 )
+                
+                # Save the payments to the calculation
+                calculation.payments.set(payments)
 
                 messages.success(
                     request,
