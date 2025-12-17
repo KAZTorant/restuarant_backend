@@ -79,17 +79,29 @@ class PaymentCalculation(models.Model):
         """Get summary of all products sold in payments during this period"""
         from collections import defaultdict
 
-        from apps.orders.models import OrderItem
+        from apps.orders.models import Order, OrderItem
         
         product_summary = defaultdict(lambda: {'quantity': 0, 'total': 0})
         
         payments = self.get_payments()
         
         for payment in payments:
-            for order in payment.orders.all():
-                for item in order.order_items.all():
-                    product_summary[item.meal.name]['quantity'] += item.quantity
-                    product_summary[item.meal.name]['total'] += float(item.price)
+            # Access the through model directly to bypass the Order manager filter
+            through_model = payment.orders.through
+            through_entries = through_model.objects.filter(payment=payment)
+            
+            for entry in through_entries:
+                # Get the order using all_orders() to include deleted orders
+                try:
+                    order = Order.objects.all_orders().get(id=entry.order_id)
+                    
+                    # Use all_order_items() to get items even from deleted orders
+                    for item in OrderItem.objects.all_order_items().filter(order=order):
+                        product_summary[item.meal.name]['quantity'] += item.quantity
+                        product_summary[item.meal.name]['total'] += float(item.price)
+                except Order.DoesNotExist:
+                    # Order was permanently deleted
+                    continue
         
         # Convert to sorted list
         return sorted(

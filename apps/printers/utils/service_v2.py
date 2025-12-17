@@ -1,14 +1,13 @@
 import socket
 from datetime import datetime
-from apps.orders.models import Statistics
-from apps.orders.models.order import Order
-from apps.printers.models import Receipt
-from apps.tables.models import Table
-from apps.printers.models import Printer
 
 from django.db.models import Sum
 
+from apps.orders.models import Statistics
+from apps.orders.models.order import Order
 from apps.payments.models.pay_table_orders import Payment, PaymentMethod
+from apps.printers.models import Printer, Receipt
+from apps.tables.models import Table
 
 
 class DummyResponse:
@@ -529,10 +528,12 @@ class PrinterService:
 
     @staticmethod
     def print_order_items_summary(stat_id, user=None):
-        from decimal import Decimal
         from datetime import datetime
+        from decimal import Decimal
+
         from django.db.models import Min
         from django.utils import timezone
+
         from apps.orders.models.order import OrderItem
         from apps.orders.models.order_deletion import OrderItemDeletionLog
 
@@ -723,3 +724,85 @@ class PrinterService:
         lines.append(NORM)
         lines.append("\n\n\n")
         return "\n".join(lines)
+
+    @staticmethod
+    def print_payment_calculation(calculation_id, user=None):
+        """Print payment calculation summary"""
+        from apps.payments.models import PaymentCalculation
+        
+        try:
+            calculation = PaymentCalculation.objects.get(pk=calculation_id)
+        except PaymentCalculation.DoesNotExist:
+            return False, f"Hesablama id={calculation_id} tapılmadı."
+
+        width = 48
+        lines = []
+
+        lines.append("=" * width)
+        lines.append("ÖDƏNİŞ HESABLAMASI".center(width))
+        lines.append("=" * width)
+
+        main_printer = Printer.objects.filter(is_main=True).first()
+        terminal = main_printer.name if main_printer else "N/A"
+        lines.append(f"Terminal: {terminal}")
+        lines.append(f"Hesablama ID: {calculation.id}")
+        lines.append(f"Tarix: {calculation.date_range_display}")
+        lines.append(f"Saat: {calculation.time_range_display}")
+        created_by_name = calculation.created_by.get_full_name() or calculation.created_by.username
+        lines.append(f"Yaradan: {created_by_name}")
+        lines.append(f"Yaradılma: {calculation.created_at.strftime('%d.%m.%Y %H:%M')}")
+        if user:
+            name = user.get_full_name() or user.username
+            lines.append(f"Çap edən: {name}")
+        lines.append("-" * width)
+
+        lines.append("ÖDƏNİŞ XÜLASƏSI".center(width))
+        lines.append("-" * width)
+        lines.append(f"{'Ödəniş sayı':<30}{calculation.payment_count:>15}")
+        lines.append(f"{'Nağd ödəniş':<30}{calculation.cash_amount:>15.2f}")
+        lines.append(f"{'Bank kartları':<30}{calculation.card_amount:>15.2f}")
+        lines.append(f"{'Digər ödənişlər':<30}{calculation.other_amount:>15.2f}")
+        lines.append("-" * width)
+        lines.append(f"{'ÜMUMİ CƏM':<30}{calculation.total_amount:>15.2f}")
+        lines.append("=" * width)
+
+        products = calculation.get_product_sales_summary()
+        if products:
+            lines.append("")
+            lines.append("SATILAN MƏHSULLAR".center(width))
+            lines.append("=" * width)
+            lines.append(f"{'Məhsul':<25}{'Miqdar':>8}{'Məbləğ':>13}")
+            lines.append("-" * width)
+            
+            total_qty = 0
+            total_amount = 0
+            for product in products:
+                name = product['name']
+                if len(name) > 24:
+                    name = name[:21] + "..."
+                qty = product['quantity']
+                amount = product['total']
+                total_qty += qty
+                total_amount += amount
+                lines.append(f"{name:<25}{qty:>8}{amount:>13.2f}")
+            
+            lines.append("-" * width)
+            lines.append(f"{'CƏMİ':<25}{total_qty:>8}{total_amount:>13.2f}")
+            lines.append("=" * width)
+
+        lines.append("")
+        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA".center(width))
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        response = PrinterService._send_text_to_main_printer(
+            text,
+            payment=None,
+            type=Receipt.ReceiptType.SHIFT_SUMMARY
+        )
+
+        if response.status_code == 200:
+            return True, "Ödəniş hesablaması uğurla çap edildi."
+        return False, "Printerə qoşulmaq mümkün olmadı."

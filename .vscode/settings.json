@@ -1,36 +1,12 @@
 {
-    "editor.formatOnSave": true,
-    "editor.rulers": [
-        80,
-        120
-    ],
-    "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
-        ".vscode": true,
-        "**/*.pyc": true
-    },
-    "workbench.editor.enablePreview": false,
-    "editor.minimap.enabled": false,
-    "editor.foldingImportsByDefault": true,
-    "pylint.args": [
-        "--load-plugins",
-        "pylint_django",
-        "--disable=all",
-        "--enable=E"
-    ],
-    "pylint.ignorePatterns": [
-        "**/site-packages/**/*.py",
-        ".vscode/*.py"
-    ],
-    "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit",
-        "source.fixAll": "explicit",
-        "source.convertImportFormat": "explicit"
-    },
-    "python.analysis.importFormat": "absolute",
-    "python.analysis.autoImportCompletions": true,
+  "[django-html]": {
+    "editor.formatOnSave": false
+  },
+  "[html]": {
+    "editor.formatOnSave": false
+  },
+  "files.associations": {
+    "**/*.html": "django-html",
+    "**/templates/**/*.html": "django-html"
+  }
 }

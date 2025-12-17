@@ -4,7 +4,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.db.models import Q, Sum
 from django.forms import DateField, ModelForm, TimeField
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils import timezone
@@ -90,6 +90,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'other_amount',
         'created_by',
         'created_at',
+        'print_button',
     )
     list_filter = (
         'start_date',
@@ -268,6 +269,19 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     
     product_sales_display.short_description = _("Satılan məhsullar")
 
+    def print_button(self, obj):
+        """Display a print button for each calculation"""
+        if obj.pk:
+            url = reverse('admin:payments_paymentcalculation_print', args=[obj.pk])
+            return format_html(
+                '<a href="{}" class="button" style="background-color: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px;">🖨️ Çap et</a>',
+                url
+            )
+        return "-"
+    
+    print_button.short_description = _("Əməliyyat")
+    print_button.allow_tags = True
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -275,6 +289,11 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 'calculate/',
                 self.admin_site.admin_view(self.calculate_payments_view),
                 name='payments_paymentcalculation_calculate'
+            ),
+            path(
+                '<int:calculation_id>/print/',
+                self.admin_site.admin_view(self.print_calculation_view),
+                name='payments_paymentcalculation_print'
             ),
         ]
         return custom_urls + urls
@@ -384,3 +403,26 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser  # Only superuser can delete calculations
+
+    def print_calculation_view(self, request, calculation_id):
+        """Print the payment calculation details"""
+        from apps.printers.utils.service_v2 import PrinterService
+        
+        calculation = self.get_object(request, calculation_id)
+        if not calculation:
+            messages.error(request, _("Hesablama tapılmadı"))
+            return HttpResponseRedirect(reverse('admin:payments_paymentcalculation_changelist'))
+        
+        try:
+            success, message = PrinterService.print_payment_calculation(
+                calculation_id=calculation.pk,
+                user=request.user
+            )
+            if success:
+                messages.success(request, message)
+            else:
+                messages.error(request, message)
+        except Exception as e:
+            messages.error(request, _(f"Çap zamanı xəta baş verdi: {str(e)}"))
+        
+        return HttpResponseRedirect(reverse('admin:payments_paymentcalculation_changelist'))
