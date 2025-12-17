@@ -766,28 +766,68 @@ class PrinterService:
         lines.append(f"{'ÜMUMİ CƏM':<30}{calculation.total_amount:>15.2f}")
         lines.append("=" * width)
 
-        products = calculation.get_product_sales_summary()
-        if products:
+        # Get product sales and group by meal group
+        from decimal import Decimal
+        from apps.orders.models import Order, OrderItem
+        from apps.meals.models import Meal
+        
+        payments = calculation.get_payments()
+        grouped = {}
+        
+        for payment in payments:
+            through_model = payment.orders.through
+            through_entries = through_model.objects.filter(payment=payment)
+            
+            for entry in through_entries:
+                try:
+                    order = Order.objects.all_orders().get(id=entry.order_id)
+                    for item in OrderItem.objects.all_order_items().filter(order=order):
+                        meal = item.meal
+                        group_name = (
+                            meal.category.group.name
+                            if meal and meal.category and meal.category.group
+                            else "Digər"
+                        )
+                        meal_name = meal.name
+                        grouped.setdefault(group_name, {})
+                        agg = grouped[group_name].setdefault(
+                            meal_name, {"qty": 0, "total": Decimal("0.00")})
+                        agg["qty"] += item.quantity
+                        agg["total"] += item.quantity * item.price
+                except Order.DoesNotExist:
+                    continue
+        
+        if grouped:
             lines.append("")
             lines.append("SATILAN MƏHSULLAR".center(width))
             lines.append("=" * width)
-            lines.append(f"{'Məhsul':<25}{'Miqdar':>8}{'Məbləğ':>13}")
-            lines.append("-" * width)
             
-            total_qty = 0
-            total_amount = 0
-            for product in products:
-                name = product['name']
-                if len(name) > 24:
-                    name = name[:21] + "..."
-                qty = product['quantity']
-                amount = product['total']
-                total_qty += qty
-                total_amount += amount
-                lines.append(f"{name:<25}{qty:>8}{amount:>13.2f}")
+            grand_total_qty = 0
+            grand_total_price = Decimal("0.00")
             
-            lines.append("-" * width)
-            lines.append(f"{'CƏMİ':<25}{total_qty:>8}{total_amount:>13.2f}")
+            for group, meals in grouped.items():
+                lines.append(f"\n*** {group.upper()} ***")
+                lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
+                
+                group_qty = 0
+                group_price = Decimal("0.00")
+                for meal_name, agg in meals.items():
+                    qty = agg["qty"]
+                    total = agg["total"]
+                    name = meal_name[:25] if len(meal_name) > 25 else meal_name
+                    lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
+                    group_qty += qty
+                    group_price += total
+                
+                lines.append(
+                    f"{'Qrup cəmi:':<25}{group_qty:>6}{group_price:>15.2f}")
+                lines.append("-" * width)
+                
+                grand_total_qty += group_qty
+                grand_total_price += group_price
+            
+            lines.append(
+                f"{'CƏMİ':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
             lines.append("=" * width)
 
         lines.append("")
