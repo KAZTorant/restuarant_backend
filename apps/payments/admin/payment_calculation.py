@@ -415,7 +415,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         
         try:
             success, message = PrinterService.print_payment_calculation(
-                calculation_id=calculation.pk,
+                calculation=calculation,
                 user=request.user
             )
             if success:

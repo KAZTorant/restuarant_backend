@@ -726,15 +726,8 @@ class PrinterService:
         return "\n".join(lines)
 
     @staticmethod
-    def print_payment_calculation(calculation_id, user=None):
-        """Print payment calculation summary"""
-        from apps.payments.models import PaymentCalculation
-        
-        try:
-            calculation = PaymentCalculation.objects.get(pk=calculation_id)
-        except PaymentCalculation.DoesNotExist:
-            return False, f"Hesablama id={calculation_id} tapılmadı."
-
+    def print_payment_calculation(calculation, user=None):
+        """Print payment calculation summary with detailed payment list"""
         width = 48
         lines = []
 
@@ -765,6 +758,35 @@ class PrinterService:
         lines.append("-" * width)
         lines.append(f"{'ÜMUMİ CƏM':<30}{calculation.total_amount:>15.2f}")
         lines.append("=" * width)
+
+        # # Add detailed payment list
+        # payments = calculation.get_payments()
+        # if payments.exists():
+        #     lines.append("")
+        #     lines.append("ÖDƏNİŞ SİYAHISI".center(width))
+        #     lines.append("=" * width)
+            
+        #     from django.utils.timezone import localtime
+            
+        #     for idx, payment in enumerate(payments, 1):
+        #         lines.append(f"\n#{idx} - Ödəniş ID: {payment.id}")
+        #         lines.append(f"Masa: {payment.table.number}")
+        #         local_paid_at = localtime(payment.paid_at)
+        #         lines.append(f"Tarix: {local_paid_at.strftime('%d.%m.%Y %H:%M')}")
+        #         lines.append(f"Operator: {payment.paid_by.username if payment.paid_by else '-'}")
+        #         lines.append(f"Məbləğ: {payment.final_price:.2f} AZN")
+                
+        #         # Payment methods
+        #         if payment.payment_methods.exists():
+        #             lines.append("Ödəniş növləri:")
+        #             for method in payment.payment_methods.all():
+        #                 method_type = PaymentMethod.PaymentType(method.payment_type).label
+        #                 lines.append(f"  - {method_type}: {method.amount:.2f} AZN")
+        #         elif payment.payment_type:
+        #             method_type = PaymentMethod.PaymentType(payment.payment_type).label
+        #             lines.append(f"Ödəniş növü: {method_type}")
+                
+        #         lines.append("-" * width)
 
         # Get product sales and group by meal group
         from decimal import Decimal
