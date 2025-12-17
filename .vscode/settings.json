@@ -5,13 +5,12 @@
         120
     ],
     "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
         "**/.DS_Store": true,
-        ".vscode": true,
-        "**/*.pyc": true
+        "**/.git": true,
+        "**/.hg": true,
+        "**/.svn": true,
+        "**/*.pyc": true,
+        "**/CVS": true
     },
     "workbench.editor.enablePreview": false,
     "editor.minimap.enabled": false,
@@ -33,4 +32,14 @@
     },
     "python.analysis.importFormat": "absolute",
     "python.analysis.autoImportCompletions": true,
+    "[django-html]": {
+        "editor.formatOnSave": false
+    },
+    "[html]": {
+        "editor.formatOnSave": false
+    },
+    "files.associations": {
+        "**/*.html": "django-html",
+        "**/templates/**/*.html": "django-html"
+    }
 }

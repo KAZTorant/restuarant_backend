@@ -274,6 +274,10 @@ JAZZMIN_SETTINGS = {
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
+
+# Base URL for the application (used by Telegram bot)
+BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8005')
+
 # Get this from @BotFather
 TELEGRAM_BOT_TOKEN = os.environ.get(
-    'TELEGRAM_BOT_TOKEN', '8417102339:AAHswWwkyAR5_zCewPS3Poc6wRH7cUv5Has')
+    'TELEGRAM_BOT_TOKEN', '8559767780:AAHzTCnJPU-h7PGUxwtBi5S3mjgxUpYSZdE')

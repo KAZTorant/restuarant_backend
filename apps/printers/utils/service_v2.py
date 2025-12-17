@@ -194,7 +194,7 @@ class PrinterService:
         lines = []
 
         lines.append("=" * width)
-        lines.append("CEVIZ".center(width))
+        lines.append("Qonaq Baku".center(width))
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
@@ -723,3 +723,147 @@ class PrinterService:
         lines.append(NORM)
         lines.append("\n\n\n")
         return "\n".join(lines)
+
+    @staticmethod
+    def print_payment_calculation(calculation, user=None):
+        """Print payment calculation summary with detailed payment list"""
+        width = 48
+        lines = []
+
+        lines.append("=" * width)
+        lines.append("ÖDƏNİŞ HESABLAMASI".center(width))
+        lines.append("=" * width)
+
+        main_printer = Printer.objects.filter(is_main=True).first()
+        terminal = main_printer.name if main_printer else "N/A"
+        lines.append(f"Terminal: {terminal}")
+        lines.append(f"Hesablama ID: {calculation.id}")
+        lines.append(f"Tarix: {calculation.date_range_display}")
+        lines.append(f"Saat: {calculation.time_range_display}")
+        created_by_name = calculation.created_by.get_full_name() or calculation.created_by.username
+        lines.append(f"Yaradan: {created_by_name}")
+        lines.append(f"Yaradılma: {calculation.created_at.strftime('%d.%m.%Y %H:%M')}")
+        if user:
+            name = user.get_full_name() or user.username
+            lines.append(f"Çap edən: {name}")
+        lines.append("-" * width)
+
+        lines.append("ÖDƏNİŞ XÜLASƏSI".center(width))
+        lines.append("-" * width)
+        lines.append(f"{'Ödəniş sayı':<30}{calculation.payment_count:>15}")
+        lines.append(f"{'Nağd ödəniş':<30}{calculation.cash_amount:>15.2f}")
+        lines.append(f"{'Bank kartları':<30}{calculation.card_amount:>15.2f}")
+        lines.append(f"{'Digər ödənişlər':<30}{calculation.other_amount:>15.2f}")
+        lines.append("-" * width)
+        lines.append(f"{'ÜMUMİ CƏM':<30}{calculation.total_amount:>15.2f}")
+        lines.append("=" * width)
+
+        # Add detailed payment list
+        # payments = calculation.get_payments()
+        # if payments.exists():
+        #     lines.append("")
+        #     lines.append("ÖDƏNİŞ SİYAHISI".center(width))
+        #     lines.append("=" * width)
+            
+        #     from django.utils.timezone import localtime
+            
+        #     for idx, payment in enumerate(payments, 1):
+        #         lines.append(f"\n#{idx} - Ödəniş ID: {payment.id}")
+        #         lines.append(f"Masa: {payment.table.number}")
+        #         local_paid_at = localtime(payment.paid_at)
+        #         lines.append(f"Tarix: {local_paid_at.strftime('%d.%m.%Y %H:%M')}")
+        #         lines.append(f"Operator: {payment.paid_by.username if payment.paid_by else '-'}")
+        #         lines.append(f"Məbləğ: {payment.final_price:.2f} AZN")
+                
+        #         # Payment methods
+        #         if payment.payment_methods.exists():
+        #             lines.append("Ödəniş növləri:")
+        #             for method in payment.payment_methods.all():
+        #                 method_type = PaymentMethod.PaymentType(method.payment_type).label
+        #                 lines.append(f"  - {method_type}: {method.amount:.2f} AZN")
+        #         elif payment.payment_type:
+        #             method_type = PaymentMethod.PaymentType(payment.payment_type).label
+        #             lines.append(f"Ödəniş növü: {method_type}")
+                
+        #         lines.append("-" * width)
+
+        # Get product sales and group by meal group
+        from decimal import Decimal
+        from apps.orders.models import Order, OrderItem
+        from apps.meals.models import Meal
+        
+        payments = calculation.get_payments()
+        grouped = {}
+        
+        for payment in payments:
+            through_model = payment.orders.through
+            through_entries = through_model.objects.filter(payment=payment)
+            
+            for entry in through_entries:
+                try:
+                    order = Order.objects.all_orders().get(id=entry.order_id)
+                    for item in OrderItem.objects.all_order_items().filter(order=order):
+                        meal = item.meal
+                        group_name = (
+                            meal.category.group.name
+                            if meal and meal.category and meal.category.group
+                            else "Digər"
+                        )
+                        meal_name = meal.name
+                        grouped.setdefault(group_name, {})
+                        agg = grouped[group_name].setdefault(
+                            meal_name, {"qty": 0, "total": Decimal("0.00")})
+                        agg["qty"] += item.quantity
+                        agg["total"] += item.quantity * item.price
+                except Order.DoesNotExist:
+                    continue
+        
+        if grouped:
+            lines.append("")
+            lines.append("SATILAN MƏHSULLAR".center(width))
+            lines.append("=" * width)
+            
+            grand_total_qty = 0
+            grand_total_price = Decimal("0.00")
+            
+            for group, meals in grouped.items():
+                lines.append(f"\n*** {group.upper()} ***")
+                lines.append(f"{'Məhsul':<25}{'Miqdar':>6}{'Cəm':>15}")
+                
+                group_qty = 0
+                group_price = Decimal("0.00")
+                for meal_name, agg in meals.items():
+                    qty = agg["qty"]
+                    total = agg["total"]
+                    name = meal_name[:25] if len(meal_name) > 25 else meal_name
+                    lines.append(f"{name:<25}{qty:>6}{total:>15.2f}")
+                    group_qty += qty
+                    group_price += total
+                
+                lines.append(
+                    f"{'Qrup cəmi:':<25}{group_qty:>6}{group_price:>15.2f}")
+                lines.append("-" * width)
+                
+                grand_total_qty += group_qty
+                grand_total_price += group_price
+            
+            lines.append(
+                f"{'CƏMİ':<25}{grand_total_qty:>6}{grand_total_price:>15.2f}")
+            lines.append("=" * width)
+
+        lines.append("")
+        lines.append("BÜTÜN MƏBLƏĞLƏR MANATLA".center(width))
+        lines.append("=" * width)
+        lines.append("\n\n\n")
+
+        text = "\n".join(lines)
+
+        response = PrinterService._send_text_to_main_printer(
+            text,
+            payment=None,
+            type=Receipt.ReceiptType.SHIFT_SUMMARY
+        )
+
+        if response.status_code == 200:
+            return True, "Ödəniş hesablaması uğurla çap edildi."
+        return False, "Printerə qoşulmaq mümkün olmadı."

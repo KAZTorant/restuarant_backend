@@ -1,0 +1,3752 @@
+[
+{
+  "model": "meals.mealcategory",
+  "pk": 20,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Sular",
+    "description": "A variety of beverages and drinks"
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 21,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Shorbalar",
+    "description": "A selection of soups"
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 22,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-07-19T20:32:11.881Z",
+    "name": "SET Menyu",
+    "description": "A selection of set menus and special combinations"
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 23,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Seher yemekleri",
+    "description": "Breakfast dishes including a variety of options to start the day right"
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 24,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Salatlar",
+    "description": "A variety of fresh salads and dressings"
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 25,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "1Yemekler",
+    "description": "Main dishes featuring a variety of local and traditional meals."
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 26,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Qarnirler",
+    "description": "A variety of garnishes to complement main dishes."
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 27,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "name": "Cay sufresi",
+    "description": "Tea time snacks and refreshments."
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 28,
+  "fields": {
+    "created_at": "2024-07-02T19:37:01.130Z",
+    "updated_at": "2024-07-02T19:37:01.131Z",
+    "name": "əlavələr",
+    "description": ""
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 29,
+  "fields": {
+    "created_at": "2025-05-22T13:58:02.123Z",
+    "updated_at": "2025-05-22T13:58:02.123Z",
+    "name": "Fast Food",
+    "description": ""
+  }
+},
+{
+  "model": "meals.mealcategory",
+  "pk": 30,
+  "fields": {
+    "created_at": "2025-10-21T21:48:06.607Z",
+    "updated_at": "2025-10-21T21:48:06.607Z",
+    "name": "Kabab",
+    "description": ""
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 1,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "0.50 QEPIK",
+    "description": null,
+    "price": "0.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 2,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "BALLI CAY",
+    "description": null,
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 3,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "BALLI CAYNIK",
+    "description": null,
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 5,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "CAY (CAYNIK)",
+    "description": null,
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 6,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "CAY (STEKAN)",
+    "description": null,
+    "price": "0.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 15,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-09-17T16:14:15.282Z",
+    "category": null,
+    "name": "GURCU XENGELI",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 18,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:55:51.580Z",
+    "category": null,
+    "name": "LANC 9.5",
+    "description": "",
+    "price": "9.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 19,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:55:13.034Z",
+    "category": null,
+    "name": "LUNCH 6.5",
+    "description": "",
+    "price": "6.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 20,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:55:29.574Z",
+    "category": null,
+    "name": "LUNCH 7.5",
+    "description": "",
+    "price": "7.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 24,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "SERVIZ",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 27,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:57:27.935Z",
+    "category": null,
+    "name": "Yemek 1.5",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 28,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:56:57.787Z",
+    "category": null,
+    "name": "Yemek 2.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 29,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:56:38.903Z",
+    "category": null,
+    "name": "Yemek 3.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 30,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:57:12.292Z",
+    "category": null,
+    "name": "Yemek 4.5",
+    "description": "",
+    "price": "4.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 31,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:56:22.047Z",
+    "category": null,
+    "name": "Yemek 5.5",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 32,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:58:22.792Z",
+    "category": null,
+    "name": "Yemek 6.5",
+    "description": "",
+    "price": "6.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 33,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "Yemek 7",
+    "description": null,
+    "price": "7.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 34,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "Yemek 8",
+    "description": null,
+    "price": "8.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 35,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "yemek 9",
+    "description": null,
+    "price": "9.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 36,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": null,
+    "name": "Yemek10",
+    "description": null,
+    "price": "10.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 37,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:54:01.651Z",
+    "category": 20,
+    "name": "Akroshka bakal",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 38,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T21:45:53.853Z",
+    "category": 20,
+    "name": "Akroshka Qrafin",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 39,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:53:33.396Z",
+    "category": 20,
+    "name": "Akroshka stekan",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 40,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:53:18.097Z",
+    "category": 20,
+    "name": "Ayran bakal",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 41,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T21:45:38.725Z",
+    "category": 20,
+    "name": "Ayran qrafinka",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 42,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:52:55.875Z",
+    "category": 20,
+    "name": "Ayran stekan",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 44,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:52:38.998Z",
+    "category": 20,
+    "name": "dovga stekan",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 45,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "Dushes, terxun",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 47,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "ENERJI 2",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 48,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "LIPTON 2",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 49,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "NAR SOKU 1 lt",
+    "description": null,
+    "price": "6.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 50,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "NAR SOKU STAKAN",
+    "description": null,
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 51,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:47:02.480Z",
+    "category": 20,
+    "name": "PEPSI 0.5",
+    "description": "",
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 52,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:52:13.847Z",
+    "category": 20,
+    "name": "PEPSI 1L",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 53,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:51:46.936Z",
+    "category": 20,
+    "name": "PEPSI 2L",
+    "description": "",
+    "price": "4.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 54,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:50:54.506Z",
+    "category": 20,
+    "name": "PEPSI BAKAL",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 55,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:50:33.194Z",
+    "category": 20,
+    "name": "PEPSI STAKAN",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 56,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "PEPSI SUSE",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 57,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "PEPSI (banka)",
+    "description": null,
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 60,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:46:16.996Z",
+    "category": 20,
+    "name": "QAZLI SU 05 LT",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 61,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:45:57.400Z",
+    "category": 20,
+    "name": "QAZLI SU 1lt",
+    "description": "",
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 62,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:45:26.824Z",
+    "category": 20,
+    "name": "QAZSIZ 05 LT",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 63,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:45:07.330Z",
+    "category": 20,
+    "name": "QAZSIZ SU 1LT",
+    "description": "",
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 64,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:48:46.364Z",
+    "category": 20,
+    "name": "Reyhan bakal",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 65,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T21:44:41.153Z",
+    "category": 20,
+    "name": "Reyhan qrafin",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 66,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:50:06.513Z",
+    "category": 20,
+    "name": "Reyhant stekan",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 69,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 20,
+    "name": "Tebii shireler 1L",
+    "description": null,
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 70,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:47:43.617Z",
+    "category": 21,
+    "name": "Borsh",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 71,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:47:32.124Z",
+    "category": 21,
+    "name": "Borsh 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 72,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:47:18.677Z",
+    "category": 20,
+    "name": "DOVGA BAKAL",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 73,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:47:04.470Z",
+    "category": 21,
+    "name": "Dovga kasa",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 74,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:46:47.963Z",
+    "category": 21,
+    "name": "Dovga kasa 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 75,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:46:23.272Z",
+    "category": 21,
+    "name": "Dovga (stekan)",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 76,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:45:40.247Z",
+    "category": 21,
+    "name": "Dushbere",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 77,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:45:28.745Z",
+    "category": 21,
+    "name": "Dushbere (0.5)",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 78,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:45:14.521Z",
+    "category": 21,
+    "name": "ERISTE",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 79,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:44:59.510Z",
+    "category": 21,
+    "name": "ERISTE 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 80,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:44:47.546Z",
+    "category": 21,
+    "name": "Fasulye",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 81,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:44:34.100Z",
+    "category": 21,
+    "name": "Fasulye (0.5)",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 82,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:44:22.829Z",
+    "category": 21,
+    "name": "GOBELEK SUPU",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 83,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:44:09.067Z",
+    "category": 21,
+    "name": "GOBELEK SUPU 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 84,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:43:53.039Z",
+    "category": 21,
+    "name": "Merci",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 85,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:43:23.778Z",
+    "category": 21,
+    "name": "Merci 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 86,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:43:10.550Z",
+    "category": 21,
+    "name": "Toyuq supu",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 87,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:42:59.642Z",
+    "category": 21,
+    "name": "Toyuq supu 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 90,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:40:37.747Z",
+    "category": 21,
+    "name": "YAYLA",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 91,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:40:24.388Z",
+    "category": 21,
+    "name": "YAYLA 0.5",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 94,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T16:39:42.815Z",
+    "category": 22,
+    "name": "CASKA  9",
+    "description": "",
+    "price": "9.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 95,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T20:07:31.528Z",
+    "category": 22,
+    "name": "CASKA 6",
+    "description": "",
+    "price": "6.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 104,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:39:18.803Z",
+    "category": 23,
+    "name": "Bal",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 105,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:38:37.072Z",
+    "category": 23,
+    "name": "Pendir",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 106,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-09-17T16:13:56.866Z",
+    "category": 23,
+    "name": "Pomidor-yumurta",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 107,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:36:53.932Z",
+    "category": 23,
+    "name": "Qayganaq",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 108,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:36:39.728Z",
+    "category": 23,
+    "name": "Qaymaq",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 109,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:36:06.500Z",
+    "category": 23,
+    "name": "Qlazok",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 110,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:35:51.080Z",
+    "category": 23,
+    "name": "SEKER TOZU",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 111,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:35:36.737Z",
+    "category": 23,
+    "name": "Sosiska yumurta",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 112,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-09-17T16:13:20.350Z",
+    "category": 23,
+    "name": "Sosiska-pomidor-yumurta",
+    "description": "",
+    "price": "4.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 113,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:35:07.126Z",
+    "category": 23,
+    "name": "Soyutma sosiska 3ed",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 114,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:34:51.896Z",
+    "category": 23,
+    "name": "Soyutma yumurta 3ed",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 115,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:33:50.416Z",
+    "category": 23,
+    "name": "Yaq",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 116,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:33:21.291Z",
+    "category": 23,
+    "name": "ZEYTUN 2",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 117,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T21:40:27.228Z",
+    "category": 24,
+    "name": "COBAN SALATI PENDIR",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 118,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:32:55.176Z",
+    "category": 24,
+    "name": "Acika",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 119,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:32:26.326Z",
+    "category": 24,
+    "name": "Coban salati",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 120,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:32:13.504Z",
+    "category": 24,
+    "name": "Goyerti",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 121,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:31:57.121Z",
+    "category": 24,
+    "name": "Ketchup",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 122,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:31:36.984Z",
+    "category": 24,
+    "name": "MANQAL SALATI",
+    "description": "",
+    "price": "4.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 123,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:34:15.192Z",
+    "category": 24,
+    "name": "Mayonez",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 124,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:29:01.440Z",
+    "category": 24,
+    "name": "Mimoza salati",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 125,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:38:44.040Z",
+    "category": 24,
+    "name": "Paytaxt salati",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 126,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:28:39.002Z",
+    "category": 24,
+    "name": "PENDIR",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 128,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:27:47.227Z",
+    "category": 24,
+    "name": "Qatiq",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 129,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:27:37.280Z",
+    "category": 24,
+    "name": "Sveji balaca",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 130,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:27:25.223Z",
+    "category": 24,
+    "name": "Sveji boyuk",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 131,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:27:00.425Z",
+    "category": 24,
+    "name": "TOYUQ SALATI",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 132,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:26:44.851Z",
+    "category": 24,
+    "name": "Toyuq salati",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 133,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:26:34.829Z",
+    "category": 24,
+    "name": "Turshu BALACA",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 134,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:26:25.072Z",
+    "category": 24,
+    "name": "Turshu Boyuk",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 135,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:26:13.987Z",
+    "category": 25,
+    "name": "As Qara",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 136,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:55.548Z",
+    "category": 25,
+    "name": "3 baci Dolma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 137,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:40.557Z",
+    "category": 25,
+    "name": "As Qara 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 138,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:31.885Z",
+    "category": 25,
+    "name": "Buglama",
+    "description": "",
+    "price": "6.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 139,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:22.482Z",
+    "category": 25,
+    "name": "Buglama 0.5",
+    "description": "",
+    "price": "4.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 140,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:12.379Z",
+    "category": 25,
+    "name": "Choban qovurma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 141,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:25:04.086Z",
+    "category": 25,
+    "name": "Choban qovurma 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 142,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:20:34.124Z",
+    "category": 25,
+    "name": "Ciqirtma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 143,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:20:51.186Z",
+    "category": 25,
+    "name": "Ciqirtma (0.5)",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 144,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:21:03.001Z",
+    "category": 25,
+    "name": "Ciz-biz",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 145,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:21:17.265Z",
+    "category": 25,
+    "name": "Ciz-biz 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 146,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:21:30.290Z",
+    "category": 25,
+    "name": "Dolma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 147,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:21:43.054Z",
+    "category": 25,
+    "name": "Dolma 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 148,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:21:55.786Z",
+    "category": 25,
+    "name": "Doseme Plov",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 149,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:22:16.397Z",
+    "category": 25,
+    "name": "Doseme Plov 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 150,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:22:37.012Z",
+    "category": 25,
+    "name": "Imishli qovurma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 151,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:22:48.783Z",
+    "category": 25,
+    "name": "Imishli qovurma 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 153,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:24:27.157Z",
+    "category": 25,
+    "name": "JULYEN",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 154,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:23:41.359Z",
+    "category": 25,
+    "name": "KUFTE",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 155,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:23:17.594Z",
+    "category": 25,
+    "name": "Langet QAYMAQLI",
+    "description": "",
+    "price": "4.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 157,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:20:07.134Z",
+    "category": 25,
+    "name": "MANASTR",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 158,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:19:41.769Z",
+    "category": 25,
+    "name": "Nar Qovurma",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 159,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:19:26.608Z",
+    "category": 25,
+    "name": "Nar Qovurma 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 160,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T16:09:20.955Z",
+    "category": 25,
+    "name": "Ozbek Ashi",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 161,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:19:00.387Z",
+    "category": 25,
+    "name": "Ozbek Ashi 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 162,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:18:41.442Z",
+    "category": 25,
+    "name": "Piti",
+    "description": "",
+    "price": "6.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 163,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:18:13.564Z",
+    "category": 25,
+    "name": "Qaymaqli Toyuq",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 164,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:18:02.512Z",
+    "category": 25,
+    "name": "Qaymaqli Toyuq 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 165,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:17:47.966Z",
+    "category": 25,
+    "name": "QULYAJ (et) 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 166,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:17:30.172Z",
+    "category": 25,
+    "name": "QULYAJ (et)",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 167,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:17:16.690Z",
+    "category": 25,
+    "name": "QULYAJ (toyuq)",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 168,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:17:04.302Z",
+    "category": 25,
+    "name": "QULYAJ (toyuq) 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 169,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:16:49.746Z",
+    "category": 25,
+    "name": "Sac ici (toyuq)",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 170,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:16:36.804Z",
+    "category": 25,
+    "name": "Sac ici (toyuq) 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 171,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:16:15.742Z",
+    "category": 25,
+    "name": "Tabaka 1/4",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 172,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:16:02.315Z",
+    "category": 25,
+    "name": "Tabaka Tam",
+    "description": "",
+    "price": "11.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 173,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:15:35.094Z",
+    "category": 25,
+    "name": "Tabaka1/2",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 174,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:14:51.283Z",
+    "category": 25,
+    "name": "Toyuq kotlet 1ed",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 175,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:14:32.433Z",
+    "category": 25,
+    "name": "Toyuq Souzu",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 176,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:11:59.377Z",
+    "category": 25,
+    "name": "Toyuq Souzu 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 177,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:11:42.997Z",
+    "category": 25,
+    "name": "Toyuqlu Duyu",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 178,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:11:29.139Z",
+    "category": 25,
+    "name": "Toyuqlu Duyu 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 179,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:11:11.905Z",
+    "category": 25,
+    "name": "TSONKA",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 180,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:10:57.989Z",
+    "category": 25,
+    "name": "TSONKA 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 181,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:10:43.206Z",
+    "category": 25,
+    "name": "XARDALLI TOYUQ",
+    "description": "",
+    "price": "5.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 182,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:10:28.662Z",
+    "category": 25,
+    "name": "XARDALLI TOYUQ 0.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 183,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:10:12.593Z",
+    "category": 26,
+    "name": "EV SAYAGI KARTOF",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 184,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:09:56.097Z",
+    "category": 26,
+    "name": "BULQUR",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 185,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:09:42.964Z",
+    "category": 26,
+    "name": "MILLI AG DUYU",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 186,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:09:18.574Z",
+    "category": 26,
+    "name": "PURE",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 187,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:09:04.064Z",
+    "category": 26,
+    "name": "QRECHKA",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 188,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:08:48.687Z",
+    "category": 26,
+    "name": "SPAGETTI",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 189,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 27,
+    "name": "Limon 0.5",
+    "description": null,
+    "price": "0.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 190,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T17:05:23.242Z",
+    "category": 27,
+    "name": "CEREZ",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 191,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 27,
+    "name": "Murebbe",
+    "description": null,
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 192,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T16:59:07.292Z",
+    "category": 27,
+    "name": "PLETKA SHOKOLAD",
+    "description": "",
+    "price": "4.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 193,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 27,
+    "name": "SHIRNIYYAT 2.5",
+    "description": null,
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 195,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-21T16:58:29.305Z",
+    "category": 27,
+    "name": "SIRNIYYAT 3.5",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 196,
+  "fields": {
+    "created_at": null,
+    "updated_at": null,
+    "category": 27,
+    "name": "SIRNIYYAT 4",
+    "description": null,
+    "price": "4.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 197,
+  "fields": {
+    "created_at": null,
+    "updated_at": "2025-10-20T21:07:14.107Z",
+    "category": 27,
+    "name": "XURMA",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 205,
+  "fields": {
+    "created_at": "2024-09-21T11:10:26.313Z",
+    "updated_at": "2024-09-21T11:10:26.313Z",
+    "category": 28,
+    "name": "Cipsi_140qr",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 206,
+  "fields": {
+    "created_at": "2024-09-21T11:11:14.200Z",
+    "updated_at": "2024-09-21T11:11:14.200Z",
+    "category": 28,
+    "name": "Cipsi_70qr",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 207,
+  "fields": {
+    "created_at": "2024-09-21T11:11:43.180Z",
+    "updated_at": "2024-09-21T11:11:43.180Z",
+    "category": 28,
+    "name": "Cipsi_37.qr",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 208,
+  "fields": {
+    "created_at": "2024-09-21T11:12:35.129Z",
+    "updated_at": "2024-09-21T11:12:35.129Z",
+    "category": 28,
+    "name": "Suxarik_100.qr",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 209,
+  "fields": {
+    "created_at": "2024-09-21T11:13:16.562Z",
+    "updated_at": "2024-09-21T11:13:16.562Z",
+    "category": 28,
+    "name": "Suxarik_70.qr",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 210,
+  "fields": {
+    "created_at": "2024-09-21T11:14:09.476Z",
+    "updated_at": "2024-09-21T11:14:09.476Z",
+    "category": 28,
+    "name": "Suxarik_60-30_qr",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 216,
+  "fields": {
+    "created_at": "2024-10-31T14:43:12.231Z",
+    "updated_at": "2025-09-17T16:11:46.207Z",
+    "category": 25,
+    "name": "xengel yayma",
+    "description": "",
+    "price": "6.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 217,
+  "fields": {
+    "created_at": "2024-10-31T14:43:31.064Z",
+    "updated_at": "2025-09-17T16:08:29.545Z",
+    "category": 25,
+    "name": "xengel gurcu",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 218,
+  "fields": {
+    "created_at": "2024-10-31T14:43:46.189Z",
+    "updated_at": "2025-10-20T20:56:49.479Z",
+    "category": 25,
+    "name": "xas",
+    "description": "",
+    "price": "6.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 232,
+  "fields": {
+    "created_at": "2025-05-22T14:00:51.089Z",
+    "updated_at": "2025-10-27T12:23:06.731Z",
+    "category": 29,
+    "name": "Doner lavas",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 233,
+  "fields": {
+    "created_at": "2025-05-22T14:01:03.738Z",
+    "updated_at": "2025-05-22T14:01:03.738Z",
+    "category": 29,
+    "name": "Tombik",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 235,
+  "fields": {
+    "created_at": "2025-05-22T14:01:36.425Z",
+    "updated_at": "2025-05-22T14:01:36.425Z",
+    "category": 29,
+    "name": "Ayran Atena",
+    "description": "",
+    "price": "0.60"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 236,
+  "fields": {
+    "created_at": "2025-05-22T14:01:59.204Z",
+    "updated_at": "2025-05-22T14:01:59.204Z",
+    "category": 29,
+    "name": "Doner Basdirma",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 238,
+  "fields": {
+    "created_at": "2025-05-22T14:02:55.339Z",
+    "updated_at": "2025-10-24T16:18:51.756Z",
+    "category": 29,
+    "name": "Doner",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 241,
+  "fields": {
+    "created_at": "2025-05-22T14:07:09.808Z",
+    "updated_at": "2025-05-22T14:07:09.808Z",
+    "category": 29,
+    "name": "Tombik Pendirli",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 242,
+  "fields": {
+    "created_at": "2025-05-22T14:09:03.322Z",
+    "updated_at": "2025-09-01T20:59:04.975Z",
+    "category": 22,
+    "name": "Serbetli",
+    "description": "",
+    "price": "11.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 243,
+  "fields": {
+    "created_at": "2025-05-22T14:10:59.948Z",
+    "updated_at": "2025-10-20T20:56:02.709Z",
+    "category": 24,
+    "name": "Leco Salati",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 244,
+  "fields": {
+    "created_at": "2025-05-22T14:11:40.884Z",
+    "updated_at": "2025-10-20T20:55:50.087Z",
+    "category": 24,
+    "name": "Kahi Salati",
+    "description": "",
+    "price": "2.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 245,
+  "fields": {
+    "created_at": "2025-05-22T14:14:55.319Z",
+    "updated_at": "2025-10-21T16:16:31.869Z",
+    "category": 27,
+    "name": "Turk Paxlava 3-ed",
+    "description": "",
+    "price": "2.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 246,
+  "fields": {
+    "created_at": "2025-07-20T12:51:45.886Z",
+    "updated_at": "2025-07-20T12:51:45.886Z",
+    "category": 22,
+    "name": "Set 11.50",
+    "description": "",
+    "price": "11.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 247,
+  "fields": {
+    "created_at": "2025-07-20T12:54:02.625Z",
+    "updated_at": "2025-07-20T12:54:02.625Z",
+    "category": 22,
+    "name": "Set15",
+    "description": "",
+    "price": "15.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 248,
+  "fields": {
+    "created_at": "2025-07-20T12:54:24.816Z",
+    "updated_at": "2025-07-20T12:54:24.816Z",
+    "category": 22,
+    "name": "Set16.50",
+    "description": "",
+    "price": "16.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 249,
+  "fields": {
+    "created_at": "2025-07-20T12:54:44.486Z",
+    "updated_at": "2025-07-20T12:54:44.486Z",
+    "category": 22,
+    "name": "Set28",
+    "description": "",
+    "price": "28.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 250,
+  "fields": {
+    "created_at": "2025-07-20T12:55:13.169Z",
+    "updated_at": "2025-07-20T12:55:13.169Z",
+    "category": 22,
+    "name": "Set9.50",
+    "description": "",
+    "price": "9.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 251,
+  "fields": {
+    "created_at": "2025-09-01T21:00:09.637Z",
+    "updated_at": "2025-09-01T21:01:34.648Z",
+    "category": 22,
+    "name": "Premium",
+    "description": "",
+    "price": "15.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 254,
+  "fields": {
+    "created_at": "2025-10-20T22:00:07.724Z",
+    "updated_at": "2025-10-21T16:14:32.225Z",
+    "category": 22,
+    "name": "CASKA Greyfrut",
+    "description": "",
+    "price": "13.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 255,
+  "fields": {
+    "created_at": "2025-10-20T22:03:06.607Z",
+    "updated_at": "2025-10-21T16:15:11.545Z",
+    "category": 27,
+    "name": "Sirniyyat QOZ 3-ed",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 256,
+  "fields": {
+    "created_at": "2025-10-20T22:06:11.604Z",
+    "updated_at": "2025-10-21T16:15:45.999Z",
+    "category": 27,
+    "name": "Bamiye-3ed",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 257,
+  "fields": {
+    "created_at": "2025-10-20T22:15:24.599Z",
+    "updated_at": "2025-10-20T22:15:24.599Z",
+    "category": 24,
+    "name": "Shor",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 258,
+  "fields": {
+    "created_at": "2025-10-21T17:32:09.566Z",
+    "updated_at": "2025-10-21T17:32:09.566Z",
+    "category": null,
+    "name": "Yemek 1",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 259,
+  "fields": {
+    "created_at": "2025-10-21T18:07:10.623Z",
+    "updated_at": "2025-10-21T18:07:10.623Z",
+    "category": 27,
+    "name": "Trubochka",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 260,
+  "fields": {
+    "created_at": "2025-10-21T21:36:18.135Z",
+    "updated_at": "2025-10-21T21:36:29.753Z",
+    "category": 27,
+    "name": "Limon Tam",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 261,
+  "fields": {
+    "created_at": "2025-10-21T21:48:59.124Z",
+    "updated_at": "2025-10-21T21:51:20.778Z",
+    "category": 30,
+    "name": "Antrikot",
+    "description": "",
+    "price": "7.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 262,
+  "fields": {
+    "created_at": "2025-10-21T21:49:46.869Z",
+    "updated_at": "2025-10-21T21:49:46.869Z",
+    "category": 30,
+    "name": "Lule Kabab",
+    "description": "",
+    "price": "3.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 263,
+  "fields": {
+    "created_at": "2025-10-21T21:50:38.234Z",
+    "updated_at": "2025-10-21T21:50:38.234Z",
+    "category": 30,
+    "name": "Toyuq",
+    "description": "",
+    "price": "1.50"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 264,
+  "fields": {
+    "created_at": "2025-10-21T22:28:35.670Z",
+    "updated_at": "2025-10-21T22:28:35.670Z",
+    "category": null,
+    "name": "Caynik cay Domino",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 265,
+  "fields": {
+    "created_at": "2025-10-21T22:29:05.684Z",
+    "updated_at": "2025-10-21T22:29:05.684Z",
+    "category": null,
+    "name": "Caynik cay Nerd",
+    "description": "",
+    "price": "5.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 266,
+  "fields": {
+    "created_at": "2025-10-22T03:49:38.414Z",
+    "updated_at": "2025-10-22T03:49:38.414Z",
+    "category": null,
+    "name": "Yemek 1",
+    "description": "",
+    "price": "1.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 267,
+  "fields": {
+    "created_at": "2025-10-22T16:09:43.222Z",
+    "updated_at": "2025-10-22T16:09:43.222Z",
+    "category": null,
+    "name": "Semicka",
+    "description": "",
+    "price": "3.00"
+  }
+},
+{
+  "model": "meals.meal",
+  "pk": 268,
+  "fields": {
+    "created_at": "2025-10-24T22:09:08.390Z",
+    "updated_at": "2025-10-24T22:09:08.390Z",
+    "category": 29,
+    "name": "Burger",
+    "description": "",
+    "price": "6.00"
+  }
+},
+{
+  "model": "tables.room",
+  "pk": 4,
+  "fields": {
+    "created_at": "2024-05-06T21:18:03.665Z",
+    "updated_at": "2024-05-06T21:41:02.111Z",
+    "name": "Zal1  1-20",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "tables.room",
+  "pk": 5,
+  "fields": {
+    "created_at": "2024-05-06T21:32:37.833Z",
+    "updated_at": "2024-05-06T21:41:09.667Z",
+    "name": "Zal2   20-40",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "tables.room",
+  "pk": 6,
+  "fields": {
+    "created_at": "2024-05-06T21:41:40.041Z",
+    "updated_at": "2024-05-06T21:41:40.041Z",
+    "name": "Zal3  41-42",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "tables.room",
+  "pk": 7,
+  "fields": {
+    "created_at": "2024-05-06T21:42:16.089Z",
+    "updated_at": "2024-05-06T21:42:16.089Z",
+    "name": "VIP",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 1,
+  "fields": {
+    "created_at": "2024-05-06T19:48:27.736Z",
+    "updated_at": "2024-05-06T20:34:48.242Z",
+    "number": "Masa 1",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 2,
+  "fields": {
+    "created_at": "2024-05-06T19:48:30.288Z",
+    "updated_at": "2024-05-06T19:48:30.288Z",
+    "number": "Masa 2",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 3,
+  "fields": {
+    "created_at": "2024-05-06T19:48:32.695Z",
+    "updated_at": "2024-05-06T19:48:32.695Z",
+    "number": "Masa 3",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 4,
+  "fields": {
+    "created_at": "2024-05-06T19:48:35.757Z",
+    "updated_at": "2024-05-06T20:33:05.704Z",
+    "number": "Masa 4",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 5,
+  "fields": {
+    "created_at": "2024-05-06T19:48:38.664Z",
+    "updated_at": "2024-05-06T19:48:38.664Z",
+    "number": "Masa 1",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 6,
+  "fields": {
+    "created_at": "2024-05-06T19:48:41.478Z",
+    "updated_at": "2024-05-06T19:48:41.478Z",
+    "number": "Masa 2",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 7,
+  "fields": {
+    "created_at": "2024-05-06T19:48:44.240Z",
+    "updated_at": "2024-05-06T19:48:44.240Z",
+    "number": "Masa 3",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 8,
+  "fields": {
+    "created_at": "2024-05-06T19:48:48.058Z",
+    "updated_at": "2024-05-06T19:48:48.058Z",
+    "number": "Masa 1",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 9,
+  "fields": {
+    "created_at": "2024-05-06T19:48:50.469Z",
+    "updated_at": "2024-05-06T19:48:50.469Z",
+    "number": "Masa 2",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 10,
+  "fields": {
+    "created_at": "2024-05-06T19:48:52.835Z",
+    "updated_at": "2024-05-06T19:48:52.835Z",
+    "number": "Masa 3",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 11,
+  "fields": {
+    "created_at": "2024-05-06T19:51:51.897Z",
+    "updated_at": "2024-05-06T19:51:51.897Z",
+    "number": "Masa 4",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 12,
+  "fields": {
+    "created_at": "2024-05-06T19:52:04.169Z",
+    "updated_at": "2024-05-06T19:52:04.169Z",
+    "number": "Masa 5",
+    "capacity": null,
+    "room": null
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 13,
+  "fields": {
+    "created_at": "2024-05-06T21:21:58.051Z",
+    "updated_at": "2025-08-02T04:18:48.981Z",
+    "number": "STOL - 1",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 14,
+  "fields": {
+    "created_at": "2024-05-06T21:22:53.635Z",
+    "updated_at": "2025-09-28T12:49:50.854Z",
+    "number": "STOL - 2",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 15,
+  "fields": {
+    "created_at": "2024-05-06T21:23:09.389Z",
+    "updated_at": "2025-10-12T20:24:25.918Z",
+    "number": "STOL - 3",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 16,
+  "fields": {
+    "created_at": "2024-05-06T21:23:55.509Z",
+    "updated_at": "2025-10-26T19:16:17.105Z",
+    "number": "STOL - 4",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 17,
+  "fields": {
+    "created_at": "2024-05-06T21:24:04.528Z",
+    "updated_at": "2025-05-27T15:49:45.429Z",
+    "number": "STOL - 5",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 18,
+  "fields": {
+    "created_at": "2024-05-06T21:24:18.151Z",
+    "updated_at": "2025-05-13T14:01:20.741Z",
+    "number": "STOL - 6",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 20,
+  "fields": {
+    "created_at": "2024-05-06T21:24:38.645Z",
+    "updated_at": "2025-06-21T13:49:51.601Z",
+    "number": "STOL - 7",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 21,
+  "fields": {
+    "created_at": "2024-05-06T21:25:06.811Z",
+    "updated_at": "2025-06-28T09:17:03.285Z",
+    "number": "STOL - 8",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 22,
+  "fields": {
+    "created_at": "2024-05-06T21:25:24.240Z",
+    "updated_at": "2025-06-05T13:00:18.397Z",
+    "number": "STOL - 9",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 23,
+  "fields": {
+    "created_at": "2024-05-06T21:27:12.083Z",
+    "updated_at": "2025-06-13T13:45:48.941Z",
+    "number": "STOL - 10",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 24,
+  "fields": {
+    "created_at": "2024-05-06T21:27:30.459Z",
+    "updated_at": "2024-11-05T18:22:23.744Z",
+    "number": "STOL - 11",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 25,
+  "fields": {
+    "created_at": "2024-05-06T21:28:24.602Z",
+    "updated_at": "2025-06-23T09:45:00.116Z",
+    "number": "STOL - 12",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 26,
+  "fields": {
+    "created_at": "2024-05-06T21:28:38.790Z",
+    "updated_at": "2025-08-15T09:34:06.122Z",
+    "number": "STOL - 13",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 27,
+  "fields": {
+    "created_at": "2024-05-06T21:28:51.369Z",
+    "updated_at": "2025-05-23T12:50:54.847Z",
+    "number": "STOL - 14",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 28,
+  "fields": {
+    "created_at": "2024-05-06T21:29:09.276Z",
+    "updated_at": "2024-09-25T11:23:14.733Z",
+    "number": "STOL - 15",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 29,
+  "fields": {
+    "created_at": "2024-05-06T21:29:19.589Z",
+    "updated_at": "2025-05-14T08:51:16.382Z",
+    "number": "STOL - 16",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 30,
+  "fields": {
+    "created_at": "2024-05-06T21:29:30.074Z",
+    "updated_at": "2025-03-15T16:05:31.286Z",
+    "number": "STOL - 17",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 31,
+  "fields": {
+    "created_at": "2024-05-06T21:29:54.369Z",
+    "updated_at": "2025-08-15T12:24:34.717Z",
+    "number": "STOL - 18",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 32,
+  "fields": {
+    "created_at": "2024-05-06T21:30:28.160Z",
+    "updated_at": "2025-10-29T09:59:27.000Z",
+    "number": "STOL - 19",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 33,
+  "fields": {
+    "created_at": "2024-05-06T21:30:45.751Z",
+    "updated_at": "2025-08-27T19:21:11.991Z",
+    "number": "STOL - 20",
+    "capacity": null,
+    "room": 4
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 34,
+  "fields": {
+    "created_at": "2024-05-06T21:32:52.834Z",
+    "updated_at": "2025-10-14T15:32:30.314Z",
+    "number": "STOL - 21",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 35,
+  "fields": {
+    "created_at": "2024-05-06T21:33:04.124Z",
+    "updated_at": "2025-05-19T16:21:22.705Z",
+    "number": "STOL - 22",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 36,
+  "fields": {
+    "created_at": "2024-05-06T21:33:11.732Z",
+    "updated_at": "2025-10-13T22:13:23.121Z",
+    "number": "STOL - 23",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 37,
+  "fields": {
+    "created_at": "2024-05-06T21:33:21.952Z",
+    "updated_at": "2024-09-28T10:22:55.654Z",
+    "number": "STOL - 24",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 38,
+  "fields": {
+    "created_at": "2024-05-06T21:33:29.151Z",
+    "updated_at": "2024-10-05T10:52:50.983Z",
+    "number": "STOL - 25",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 39,
+  "fields": {
+    "created_at": "2024-05-06T21:33:42.810Z",
+    "updated_at": "2025-05-13T11:45:35.013Z",
+    "number": "STOL - 26",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 40,
+  "fields": {
+    "created_at": "2024-05-06T21:33:50.678Z",
+    "updated_at": "2025-05-13T14:14:55.635Z",
+    "number": "STOL - 27",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 41,
+  "fields": {
+    "created_at": "2024-05-06T21:34:22.450Z",
+    "updated_at": "2025-06-06T09:34:47.808Z",
+    "number": "STOL - 28",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 42,
+  "fields": {
+    "created_at": "2024-05-06T21:34:30.893Z",
+    "updated_at": "2025-06-29T08:06:14.096Z",
+    "number": "STOL - 29",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 43,
+  "fields": {
+    "created_at": "2024-05-06T21:34:41.142Z",
+    "updated_at": "2025-10-25T11:21:09.141Z",
+    "number": "STOL - 30",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 44,
+  "fields": {
+    "created_at": "2024-05-06T21:34:53.491Z",
+    "updated_at": "2025-05-18T15:17:29.459Z",
+    "number": "STOL - 31",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 45,
+  "fields": {
+    "created_at": "2024-05-06T21:35:09.735Z",
+    "updated_at": "2024-06-19T18:45:42.696Z",
+    "number": "STOL - 32",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 46,
+  "fields": {
+    "created_at": "2024-05-06T21:35:17.141Z",
+    "updated_at": "2025-03-16T08:29:26.070Z",
+    "number": "STOL - 33",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 47,
+  "fields": {
+    "created_at": "2024-05-06T21:35:29.189Z",
+    "updated_at": "2024-05-06T21:35:29.189Z",
+    "number": "STOL - 34",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 48,
+  "fields": {
+    "created_at": "2024-05-06T21:35:43.830Z",
+    "updated_at": "2024-10-05T12:07:55.774Z",
+    "number": "STOL - 35",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 49,
+  "fields": {
+    "created_at": "2024-05-06T21:35:51.299Z",
+    "updated_at": "2025-06-15T15:18:12.117Z",
+    "number": "STOL - 36",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 50,
+  "fields": {
+    "created_at": "2024-05-06T21:35:59.440Z",
+    "updated_at": "2024-05-06T21:35:59.440Z",
+    "number": "STOL - 37",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 51,
+  "fields": {
+    "created_at": "2024-05-06T21:36:29.627Z",
+    "updated_at": "2024-09-24T15:54:41.329Z",
+    "number": "STOL - 38",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 52,
+  "fields": {
+    "created_at": "2024-05-06T21:36:37.408Z",
+    "updated_at": "2025-10-31T08:22:17.319Z",
+    "number": "STOL - 39",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 53,
+  "fields": {
+    "created_at": "2024-05-06T21:36:45.096Z",
+    "updated_at": "2024-05-06T21:36:45.096Z",
+    "number": "STOL - 40",
+    "capacity": null,
+    "room": 5
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 54,
+  "fields": {
+    "created_at": "2024-05-06T21:41:52.679Z",
+    "updated_at": "2024-05-09T20:33:13.754Z",
+    "number": "STOL - 41",
+    "capacity": null,
+    "room": 6
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 55,
+  "fields": {
+    "created_at": "2024-05-06T21:41:59.716Z",
+    "updated_at": "2024-12-19T10:27:47.860Z",
+    "number": "STOL - 42",
+    "capacity": null,
+    "room": 6
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 56,
+  "fields": {
+    "created_at": "2024-05-06T21:45:29.303Z",
+    "updated_at": "2025-06-21T13:24:25.568Z",
+    "number": "KABINET 1",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 57,
+  "fields": {
+    "created_at": "2024-05-06T21:45:36.084Z",
+    "updated_at": "2025-09-24T19:12:27.088Z",
+    "number": "KABINET 2",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 58,
+  "fields": {
+    "created_at": "2024-05-06T21:45:43.428Z",
+    "updated_at": "2025-08-31T19:51:12.838Z",
+    "number": "KABINET 3",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 59,
+  "fields": {
+    "created_at": "2024-05-06T21:45:51.263Z",
+    "updated_at": "2025-08-27T17:48:26.116Z",
+    "number": "KABINET 4",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 60,
+  "fields": {
+    "created_at": "2024-05-06T21:45:59.363Z",
+    "updated_at": "2025-10-24T23:52:05.562Z",
+    "number": "KABINET 5",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 61,
+  "fields": {
+    "created_at": "2024-05-06T21:46:08.626Z",
+    "updated_at": "2025-04-23T10:50:04.855Z",
+    "number": "KABINET 6",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 62,
+  "fields": {
+    "created_at": "2024-05-06T21:46:17.857Z",
+    "updated_at": "2025-05-22T15:45:41.330Z",
+    "number": "KABINET 7",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 63,
+  "fields": {
+    "created_at": "2024-05-06T21:46:56.158Z",
+    "updated_at": "2025-05-13T15:14:56.170Z",
+    "number": "STOL - 1",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 64,
+  "fields": {
+    "created_at": "2024-05-06T21:47:22.339Z",
+    "updated_at": "2024-05-06T21:47:22.339Z",
+    "number": "STOL - 2",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 65,
+  "fields": {
+    "created_at": "2024-05-06T21:47:37.175Z",
+    "updated_at": "2025-06-22T12:11:25.822Z",
+    "number": "STOL - 3",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 66,
+  "fields": {
+    "created_at": "2024-05-06T21:48:13.850Z",
+    "updated_at": "2025-03-19T17:41:59.563Z",
+    "number": "STOL - 4",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 67,
+  "fields": {
+    "created_at": "2024-05-06T21:48:22.769Z",
+    "updated_at": "2025-10-24T17:45:51.949Z",
+    "number": "STOL - 5",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 68,
+  "fields": {
+    "created_at": "2024-05-06T21:48:30Z",
+    "updated_at": "2024-05-06T21:48:30Z",
+    "number": "STOL - 6",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 69,
+  "fields": {
+    "created_at": "2024-05-06T21:48:37.577Z",
+    "updated_at": "2024-05-06T21:48:37.577Z",
+    "number": "STOL - 7",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 70,
+  "fields": {
+    "created_at": "2024-05-06T21:49:06.229Z",
+    "updated_at": "2024-05-06T21:49:06.229Z",
+    "number": "STOL - 8",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 71,
+  "fields": {
+    "created_at": "2024-05-06T21:49:14.083Z",
+    "updated_at": "2024-05-06T21:49:14.083Z",
+    "number": "STOL - 9",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 72,
+  "fields": {
+    "created_at": "2024-05-06T21:49:21.513Z",
+    "updated_at": "2024-05-06T21:49:21.513Z",
+    "number": "STOL - 10",
+    "capacity": null,
+    "room": 7
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 73,
+  "fields": {
+    "created_at": "2025-06-29T17:59:14.364Z",
+    "updated_at": "2025-06-29T17:59:14.364Z",
+    "number": "DEZGAH",
+    "capacity": null,
+    "room": 6
+  }
+},
+{
+  "model": "tables.table",
+  "pk": 74,
+  "fields": {
+    "created_at": "2025-06-29T17:59:32.011Z",
+    "updated_at": "2025-06-29T17:59:32.011Z",
+    "number": "DONER",
+    "capacity": null,
+    "room": 6
+  }
+},
+{
+  "model": "users.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$Fk2f2iRTacwEVJUC76iijj$GGAfawwCtcOQ2jHyITtf0b2tNJy64n0LrTulxT+lpjQ=",
+    "last_login": "2024-05-18T16:11:48.094Z",
+    "is_superuser": true,
+    "username": "101092",
+    "first_name": "Mudriyyet",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": false,
+    "date_joined": "2024-05-06T19:07:42.007Z",
+    "created_at": "2024-05-10T21:26:28.470Z",
+    "updated_at": "2024-08-21T16:29:27.848Z",
+    "type": "captain_waitress",
+    "groups": [
+      1
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$tzD0dzexHpoQVWL6amULzH$eLPHh61xYThqDYBAvLqNmEXMyIozIrXxdT4ORMpelFc=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "0001",
+    "first_name": "Resad",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-06T20:51:11.269Z",
+    "created_at": "2024-05-10T21:26:28.470Z",
+    "updated_at": "2025-03-29T10:57:52.560Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$hde22p7PTaYK7ftJ2kqeD7$p0qi03qhRE4sqj7EWLVx6yqBYS0b99y2rwYmNueTvqM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "0002",
+    "first_name": "Togrul",
+    "last_name": "Gece",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-06T20:52:23.007Z",
+    "created_at": "2024-05-10T21:26:28.470Z",
+    "updated_at": "2025-01-01T18:12:54.044Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 5,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$lRmErU6CE80blwnzD1RQmN$Tb1hfdVqNAH9wxD82jTmD7HgRJOlDqxeE5XE6C361lM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "8004",
+    "first_name": "Ramin",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-06T20:53:43.085Z",
+    "created_at": "2024-05-10T21:26:28.470Z",
+    "updated_at": "2025-03-16T14:24:48.595Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 9,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$sX1m1KA4gmtIagFf5hMPQa$sd0okngMr+KOs37JUb0I7zmvK7hRSA4lMXPw/YxVzbw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "0000",
+    "first_name": "Mirsubhan",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-06T20:56:44.359Z",
+    "created_at": "2024-05-10T21:26:28.470Z",
+    "updated_at": "2025-01-01T18:12:00.331Z",
+    "type": "admin",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 12,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$eqRnsmkMiFolZlMoCQHhnn$DNUTBTr/Ny7ihyQFNburTSfXpJed+LDRARNSBtBVgoM=",
+    "last_login": "2024-05-29T20:32:49.209Z",
+    "is_superuser": false,
+    "username": "1204",
+    "first_name": "Ibrahim",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": false,
+    "date_joined": "2024-05-12T18:38:26.887Z",
+    "created_at": "2024-05-12T18:38:28.559Z",
+    "updated_at": "2025-10-31T12:11:50.907Z",
+    "type": "waitress",
+    "groups": [
+      1
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 13,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$Q5maFUe87YXZ3nj7gNAdSa$lAAsFEB5hE6kSWYHRVCBZVPxz0bG68fo/khTcHscD+c=",
+    "last_login": "2024-06-29T19:51:46.333Z",
+    "is_superuser": true,
+    "username": "89898989",
+    "first_name": "Developer",
+    "last_name": "DEV",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2024-05-18T19:02:07.949Z",
+    "created_at": "2024-05-18T19:02:09.579Z",
+    "updated_at": "2024-05-18T20:46:47.531Z",
+    "type": "restaurant",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 14,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$CePRKYXTdYhRXQIOwaMQKu$f5f2TJtuqYpW9Z11HfBB2hd5FWt3xeFLNevrIjK5MM4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "0008",
+    "first_name": "Ali",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-18T20:45:07.437Z",
+    "created_at": "2024-05-18T20:45:09.102Z",
+    "updated_at": "2025-09-06T11:21:56.570Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 15,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$o6RAIWqZVqyFvlNpsh1VuP$TCJFalklFuUosV4ijrsYIK/skfMlggOB1AkTIU1tiJk=",
+    "last_login": "2025-03-22T19:29:36.969Z",
+    "is_superuser": false,
+    "username": "101088",
+    "first_name": "Mudur",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2024-05-20T10:27:39.653Z",
+    "created_at": "2024-05-20T10:27:41.450Z",
+    "updated_at": "2024-06-14T06:40:47.281Z",
+    "type": "restaurant",
+    "groups": [
+      1
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 16,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$YssiyEmGWSHwGsNXy2Tr6N$KUJImYVXAHK/CMxnMY29AQVIMIaT0GaVN0lpdzfWC84=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "1122",
+    "first_name": "Rusif",
+    "last_name": ".",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-05-21T20:09:23.309Z",
+    "created_at": "2024-05-21T20:09:24.981Z",
+    "updated_at": "2025-10-31T12:10:43.039Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 17,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$dQMNB3NEhpkK68UIXvNLmz$jvLhpyJGiEkPVC6SD7fVpAW17COrxhJ3qKDxgRMirbU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "7777",
+    "first_name": "Ibrahim",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-06-04T18:29:32.841Z",
+    "created_at": "2024-06-04T18:29:34.607Z",
+    "updated_at": "2025-10-31T12:13:19.382Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 18,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$c8yewi5NusMmNOHRcqILdg$1kb/wLEFQcRS8EVMHHqDHBIzvwM6DiymnUQnMGr+sWs=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "3333",
+    "first_name": "azer teze",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-08-17T18:27:44.287Z",
+    "created_at": "2024-08-17T18:27:45.949Z",
+    "updated_at": "2025-04-17T08:04:53.438Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 19,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$bAaPjdZWh0ne0M17I9sA4Y$pl1QrfW3PbfUx2zidg1GcjP8G11sDPy61EjBMjXYDWo=",
+    "last_login": "2024-08-21T12:27:17.176Z",
+    "is_superuser": true,
+    "username": "khajili98",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2024-08-17T18:40:54.219Z",
+    "created_at": "2024-08-17T18:40:55.838Z",
+    "updated_at": "2024-08-17T18:40:55.838Z",
+    "type": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 20,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$vsa4ustxCaZlzisPPWYdKu$vWZvkw8EJfzViMeRjm3G+CRFwAd+Xn7+v1dMIYujgiE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "172024",
+    "first_name": "Adminstrator",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2024-08-21T16:26:59.681Z",
+    "created_at": "2024-08-21T16:27:01.329Z",
+    "updated_at": "2024-08-21T16:27:12.349Z",
+    "type": "admin",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 21,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$lyVMBYJpclav9ap6K9HfEy$1uBwct99XZ5qlWDl2K6REx1wFRSketP9ggkEcp7oKQ8=",
+    "last_login": "2025-10-28T16:49:19.613Z",
+    "is_superuser": false,
+    "username": "17202422",
+    "first_name": "Mudriyyet",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2024-08-21T16:33:29.507Z",
+    "created_at": "2024-08-21T16:33:31.154Z",
+    "updated_at": "2024-08-21T16:34:27.388Z",
+    "type": "restaurant",
+    "groups": [
+      1
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 22,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$lLdKitQYEeIfR3GnKcKW2C$O9IwSji/7TeKdFt907RaFfHM1JD2diLUc3kMHGFE3Is=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "4963",
+    "first_name": "Sehriyar",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-04-11T23:20:33.152Z",
+    "created_at": "2025-04-11T23:20:33.988Z",
+    "updated_at": "2025-04-11T23:22:58.291Z",
+    "type": "restaurant",
+    "groups": [
+      1
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "pk": 23,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$V0h0KwmhvBHwIdkkVl4ZeO$+2gbvg2baM3wXAAe2YlwlpcQLzfKQnGEcRjFALwpMTo=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "2244",
+    "first_name": "ImamEli",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-05-19T21:51:41.301Z",
+    "created_at": "2025-05-19T21:51:42.167Z",
+    "updated_at": "2025-10-31T12:12:22.675Z",
+    "type": "waitress",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.group",
+  "pk": 1,
+  "fields": {
+    "name": "Mudur",
+    "permissions": [
+      49,
+      50,
+      51,
+      52,
+      45,
+      46,
+      47,
+      48,
+      35,
+      36,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      21,
+      22,
+      23,
+      24
+    ]
+  }
+}
+]
