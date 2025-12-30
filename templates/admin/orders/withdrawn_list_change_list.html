@@ -1,0 +1,273 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block content_title %}
+<h1>{{ title }}</h1>
+
+<!-- Date Range Calculator -->
+<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+    <h3 style="margin-top: 0; color: #495057;">
+        <span style="font-size: 1.2em;">💰</span> Tarix aralığına görə ümumi çıxarılmış məbləğ
+    </h3>
+    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div>
+            <label for="start_date" style="display: block; font-weight: bold; margin-bottom: 5px; color: #495057;">
+                Başlanğıc tarixi:
+            </label>
+            <input type="date" 
+                   id="start_date" 
+                   name="start_date" 
+                   style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+        </div>
+        <div>
+            <label for="end_date" style="display: block; font-weight: bold; margin-bottom: 5px; color: #495057;">
+                Bitmə tarixi:
+            </label>
+            <input type="date" 
+                   id="end_date" 
+                   name="end_date" 
+                   style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+        </div>
+        <div>
+            <button type="button" 
+                    id="calculate_btn" 
+                    style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                📊 Hesabla
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Modal -->
+<div id="resultModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
+    <div style="background-color: #fff; margin: 5% auto; padding: 0; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); animation: slideDown 0.3s ease-out;">
+        <!-- Modal Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px 12px 0 0; color: white; position: relative;">
+            <button id="closeModal" style="position: absolute; right: 15px; top: 15px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; line-height: 1; transition: background 0.3s;">×</button>
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">
+                <span style="font-size: 28px;">💰</span> Hesabat Nəticəsi
+            </h2>
+        </div>
+        
+        <!-- Modal Body -->
+        <div style="padding: 25px;">
+            <div id="modalContent">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div style="padding: 15px 25px; background-color: #f8f9fa; border-radius: 0 0 12px 12px; text-align: right;">
+            <button id="closeModalBtn" style="padding: 10px 25px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.3s;">
+                Bağla
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+#closeModal:hover {
+    background: rgba(255,255,255,0.3) !important;
+}
+
+#closeModalBtn:hover {
+    background-color: #5a6268 !important;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border-left: 4px solid;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 15px;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.date-range {
+    background: #e7f3ff;
+    border-left-color: #007bff !important;
+}
+
+.count-stat {
+    background: #fff3cd;
+    border-left-color: #ffc107 !important;
+}
+
+.cash-stat {
+    background: #d4edda;
+    border-left-color: #28a745 !important;
+}
+
+.withdrawn-stat {
+    background: #f8d7da;
+    border-left-color: #dc3545 !important;
+}
+
+.remaining-stat {
+    background: #d1ecf1;
+    border-left-color: #17a2b8 !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calculateBtn = document.getElementById('calculate_btn');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const modal = document.getElementById('resultModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const closeModal = document.getElementById('closeModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    // Set default dates (last 7 days)
+    const today = new Date();
+    const lastWeek = new Date(today);
+    lastWeek.setDate(today.getDate() - 7);
+    
+    endDateInput.value = today.toISOString().split('T')[0];
+    startDateInput.value = lastWeek.toISOString().split('T')[0];
+    
+    // Close modal functions
+    closeModalBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    closeModal.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // Show custom modal with results
+    function showResultModal(data) {
+        const content = `
+            <div class="stat-row date-range">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">📅</span> Tarix aralığı
+                </div>
+                <div class="stat-value" style="color: #007bff;">
+                    ${data.start_date} - ${data.end_date}
+                </div>
+            </div>
+            
+            <div class="stat-row count-stat">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">📊</span> Növbələrin sayı
+                </div>
+                <div class="stat-value" style="color: #ffc107;">
+                    ${data.count}
+                </div>
+            </div>
+            
+            <div class="stat-row cash-stat">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">💵</span> Ümumi nağd
+                </div>
+                <div class="stat-value" style="color: #28a745;">
+                    ${data.total_cash} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row withdrawn-stat">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">�</span> Çıxarılmış məbləğ
+                </div>
+                <div class="stat-value" style="color: #dc3545;">
+                    ${data.total_withdrawn} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row remaining-stat">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">🟢</span> Qalan nağd
+                </div>
+                <div class="stat-value" style="color: #17a2b8;">
+                    ${data.total_remaining} AZN
+                </div>
+            </div>
+        `;
+        
+        modalContent.innerHTML = content;
+        modal.style.display = 'block';
+    }
+    
+    calculateBtn.addEventListener('click', function() {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        
+        if (!startDate || !endDate) {
+            alert('❌ Xəta: Zəhmət olmasa hər iki tarixi seçin!');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('❌ Xəta: Başlanğıc tarixi bitmə tarixindən sonra ola bilməz!');
+            return;
+        }
+        
+        // Show loading state
+        calculateBtn.disabled = true;
+        calculateBtn.innerHTML = '⏳ Hesablanır...';
+        
+        // Make AJAX request
+        fetch(`calculate-total/?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                calculateBtn.disabled = false;
+                calculateBtn.innerHTML = '📊 Hesabla';
+                
+                if (data.success) {
+                    showResultModal(data);
+                } else {
+                    alert('❌ Xəta: ' + data.error);
+                }
+            })
+            .catch(error => {
+                calculateBtn.disabled = false;
+                calculateBtn.innerHTML = '📊 Hesabla';
+                alert('❌ Xəta baş verdi: ' + error);
+            });
+    });
+    
+    // Hover effect
+    calculateBtn.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = '#218838';
+    });
+    
+    calculateBtn.addEventListener('mouseleave', function() {
+        if (!this.disabled) {
+            this.style.backgroundColor = '#28a745';
+        }
+    });
+});
+</script>
+{% endblock %}

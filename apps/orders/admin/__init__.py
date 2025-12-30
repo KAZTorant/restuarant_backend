@@ -4,3 +4,4 @@ from apps.orders.admin.statistics import StatisticsAdmin
 from apps.orders.admin.order_deletion import OrderItemDeletionLogAdmin
 from apps.orders.admin.summary import SummaryAdmin
 from apps.orders.admin.report import WorkPeriodConfigAdmin, ReportAdmin
+from apps.orders.admin.withdrawn_list import WithdrawnList, WithdrawnListAdmin
