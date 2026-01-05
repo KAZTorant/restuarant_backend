@@ -107,7 +107,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     search_fields = (
         'created_by__username',
     )
-    list_per_page = 10  # Limit items per page for better performance
+    list_per_page = 5  # Limit items per page for better performance
     readonly_fields = (
         'total_amount',
         'payment_count',

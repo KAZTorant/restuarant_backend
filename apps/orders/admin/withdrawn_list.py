@@ -49,6 +49,8 @@ class WithdrawnListAdmin(admin.ModelAdmin):
         'remaining_cash_display',
         'notes_short',
     ]
+    list_per_page = 10  # Limit items per page for better performance
+
     
     list_filter = ['end_time', 'started_by', 'ended_by']
     search_fields = ['withdrawn_notes', 'started_by__username', 'ended_by__username']
