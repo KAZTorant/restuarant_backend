@@ -90,9 +90,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'total_amount',
         'total_paid_display',
         'payment_count',
-        'cash_amount',
-        'card_amount',
-        'other_amount',
+        'cash_amount_detailed',
+        'card_amount_detailed',
+        'other_amount_detailed',
         'extra_paid_amount_display',
         'created_by',
         'created_at',
@@ -302,9 +302,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     total_paid_display.admin_order_field = 'cash_amount'
 
     def cash_amount_detailed(self, obj):
-        """Display cash amount with breakdown (base + tip)"""
-        # Calculate actual extra amounts per payment type from individual payments
-        payments = obj.get_payments()
+        """Display cash amount with breakdown (base + tip) - optimized"""
+        # Use cached payments to avoid multiple queries
+        payments = self._get_cached_payments(obj)
 
         cash_base = 0
         cash_extra = 0
@@ -313,12 +313,14 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
 
-            if payment.payment_methods.exists():
-                # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(
-                    m.amount for m in payment.payment_methods.all())
+            # Get payment methods once (already prefetched)
+            payment_methods_list = list(payment.payment_methods.all())
 
-                for method in payment.payment_methods.all():
+            if payment_methods_list:
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment_methods_list)
+
+                for method in payment_methods_list:
                     if method.payment_type == 'cash':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
@@ -356,9 +358,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     cash_amount_detailed.admin_order_field = 'cash_amount'
 
     def card_amount_detailed(self, obj):
-        """Display card amount with breakdown (base + tip)"""
-        # Calculate actual extra amounts per payment type from individual payments
-        payments = obj.get_payments()
+        """Display card amount with breakdown (base + tip) - optimized"""
+        # Use cached payments to avoid multiple queries
+        payments = self._get_cached_payments(obj)
 
         card_base = 0
         card_extra = 0
@@ -367,12 +369,14 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
 
-            if payment.payment_methods.exists():
-                # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(
-                    m.amount for m in payment.payment_methods.all())
+            # Get payment methods once (already prefetched)
+            payment_methods_list = list(payment.payment_methods.all())
 
-                for method in payment.payment_methods.all():
+            if payment_methods_list:
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment_methods_list)
+
+                for method in payment_methods_list:
                     if method.payment_type == 'card':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
@@ -410,9 +414,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     card_amount_detailed.admin_order_field = 'card_amount'
 
     def other_amount_detailed(self, obj):
-        """Display other amount with breakdown (base + tip)"""
-        # Calculate actual extra amounts per payment type from individual payments
-        payments = obj.get_payments()
+        """Display other amount with breakdown (base + tip) - optimized"""
+        # Use cached payments to avoid multiple queries
+        payments = self._get_cached_payments(obj)
 
         other_base = 0
         other_extra = 0
@@ -421,12 +425,14 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
 
-            if payment.payment_methods.exists():
-                # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(
-                    m.amount for m in payment.payment_methods.all())
+            # Get payment methods once (already prefetched)
+            payment_methods_list = list(payment.payment_methods.all())
 
-                for method in payment.payment_methods.all():
+            if payment_methods_list:
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment_methods_list)
+
+                for method in payment_methods_list:
                     if method.payment_type == 'other':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
@@ -617,7 +623,15 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """Optimize queryset to reduce database queries"""
-        return super().get_queryset(request).select_related('created_by')
+        return super().get_queryset(request).select_related('created_by').prefetch_related(
+            'payments__payment_methods'
+        )
+
+    def _get_cached_payments(self, obj):
+        """Cache payments for the object to avoid multiple queries"""
+        if not hasattr(obj, '_cached_payments'):
+            obj._cached_payments = list(obj.get_payments())
+        return obj._cached_payments
 
     def has_add_permission(self, request):
         return False  # Don't allow manual addition, only through calculation
