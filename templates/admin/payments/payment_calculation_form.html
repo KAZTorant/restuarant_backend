@@ -5,213 +5,225 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
-    &rsaquo;
-    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
-    &rsaquo;
-    <a href="{% url 'admin:payments_paymentcalculation_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
-    &rsaquo; {{ title }}
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo;
+  <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo;
+  <a href="{% url 'admin:payments_paymentcalculation_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {{ title }}
 </div>
 {% endblock %}
 
 {% block content %}
 <div id="content-main">
-    <div class="module aligned">
-        <h2>{{ title }}</h2>
-
-        <form method="post" id="payment-calculation-form">
-            {% csrf_token %}
-            <fieldset class="module">
-                <h2>{% trans "Tarix və vaxt aralığı seçin" %}</h2>
-
-                <div class="form-row">
-                    <div style="float: left; margin-right: 20px">
-                        <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}:</label>
-                        {{ form.start_date }}
-                        {% if form.start_date.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.start_date.errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </div>
-
-                    <div style="float: left; margin-right: 20px">
-                        <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}:</label>
-                        {{ form.end_date }}
-                        {% if form.end_date.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.end_date.errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </div>
-
-                    <div style="clear: both"></div>
-                </div>
-
-                <div class="form-row">
-                    <div style="float: left; margin-right: 20px">
-                        <label for="{{ form.start_time.id_for_label }}">{{ form.start_time.label }}:</label>
-                        {{ form.start_time }}
-                        {% if form.start_time.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.start_time.errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </div>
-
-                    <div style="float: left; margin-right: 20px">
-                        <label for="{{ form.end_time.id_for_label }}">{{ form.end_time.label }}:</label>
-                        {{ form.end_time }}
-                        {% if form.end_time.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.end_time.errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </div>
-
-                    <div style="clear: both"></div>
-                </div>
-            </fieldset>
-
-            <div class="submit-row">
-                <input type="submit" value="{% trans 'Hesabla' %}" class="default" />
-                <a href="{% url 'admin:payments_paymentcalculation_changelist' %}" class="button cancel-link">{% trans
-                    'Ləğv et' %}</a>
+  <div class="module aligned">
+    <h2>{{ title }}</h2>
+    
+    <!-- Information Alert -->
+    <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-left: 4px solid #17a2b8; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: start; gap: 10px;">
+            <span style="font-size: 20px; color: #17a2b8;">ℹ️</span>
+            <div style="color: #0c5460; font-size: 14px; line-height: 1.5;">
+                <strong>Qeyd:</strong> Bu hesablama <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> göstərir. 
+                Burada göstərilən nağd məbləğ yalnız həmin dövrdə edilmiş nağd ödənişlərin cəmidir.
+                Əgər növbənin ümumi nağd kassasını (əvvəlki qalıq daxil) görmək istəyirsinizsə, 
+                <a href="{% url 'admin:orders_withdrawnlist_changelist' %}" style="color: #0c5460; text-decoration: underline; font-weight: bold;">Çıxarılmış Məbləğlər</a> bölməsinə baxın.
             </div>
-        </form>
+        </div>
     </div>
+
+    <form method="post" id="payment-calculation-form">
+      {% csrf_token %}
+      <fieldset class="module">
+        <h2>{% trans "Tarix və vaxt aralığı seçin" %}</h2>
+
+        <div class="form-row">
+          <div style="float: left; margin-right: 20px">
+            <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}:</label>
+            {{ form.start_date }}
+            {% if form.start_date.errors %}
+            <ul class="errorlist">
+              {% for error in form.start_date.errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+
+          <div style="float: left; margin-right: 20px">
+            <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}:</label>
+            {{ form.end_date }}
+            {% if form.end_date.errors %}
+            <ul class="errorlist">
+              {% for error in form.end_date.errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+
+          <div style="clear: both"></div>
+        </div>
+
+        <div class="form-row">
+          <div style="float: left; margin-right: 20px">
+            <label for="{{ form.start_time.id_for_label }}">{{ form.start_time.label }}:</label>
+            {{ form.start_time }}
+            {% if form.start_time.errors %}
+            <ul class="errorlist">
+              {% for error in form.start_time.errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+
+          <div style="float: left; margin-right: 20px">
+            <label for="{{ form.end_time.id_for_label }}">{{ form.end_time.label }}:</label>
+            {{ form.end_time }}
+            {% if form.end_time.errors %}
+            <ul class="errorlist">
+              {% for error in form.end_time.errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+
+          <div style="clear: both"></div>
+        </div>
+      </fieldset>
+
+      <div class="submit-row">
+        <input type="submit" value="{% trans 'Hesabla' %}" class="default" />
+        <a href="{% url 'admin:payments_paymentcalculation_changelist' %}" class="button cancel-link">{% trans 'Ləğv et' %}</a>
+      </div>
+    </form>
+  </div>
 </div>
 
 <style>
-    .form-row {
-        margin-bottom: 20px;
-    }
+  .form-row {
+    margin-bottom: 20px;
+  }
 
-    .form-row label {
-        display: block;
-        font-weight: bold;
-        margin-bottom: 5px;
-        color: #333;
-    }
+  .form-row label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+  }
 
-    .form-row input[type="date"],
-    .form-row input[type="time"] {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 14px;
-        width: 200px;
-    }
+  .form-row input[type="date"],
+  .form-row input[type="time"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 200px;
+  }
 
-    .form-row input[type="date"]:focus,
-    .form-row input[type="time"]:focus {
-        outline: none;
-        border-color: #417690;
-        box-shadow: 0 0 5px rgba(65, 118, 144, 0.3);
-    }
+  .form-row input[type="date"]:focus,
+  .form-row input[type="time"]:focus {
+    outline: none;
+    border-color: #417690;
+    box-shadow: 0 0 5px rgba(65, 118, 144, 0.3);
+  }
 
-    .submit-row {
-        margin-top: 30px;
-        padding: 20px 0;
-        border-top: 1px solid #ddd;
-    }
+  .submit-row {
+    margin-top: 30px;
+    padding: 20px 0;
+    border-top: 1px solid #ddd;
+  }
 
-    .submit-row input[type="submit"] {
-        background: #417690;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        font-size: 14px;
-        cursor: pointer;
-        margin-right: 10px;
-    }
+  .submit-row input[type="submit"] {
+    background: #417690;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
 
-    .submit-row input[type="submit"]:hover {
-        background: #205067;
-    }
+  .submit-row input[type="submit"]:hover {
+    background: #205067;
+  }
 
-    .cancel-link {
-        background: #ba2121;
-        color: white !important;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 4px;
-        font-size: 14px;
-    }
+  .cancel-link {
+    background: #ba2121;
+    color: white !important;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+  }
 
-    .cancel-link:hover {
-        background: #a41515;
-    }
+  .cancel-link:hover {
+    background: #a41515;
+  }
 
-    .errorlist {
-        list-style: none;
-        margin: 5px 0 0 0;
-        padding: 0;
-    }
+  .errorlist {
+    list-style: none;
+    margin: 5px 0 0 0;
+    padding: 0;
+  }
 
-    .errorlist li {
-        background: #ffeaea;
-        border: 1px solid #cc3434;
-        color: #cc3434;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        margin-top: 5px;
-    }
+  .errorlist li {
+    background: #ffeaea;
+    border: 1px solid #cc3434;
+    color: #cc3434;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-top: 5px;
+  }
 
-    input[type="time"]::-webkit-calendar-picker-indicator {
-        background: transparent;
-    }
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+  }
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const timeInputs = document.querySelectorAll('input[type="time"]');
-
-        timeInputs.forEach(function (input) {
-            if (input.name && input.name.includes('start_time')) {
-                input.value = '12:00';
-            } else if (input.name && input.name.includes('end_time')) {
-                input.value = '23:59';
-            }
-
-            input.setAttribute('step', '60');
-            input.setAttribute('pattern', '[0-9]{2}:[0-9]{2}');
-
-            input.addEventListener('change', function () {
-                if (this.value) {
-                    const time = this.value.split(':');
-                    if (time.length === 2) {
-                        const hours = parseInt(time[0]);
-                        const minutes = parseInt(time[1]);
-                        if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-                            this.value = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
-                        }
+document.addEventListener('DOMContentLoaded', function() {
+    const timeInputs = document.querySelectorAll('input[type="time"]');
+    
+    timeInputs.forEach(function(input) {
+        if (input.name && input.name.includes('start_time')) {
+            input.value = '12:00';
+        } else if (input.name && input.name.includes('end_time')) {
+            input.value = '23:59';
+        }
+        
+        input.setAttribute('step', '60');
+        input.setAttribute('pattern', '[0-9]{2}:[0-9]{2}');
+        
+        input.addEventListener('change', function() {
+            if (this.value) {
+                const time = this.value.split(':');
+                if (time.length === 2) {
+                    const hours = parseInt(time[0]);
+                    const minutes = parseInt(time[1]);
+                    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                        this.value = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
                     }
                 }
-            });
+            }
         });
-
-        setTimeout(function () {
-            const startTimeInput = document.querySelector('input[name*="start_time"]');
-            const endTimeInput = document.querySelector('input[name*="end_time"]');
-
-            if (startTimeInput && !startTimeInput.value) {
-                startTimeInput.value = '12:00';
-            }
-            if (endTimeInput && !endTimeInput.value) {
-                endTimeInput.value = '23:59';
-            }
-        }, 100);
     });
+    
+    setTimeout(function() {
+        const startTimeInput = document.querySelector('input[name*="start_time"]');
+        const endTimeInput = document.querySelector('input[name*="end_time"]');
+        
+        if (startTimeInput && !startTimeInput.value) {
+            startTimeInput.value = '12:00';
+        }
+        if (endTimeInput && !endTimeInput.value) {
+            endTimeInput.value = '23:59';
+        }
+    }, 100);
+});
 </script>
 {% endblock %}
