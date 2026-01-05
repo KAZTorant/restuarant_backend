@@ -1,6 +1,23 @@
 {% extends "admin/change_list.html" %}
 {% load i18n %}
 
+{% block content_title %}
+  {{ block.super }}
+  
+  <!-- Information Alert -->
+  <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-left: 4px solid #17a2b8; padding: 12px 15px; border-radius: 4px; margin: 15px 0;">
+      <div style="display: flex; align-items: start; gap: 10px;">
+          <span style="font-size: 20px; color: #17a2b8;">ℹ️</span>
+          <div style="color: #0c5460; font-size: 14px; line-height: 1.5;">
+              <strong>Qeyd:</strong> Bu siyahıda göstərilən nağd məbləğlər <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> əhatə edir. 
+              Əvvəlki növbə qalıqları bu məbləğlərə daxil deyil.
+              Növbələrin ümumi nağd kassasını görmək üçün 
+              <a href="{% url 'admin:orders_withdrawnlist_changelist' %}" style="color: #0c5460; text-decoration: underline; font-weight: bold;">Çıxarılmış Məbləğlər</a> bölməsinə baxın.
+          </div>
+      </div>
+  </div>
+{% endblock %}
+
 {% block object-tools-items %}
   <li>
     <a href="{% url 'admin:payments_paymentcalculation_calculate' %}" class="addlink">

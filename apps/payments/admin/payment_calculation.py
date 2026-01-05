@@ -84,10 +84,12 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'date_range_display',
         'time_range_display',
         'total_amount',
+        'total_paid_display',
         'payment_count',
-        'cash_amount',
-        'card_amount',
-        'other_amount',
+        'cash_amount_detailed',
+        'card_amount_detailed',
+        'other_amount_detailed',
+        'extra_paid_amount_display',
         'created_by',
         'created_at',
         'print_button',
@@ -107,6 +109,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'cash_amount',
         'card_amount',
         'other_amount',
+        'extra_paid_amount_display',
         'created_by',
         'created_at',
         'date_range_display',
@@ -129,6 +132,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 'cash_amount',
                 'card_amount',
                 'other_amount',
+                'extra_paid_amount_display',
             )
         }),
         (_('Yaradılma məlumatları'), {
@@ -268,6 +272,212 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         return format_html(html)
     
     product_sales_display.short_description = _("Satılan məhsullar")
+
+    def cash_amount_with_info(self, obj):
+        """Display cash amount with an informational tooltip"""
+        return format_html(
+            '{} ₼ <span title="Yalnız seçilmiş tarix/saat aralığındakı nağd ödənişlər. '
+            'Əvvəlki növbə qalıqları daxil deyil." '
+            'style="cursor: help; color: #17a2b8; font-weight: bold;">ⓘ</span>',
+            obj.cash_amount
+        )
+    
+    cash_amount_with_info.short_description = _("Nağd məbləğ")
+    cash_amount_with_info.admin_order_field = 'cash_amount'
+    
+    def total_paid_display(self, obj):
+        """Display total amount paid (cash + card + other)"""
+        total_paid = obj.cash_amount + obj.card_amount + obj.other_amount
+        return format_html(
+            '<span style="color: #2ecc71; font-weight: bold;">{} ₼</span>',
+            total_paid
+        )
+    
+    total_paid_display.short_description = _("Ödənilmiş Cəmi")
+    total_paid_display.admin_order_field = 'cash_amount'
+    
+    def cash_amount_detailed(self, obj):
+        """Display cash amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
+        cash_base = 0
+        cash_extra = 0
+        
+        for payment in payments:
+            # Calculate extra for this payment
+            payment_extra = payment.paid_amount - payment.final_price
+            
+            if payment.payment_methods.exists():
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
+                    if method.payment_type == 'cash':
+                        # This method's share of the order
+                        method_ratio = method.amount / total_paid if total_paid > 0 else 0
+                        method_base = payment.final_price * method_ratio
+                        method_extra = payment_extra * method_ratio
+                        
+                        cash_base += method_base
+                        cash_extra += method_extra
+            else:
+                # Single payment method
+                if payment.payment_type == 'cash':
+                    cash_base += payment.final_price
+                    cash_extra += payment_extra
+        
+        if cash_extra > 0.01:  # Show breakdown only if there's meaningful extra
+            # Format numbers first
+            total_str = f"{obj.cash_amount:.2f}"
+            base_str = f"{cash_base:.2f}"
+            extra_str = f"{cash_extra:.2f}"
+            
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span><br>'
+                '<span style="font-size: 10px; color: #777;">'
+                '({} + <span style="color: #e67e22;">{}</span> Əlavə Ödənilmiş)'
+                '</span>',
+                total_str, base_str, extra_str
+            )
+        else:
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span>',
+                obj.cash_amount
+            )
+    
+    cash_amount_detailed.short_description = _("Nağd məbləğ")
+    cash_amount_detailed.admin_order_field = 'cash_amount'
+    
+    def card_amount_detailed(self, obj):
+        """Display card amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
+        card_base = 0
+        card_extra = 0
+        
+        for payment in payments:
+            # Calculate extra for this payment
+            payment_extra = payment.paid_amount - payment.final_price
+            
+            if payment.payment_methods.exists():
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
+                    if method.payment_type == 'card':
+                        # This method's share of the order
+                        method_ratio = method.amount / total_paid if total_paid > 0 else 0
+                        method_base = payment.final_price * method_ratio
+                        method_extra = payment_extra * method_ratio
+                        
+                        card_base += method_base
+                        card_extra += method_extra
+            else:
+                # Single payment method
+                if payment.payment_type == 'card':
+                    card_base += payment.final_price
+                    card_extra += payment_extra
+        
+        if card_extra > 0.01:  # Show breakdown only if there's meaningful extra
+            # Format numbers first
+            total_str = f"{obj.card_amount:.2f}"
+            base_str = f"{card_base:.2f}"
+            extra_str = f"{card_extra:.2f}"
+            
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span><br>'
+                '<span style="font-size: 10px; color: #777;">'
+                '({} + <span style="color: #e67e22;">{}</span> Əlavə Ödənilmiş)'
+                '</span>',
+                total_str, base_str, extra_str
+            )
+        else:
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span>',
+                obj.card_amount
+            )
+    
+    card_amount_detailed.short_description = _("Kart məbləğ")
+    card_amount_detailed.admin_order_field = 'card_amount'
+    
+    def other_amount_detailed(self, obj):
+        """Display other amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
+        other_base = 0
+        other_extra = 0
+        
+        for payment in payments:
+            # Calculate extra for this payment
+            payment_extra = payment.paid_amount - payment.final_price
+            
+            if payment.payment_methods.exists():
+                # Multiple payment methods - distribute extra proportionally
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
+                    if method.payment_type == 'other':
+                        # This method's share of the order
+                        method_ratio = method.amount / total_paid if total_paid > 0 else 0
+                        method_base = payment.final_price * method_ratio
+                        method_extra = payment_extra * method_ratio
+                        
+                        other_base += method_base
+                        other_extra += method_extra
+            else:
+                # Single payment method
+                if payment.payment_type == 'other':
+                    other_base += payment.final_price
+                    other_extra += payment_extra
+        
+        if other_extra > 0.01:  # Show breakdown only if there's meaningful extra
+            # Format numbers first
+            total_str = f"{obj.other_amount:.2f}"
+            base_str = f"{other_base:.2f}"
+            extra_str = f"{other_extra:.2f}"
+            
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span><br>'
+                '<span style="font-size: 10px; color: #777;">'
+                '({} + <span style="color: #e67e22;">{}</span> Əlavə Ödənilmiş)'
+                '</span>',
+                total_str, base_str, extra_str
+            )
+        else:
+            return format_html(
+                '<span style="font-weight: bold;">{} ₼</span>',
+                obj.other_amount
+            )
+    
+    other_amount_detailed.short_description = _("Digər məbləğ")
+    other_amount_detailed.admin_order_field = 'other_amount'
+    
+    def extra_paid_amount_display(self, obj):
+        """Display extra amount paid (tips, overpayment, etc.)"""
+        extra_amount = obj.extra_paid_amount
+        
+        if extra_amount > 0:
+            return format_html(
+                '<span style="color: #e67e22; font-weight: bold;">+{} ₼</span> '
+                '<span title="Əlavə ödənilmiş məbləğ (bahşiş, dəyişiklik və s.)" '
+                'style="cursor: help; color: #17a2b8; font-size: 12px;">ⓘ</span>',
+                extra_amount
+            )
+        elif extra_amount < 0:
+            return format_html(
+                '<span style="color: #e74c3c; font-weight: bold;">{} ₼</span> '
+                '<span title="Az ödənilmiş məbləğ" '
+                'style="cursor: help; color: #17a2b8; font-size: 12px;">ⓘ</span>',
+                extra_amount
+            )
+        else:
+            return format_html('<span style="color: #95a5a6;">0.00 ₼</span>')
+    
+    extra_paid_amount_display.short_description = _("Əlavə Ödənilmiş")
+    extra_paid_amount_display.admin_order_field = 'total_amount'
 
     def print_button(self, obj):
         """Display a print button for each calculation"""

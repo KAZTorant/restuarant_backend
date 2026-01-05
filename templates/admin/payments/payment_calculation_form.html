@@ -18,6 +18,19 @@
 <div id="content-main">
   <div class="module aligned">
     <h2>{{ title }}</h2>
+    
+    <!-- Information Alert -->
+    <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-left: 4px solid #17a2b8; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: start; gap: 10px;">
+            <span style="font-size: 20px; color: #17a2b8;">ℹ️</span>
+            <div style="color: #0c5460; font-size: 14px; line-height: 1.5;">
+                <strong>Qeyd:</strong> Bu hesablama <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> göstərir. 
+                Burada göstərilən nağd məbləğ yalnız həmin dövrdə edilmiş nağd ödənişlərin cəmidir.
+                Əgər növbənin ümumi nağd kassasını (əvvəlki qalıq daxil) görmək istəyirsinizsə, 
+                <a href="{% url 'admin:orders_withdrawnlist_changelist' %}" style="color: #0c5460; text-decoration: underline; font-weight: bold;">Çıxarılmış Məbləğlər</a> bölməsinə baxın.
+            </div>
+        </div>
+    </div>
 
     <form method="post" id="payment-calculation-form">
       {% csrf_token %}

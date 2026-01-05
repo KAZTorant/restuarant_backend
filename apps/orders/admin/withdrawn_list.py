@@ -40,8 +40,10 @@ class WithdrawnListAdmin(admin.ModelAdmin):
     list_display = [
         'shift_id',
         'end_date_formatted',
-        'started_by_name',
-        'ended_by_name',
+        'cash_earned_display',
+        'card_total_display',
+        'other_total_display',
+        'extra_initial_cash_display',
         'cash_in_hand_display',
         'withdrawn_amount_display',
         'remaining_cash_display',
@@ -54,13 +56,11 @@ class WithdrawnListAdmin(admin.ModelAdmin):
     ordering = ['-end_time']
     
     def get_queryset(self, request):
-        """Only show closed shifts with withdrawn amounts"""
+        """Show all closed shifts"""
         qs = super().get_queryset(request)
         return qs.filter(
             title='till_now',
             is_closed=True,
-        ).exclude(
-            withdrawn_amount=0
         ).select_related('started_by', 'ended_by')
     
     def shift_id(self, obj):
@@ -89,6 +89,95 @@ class WithdrawnListAdmin(admin.ModelAdmin):
         return 'N/A'
     ended_by_name.short_description = 'Növbəni Bağlayan'
     ended_by_name.admin_order_field = 'ended_by__username'
+    
+    def cash_earned_display(self, obj):
+        """Display cash earned during the shift (without initial cash)"""
+        return format_html(
+            '<span style="color: #f0ad4e; font-weight: bold;">{} AZN</span>',
+            obj.cash_total
+        )
+    cash_earned_display.short_description = 'Nağd Qazanılmış'
+    cash_earned_display.admin_order_field = 'cash_total'
+    
+    def card_total_display(self, obj):
+        """Display total card payments during the shift"""
+        return format_html(
+            '<span style="color: #5bc0de; font-weight: bold;">{} AZN</span>',
+            obj.card_total
+        )
+    card_total_display.short_description = 'Kartla Ümumi'
+    card_total_display.admin_order_field = 'card_total'
+    
+    def other_total_display(self, obj):
+        """Display total other payments during the shift"""
+        return format_html(
+            '<span style="color: #9b59b6; font-weight: bold;">{} AZN</span>',
+            obj.other_total
+        )
+    other_total_display.short_description = 'Digər Ödənişlər'
+    other_total_display.admin_order_field = 'other_total'
+    
+    def extra_paid_amount_display(self, obj):
+        """Display extra amount paid compared to order totals (tips, overpayment, etc.)"""
+        # Calculate total payments
+        total_paid = obj.cash_total + obj.card_total + obj.other_total
+        # Get order totals (obj.total includes all order amounts)
+        order_total = obj.total
+        # Calculate the difference
+        extra_amount = total_paid - order_total
+        
+        if extra_amount > 0:
+            return format_html(
+                '<span style="color: #e67e22; font-weight: bold;">+{} AZN</span>',
+                extra_amount
+            )
+        elif extra_amount < 0:
+            return format_html(
+                '<span style="color: #e74c3c; font-weight: bold;">{} AZN</span>',
+                extra_amount
+            )
+        else:
+            return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+    
+    extra_paid_amount_display.short_description = 'Əlavə Ödənilmiş'
+    extra_paid_amount_display.admin_order_field = 'total'
+    
+    def extra_initial_cash_display(self, obj):
+        """Display extra initial cash added at shift start (difference from previous remaining)"""
+        # Get the previous shift's remaining cash
+        previous_shift = Statistics.objects.filter(
+            title='till_now',
+            is_closed=True,
+            end_time__lt=obj.start_time
+        ).order_by('-end_time').first()
+        
+        if previous_shift:
+            expected_initial = previous_shift.remaining_cash
+            actual_initial = obj.initial_cash
+            extra_amount = actual_initial - expected_initial
+            
+            if extra_amount > 0:
+                return format_html(
+                    '<span style="color: #e74c3c; font-weight: bold;">+{} AZN</span>',
+                    extra_amount
+                )
+            elif extra_amount < 0:
+                return format_html(
+                    '<span style="color: #3498db; font-weight: bold;">{} AZN</span>',
+                    extra_amount
+                )
+            else:
+                return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+        else:
+            # First shift, show initial cash
+            if obj.initial_cash > 0:
+                return format_html(
+                    '<span style="color: #e74c3c; font-weight: bold;">+{} AZN</span>',
+                    obj.initial_cash
+                )
+            return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+    
+    extra_initial_cash_display.short_description = 'Kassada Artıq Məbləğ'
     
     def cash_in_hand_display(self, obj):
         cash = obj.cash_total + obj.initial_cash
@@ -156,18 +245,82 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                 datetime.combine(end_date, datetime.max.time())
             )
             
-            # Get withdrawn shifts in date range
+            # Get all closed shifts in date range
             shifts = Statistics.objects.filter(
                 title='till_now',
                 is_closed=True,
                 end_time__gte=start_datetime,
                 end_time__lte=end_datetime
-            ).exclude(withdrawn_amount=0)
+            )
             
-            # Calculate totals
+            # Get payments directly from Payment model for accurate amounts (includes tips/extra)
+            from apps.payments.models import Payment
+            
+            payments = Payment.objects.filter(
+                paid_at__gte=start_datetime,
+                paid_at__lte=end_datetime
+            )
+            
+            # Calculate totals from actual payment amounts
+            total_cash_earned = Decimal('0.00')
+            total_card = Decimal('0.00')
+            total_other = Decimal('0.00')
+            
+            for payment in payments:
+                if payment.payment_methods.exists():
+                    # Multiple payment methods
+                    for method in payment.payment_methods.all():
+                        if method.payment_type == 'cash':
+                            total_cash_earned += method.amount
+                        elif method.payment_type == 'card':
+                            total_card += method.amount
+                        else:
+                            total_other += method.amount
+                else:
+                    # Single payment method
+                    if payment.payment_type == 'cash':
+                        total_cash_earned += payment.paid_amount
+                    elif payment.payment_type == 'card':
+                        total_card += payment.paid_amount
+                    else:
+                        total_other += payment.paid_amount
+            
+            # Calculate totals from shifts
             total_withdrawn = sum(shift.withdrawn_amount for shift in shifts)
-            total_cash = sum(shift.cash_total + shift.initial_cash for shift in shifts)
-            total_remaining = sum(shift.remaining_cash for shift in shifts)
+            
+            # Calculate total extra initial cash
+            total_extra_initial = Decimal('0.00')
+            shifts_list = list(shifts.order_by('start_time'))
+            for i, shift in enumerate(shifts_list):
+                if i > 0:
+                    # Compare with previous shift
+                    prev_shift = shifts_list[i-1]
+                    expected_initial = prev_shift.remaining_cash
+                    actual_initial = shift.initial_cash
+                    extra_amount = actual_initial - expected_initial
+                    total_extra_initial += extra_amount
+                else:
+                    # First shift in range, add its initial cash if it's extra
+                    first_before = Statistics.objects.filter(
+                        title='till_now',
+                        is_closed=True,
+                        end_time__lt=shift.start_time
+                    ).order_by('-end_time').first()
+                    if first_before:
+                        extra_amount = shift.initial_cash - first_before.remaining_cash
+                        total_extra_initial += extra_amount
+                    else:
+                        total_extra_initial += shift.initial_cash
+            
+            # Ümumi Alvər = Nağd qazanılmış + Kartla ümumi + Digər ödənişlər + Kassada Artıq Məbləğ
+            total_sales = total_cash_earned + total_card + total_other + total_extra_initial
+            
+            # Ümumi nağd = Nağd Qazanılmış + Kassada Artıq Məbləğ
+            total_cash = total_cash_earned + total_extra_initial
+            
+            # Qalan nağd = Ümumi nağd - Çıxarılmış məbləğ
+            total_remaining = total_cash - total_withdrawn
+            
             count = shifts.count()
             
             return JsonResponse({
@@ -177,6 +330,11 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                 'count': count,
                 'total_withdrawn': str(total_withdrawn),
                 'total_cash': str(total_cash),
+                'total_cash_earned': str(total_cash_earned),
+                'total_card': str(total_card),
+                'total_other': str(total_other),
+                'total_extra_initial': str(total_extra_initial),
+                'total_sales': str(total_sales),
                 'total_remaining': str(total_remaining),
             })
             

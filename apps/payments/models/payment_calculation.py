@@ -14,7 +14,7 @@ class PaymentCalculation(models.Model):
     start_time = models.TimeField(_("Başlanğıc saatı"))
     end_time = models.TimeField(_("Son saatı"))
     total_amount = models.DecimalField(
-        _("Ümumi məbləğ"), max_digits=10, decimal_places=2
+        _("Sifarişlərin cəmi"), max_digits=10, decimal_places=2
     )
     payment_count = models.PositiveIntegerField(
         _("Ödəniş sayı"), default=0
@@ -52,6 +52,12 @@ class PaymentCalculation(models.Model):
     @property
     def time_range_display(self):
         return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+    
+    @property
+    def extra_paid_amount(self):
+        """Calculate extra amount paid (tips, change, etc.)"""
+        total_paid = self.cash_amount + self.card_amount + self.other_amount
+        return total_paid - self.total_amount
 
     def get_payments(self):
         """Get all payments within this calculation's date/time range"""
