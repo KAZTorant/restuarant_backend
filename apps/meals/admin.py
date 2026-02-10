@@ -18,21 +18,32 @@ admin.site.register(MealCategory)
 
 class PreparationPlaceActionForm(forms.Form):
     _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
-    preparation_place = forms.ModelChoiceField(
+    preparation_places = forms.ModelMultipleChoiceField(
         queryset=PreparationPlace.objects.all(),
         required=True,
-        label="Hazırlanma yeri"
+        label="Hazırlanma yerləri",
+        help_text="Bir və ya bir neçə hazırlanma yeri seçin",
+        widget=forms.CheckboxSelectMultiple
     )
 
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'preparation_place',
+    list_display = ['name', 'category', 'get_preparation_places_display',
                     'price', 'cost_price', 'marja_amount', 'marja_percentage']
-    list_filter = ['category', 'preparation_place']
+    list_filter = ['category', 'preparation_places']
     search_fields = ['name', 'description']
     actions = ['set_preparation_place']
     readonly_fields = ['cost_price', 'marja_amount', 'marja_percentage']
+    filter_horizontal = ['preparation_places']
+
+    def get_preparation_places_display(self, obj):
+        """Display all preparation places for a meal"""
+        places = obj.get_all_preparation_places()
+        if places:
+            return ", ".join([place.name for place in places])
+        return "-"
+    get_preparation_places_display.short_description = "Hazırlanma Yerləri"
 
     def cost_price(self, obj):
         """Calculate total cost price from inventory mappings"""
@@ -106,11 +117,15 @@ class MealAdmin(admin.ModelAdmin):
         if request.method == "POST":
             form = PreparationPlaceActionForm(request.POST)
             if form.is_valid():
-                preparation_place = form.cleaned_data['preparation_place']
-                meals.update(preparation_place=preparation_place)
+                preparation_places = form.cleaned_data['preparation_places']
+                # Update each meal's preparation_places
+                for meal in meals:
+                    meal.preparation_places.set(preparation_places)
+                
+                places_names = ", ".join([place.name for place in preparation_places])
                 self.message_user(
                     request,
-                    f"{meals.count()} yeməyə '{preparation_place}' təyin olundu.",
+                    f"{meals.count()} yeməyə '{places_names}' təyin olundu.",
                     messages.SUCCESS
                 )
                 return redirect("admin:meals_meal_changelist")
