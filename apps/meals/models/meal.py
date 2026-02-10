@@ -10,7 +10,7 @@ class MealGroup(DateTimeModel, models.Model):
 
     class Meta:
         verbose_name = "Yemək kateqoriyası qrupu"
-        verbose_name_plural = "Yemək kateqoriya qrupları"
+        verbose_name_plural = "Yemək kateqoriyaları qrupları"
 
     def __str__(self):
         return self.name
@@ -54,6 +54,15 @@ class Meal(DateTimeModel, models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
+        related_name='meals_single',
+        help_text="Deprecated: Use preparation_places instead"
+    )
+    preparation_places = models.ManyToManyField(
+        PreparationPlace,
+        blank=True,
+        related_name='meals_multi',
+        verbose_name="Hazırlanma Yerləri",
+        help_text="Bu yemək üçün çap olunacaq hazırlanma yerləri"
     )
 
     class Meta:
@@ -66,3 +75,14 @@ class Meal(DateTimeModel, models.Model):
     @property
     def is_extra(self):
         return self.category.is_extra if self.category else False
+
+    def get_all_preparation_places(self):
+        """
+        Returns all preparation places for this meal.
+        Combines the old single preparation_place field with the new preparation_places M2M field.
+        """
+        places = list(self.preparation_places.all())
+        # Add the single preparation_place if it exists and is not already in the list
+        if self.preparation_place and self.preparation_place not in places:
+            places.append(self.preparation_place)
+        return places

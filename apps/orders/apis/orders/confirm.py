@@ -116,15 +116,22 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
     def group_items_by_worker_printer(self, unconfirmed_items):
         groups = {}
         for item in unconfirmed_items:
-            prep_place = item.meal.preparation_place
-            if not prep_place:
+            # Get all preparation places for this meal (supports multi-printer)
+            prep_places = item.meal.get_all_preparation_places()
+            
+            if not prep_places:
                 continue  # Skip if no preparation place is assigned.
-            printer = prep_place.printer
-            if not printer:
-                continue  # Skip if no printer is configured.
-            if printer not in groups:
-                groups[printer] = []
-            groups[printer].append(item)
+            
+            # Add the item to each printer group for all preparation places
+            for prep_place in prep_places:
+                printer = prep_place.printer
+                if not printer:
+                    continue  # Skip if no printer is configured.
+                if printer not in groups:
+                    groups[printer] = []
+                # Avoid duplicates in the same printer group
+                if item not in groups[printer]:
+                    groups[printer].append(item)
         return groups
 
     def confirm_order_items(self, printer_groups):
