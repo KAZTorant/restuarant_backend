@@ -15,6 +15,7 @@ from apps.orders.models.order_deletion import OrderItemDeletionLog
 from apps.orders.serializers import DeleteOrderItemV2Serializer
 from apps.tables.models import Table
 from apps.users.permissions import IsAdmin
+from apps.commons.utils.whatsapp import get_whatsapp_notifier
 
 
 class DeleteOrderItemAPIView(APIView):
@@ -116,6 +117,11 @@ class DeleteOrderItemAPIView(APIView):
         else:
             # full delete with comment
             order_item.delete(reason=reason, deleted_by=user, comment=comment)
+        
+        # Send WhatsApp notification to owner
+        DeleteOrderItemAPIView._send_whatsapp_notification(
+            order, order_item, reason, comment, user
+        )
 
     @staticmethod
     def _handle_unconfirmed(order_item):
@@ -172,3 +178,50 @@ class DeleteOrderItemAPIView(APIView):
             {'error': message},
             status=status.HTTP_404_NOT_FOUND
         )
+
+    @staticmethod
+    def _send_whatsapp_notification(order, order_item, reason, comment, user):
+        """
+        Send WhatsApp notification to restaurant owner when order item is deleted
+        """
+        try:
+            from django.utils import timezone
+            whatsapp = get_whatsapp_notifier()
+            
+            if not whatsapp.is_configured():
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning("WhatsApp service not ready. Skipping notification.")
+                return  # Skip silently if not configured
+            
+            # Map reason codes to display text
+            reason_display_map = {
+                OrderItemDeletionLog.REASON_RETURN: 'Geri qaytarma',
+                OrderItemDeletionLog.REASON_WASTE: 'İsraf/Tullantı',
+            }
+            
+            # Get room name
+            room_name = order.table.room.name if order.table and order.table.room else 'N/A'
+            
+            order_item_info = {
+                'admin_name': user.get_full_name() or user.username,
+                'room_name': room_name,
+                'table_number': order.table.number if order.table else 'N/A',
+                'order_id': order.id,
+                'order_created_at': order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else 'N/A',
+                'deleted_at': timezone.now().strftime('%d.%m.%Y %H:%M'),
+                'meal_name': order_item.meal.name,
+                'quantity': 1 if order_item.quantity > 1 else order_item.quantity,
+                'price': order_item.meal.price if order_item.quantity > 1 else order_item.price,
+                'reason': reason,
+                'reason_display': reason_display_map.get(reason, reason),
+                'comment': comment or '',
+            }
+            
+            whatsapp.notify_order_item_deleted(order_item_info)
+            
+        except Exception as e:
+            # Log error but don't fail the delete operation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send WhatsApp notification: {e}")
