@@ -122,3 +122,93 @@ class PaymentCalculation(models.Model):
             key=lambda x: x['total'],
             reverse=True
         )
+
+    def get_waiter_payments_summary(self):
+        """Get summary of payments grouped by waiter"""
+        from collections import defaultdict
+        from decimal import Decimal
+
+        from apps.orders.models import Order
+        
+        waiter_summary = defaultdict(lambda: {
+            'total_amount': Decimal(0),
+            'payment_count': 0,
+            'order_count': 0,
+            'cash_amount': Decimal(0),
+            'card_amount': Decimal(0),
+            'other_amount': Decimal(0),
+            'waiter_name': '',
+            'waiter_id': None
+        })
+        
+        payments = self.get_payments()
+        
+        for payment in payments:
+            # Get all orders for this payment
+            through_model = payment.orders.through
+            through_entries = through_model.objects.filter(payment=payment)
+            
+            # Track waiters for this payment
+            payment_waiters = set()
+            
+            for entry in through_entries:
+                try:
+                    order = Order.objects.all_orders().get(id=entry.order_id)
+                    if order.waitress:
+                        payment_waiters.add((order.waitress.id, order.waitress.get_full_name() or order.waitress.username))
+                except Order.DoesNotExist:
+                    continue
+            
+            # If no waiter found, skip this payment or assign to "Unknown"
+            if not payment_waiters:
+                waiter_key = 'unknown'
+                waiter_summary[waiter_key]['waiter_name'] = 'Ofisiant təyin edilməyib'
+                waiter_summary[waiter_key]['waiter_id'] = None
+            else:
+                # If multiple waiters for one payment, we'll count it for the first one
+                # or split it equally (for now, let's assign to first waiter)
+                waiter_id, waiter_name = list(payment_waiters)[0]
+                waiter_key = f'waiter_{waiter_id}'
+                waiter_summary[waiter_key]['waiter_name'] = waiter_name
+                waiter_summary[waiter_key]['waiter_id'] = waiter_id
+            
+            # Add payment details
+            waiter_summary[waiter_key]['payment_count'] += 1
+            waiter_summary[waiter_key]['order_count'] += len(through_entries)
+            waiter_summary[waiter_key]['total_amount'] += payment.final_price
+            
+            # Calculate amounts by payment type
+            if payment.payment_methods.exists():
+                for method in payment.payment_methods.all():
+                    if method.payment_type == 'cash':
+                        waiter_summary[waiter_key]['cash_amount'] += method.amount
+                    elif method.payment_type == 'card':
+                        waiter_summary[waiter_key]['card_amount'] += method.amount
+                    else:
+                        waiter_summary[waiter_key]['other_amount'] += method.amount
+            else:
+                if payment.payment_type == 'cash':
+                    waiter_summary[waiter_key]['cash_amount'] += payment.paid_amount
+                elif payment.payment_type == 'card':
+                    waiter_summary[waiter_key]['card_amount'] += payment.paid_amount
+                else:
+                    waiter_summary[waiter_key]['other_amount'] += payment.paid_amount
+        
+        # Convert to sorted list
+        return sorted(
+            [
+                {
+                    'waiter_id': data['waiter_id'],
+                    'waiter_name': data['waiter_name'],
+                    'total_amount': data['total_amount'],
+                    'payment_count': data['payment_count'],
+                    'order_count': data['order_count'],
+                    'cash_amount': data['cash_amount'],
+                    'card_amount': data['card_amount'],
+                    'other_amount': data['other_amount'],
+                }
+                for key, data in waiter_summary.items()
+            ],
+            key=lambda x: x['total_amount'],
+            reverse=True
+        )

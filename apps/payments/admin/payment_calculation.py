@@ -54,31 +54,27 @@ class PaymentCalculationForm(forms.Form):
         time_str = self.cleaned_data.get('start_time')
         if not time_str:
             return time(12, 0)
-
+        
         try:
             hours, minutes = map(int, time_str.split(':'))
             if 0 <= hours <= 23 and 0 <= minutes <= 59:
                 return time(hours, minutes)
-            raise forms.ValidationError(
-                _('Yanlış saat formatı. 00:00-23:59 arasında olmalıdır'))
+            raise forms.ValidationError(_('Yanlış saat formatı. 00:00-23:59 arasında olmalıdır'))
         except (ValueError, AttributeError):
-            raise forms.ValidationError(
-                _('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
+            raise forms.ValidationError(_('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
 
     def clean_end_time(self):
         time_str = self.cleaned_data.get('end_time')
         if not time_str:
             return time(23, 59)
-
+        
         try:
             hours, minutes = map(int, time_str.split(':'))
             if 0 <= hours <= 23 and 0 <= minutes <= 59:
                 return time(hours, minutes)
-            raise forms.ValidationError(
-                _('Yanlış saat formatı. 00:00-23:59 arasında olmalıdır'))
+            raise forms.ValidationError(_('Yanlış saat formatı. 00:00-23:59 arasında olmalıdır'))
         except (ValueError, AttributeError):
-            raise forms.ValidationError(
-                _('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
+            raise forms.ValidationError(_('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
 
 
 @admin.register(PaymentCalculation)
@@ -104,10 +100,12 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'created_by',
         'created_at',
     )
+
+    list_per_page = 1
+
     search_fields = (
         'created_by__username',
     )
-    list_per_page = 5  # Limit items per page for better performance
     readonly_fields = (
         'total_amount',
         'payment_count',
@@ -121,6 +119,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'time_range_display',
         'payments_display',
         'product_sales_display',
+        'waiter_payments_display',
     )
 
     fieldsets = (
@@ -146,6 +145,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 'created_at',
             )
         }),
+        (_('Ofisiantlar üzrə ödənişlər'), {
+            'fields': ('waiter_payments_display',),
+        }),
         (_('Ödənişlər'), {
             'fields': ('payments_display',),
             'classes': ('collapse',),
@@ -158,12 +160,12 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     def payments_display(self, obj):
         if not obj.pk:
             return "-"
-
+        
         payments = obj.get_payments()
-
+        
         if not payments.exists():
             return _("Ödəniş yoxdur")
-
+        
         rows = []
         for payment in payments:
             # Get payment methods
@@ -177,16 +179,16 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 payment_methods.append(
                     f"{payment.get_payment_type_display()}: {payment.paid_amount}₼"
                 )
-
+            
             # Get orders for this payment
             orders_info = []
             for order in payment.orders.all():
                 orders_info.append(f"Sifariş #{order.id}")
-
+            
             # Convert to local timezone
             from django.utils.timezone import localtime
             local_paid_at = localtime(payment.paid_at)
-
+            
             rows.append(f"""
                 <tr>
                     <td style="padding: 8px; border: 1px solid #ddd;">{payment.id}</td>
@@ -198,7 +200,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     <td style="padding: 8px; border: 1px solid #ddd;">{local_paid_at.strftime('%d.%m.%Y %H:%M')}</td>
                 </tr>
             """)
-
+        
         html = f"""
         <div style="margin: 20px 0;">
             <h3>Cəmi {payments.count()} ödəniş</h3>
@@ -221,22 +223,22 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         </div>
         """
         return format_html(html)
-
+    
     payments_display.short_description = _("Ödənişlər")
 
     def product_sales_display(self, obj):
         if not obj.pk:
             return "-"
-
+        
         products = obj.get_product_sales_summary()
-
+        
         if not products:
             return _("Məhsul satışı yoxdur")
-
+        
         rows = []
         total_quantity = 0
         total_amount = 0
-
+        
         for product in products:
             total_quantity += product['quantity']
             total_amount += product['total']
@@ -247,7 +249,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{product['total']:.2f}₼</td>
                 </tr>
             """)
-
+        
         # Add total row
         rows.append(f"""
             <tr style="background-color: #e8f4f8; font-weight: bold;">
@@ -256,7 +258,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_amount:.2f}₼</td>
             </tr>
         """)
-
+        
         html = f"""
         <div style="margin: 20px 0;">
             <h3>Satılan məhsullar ({len(products)} növ məhsul)</h3>
@@ -275,8 +277,84 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         </div>
         """
         return format_html(html)
-
+    
     product_sales_display.short_description = _("Satılan məhsullar")
+
+    def waiter_payments_display(self, obj):
+        """Display payment summary grouped by waiter"""
+        if not obj.pk:
+            return "-"
+        
+        waiters = obj.get_waiter_payments_summary()
+        
+        if not waiters:
+            return _("Ofisiant məlumatı yoxdur")
+        
+        rows = []
+        total_amount = 0
+        total_payment_count = 0
+        total_order_count = 0
+        total_cash = 0
+        total_card = 0
+        total_other = 0
+        
+        for waiter in waiters:
+            total_amount += float(waiter['total_amount'])
+            total_payment_count += waiter['payment_count']
+            total_order_count += waiter['order_count']
+            total_cash += float(waiter['cash_amount'])
+            total_card += float(waiter['card_amount'])
+            total_other += float(waiter['other_amount'])
+            
+            rows.append(f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{waiter['waiter_name']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{waiter['order_count']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{waiter['payment_count']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">{waiter['total_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['cash_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['card_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['other_amount']:.2f}₼</td>
+                </tr>
+            """)
+        
+        # Add total row
+        rows.append(f"""
+            <tr style="background-color: #e8f4f8; font-weight: bold;">
+                <td style="padding: 8px; border: 1px solid #ddd;">CƏMI</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{total_order_count}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{total_payment_count}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_amount:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_cash:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_card:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_other:.2f}₼</td>
+            </tr>
+        """)
+        
+        html = f"""
+        <div style="margin: 20px 0;">
+            <h3>Ofisiantlar üzrə ödənişlər ({len(waiters)} ofisiant)</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Ofisiant</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Sifariş sayı</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Ödəniş sayı</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Ümumi məbləğ</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Nağd</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Kart</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Digər</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+        return format_html(html)
+    
+    waiter_payments_display.short_description = _("Ofisiantlar üzrə ödənişlər")
 
     def cash_amount_with_info(self, obj):
         """Display cash amount with an informational tooltip"""
@@ -286,10 +364,10 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             'style="cursor: help; color: #17a2b8; font-weight: bold;">ⓘ</span>',
             obj.cash_amount
         )
-
+    
     cash_amount_with_info.short_description = _("Nağd məbləğ")
     cash_amount_with_info.admin_order_field = 'cash_amount'
-
+    
     def total_paid_display(self, obj):
         """Display total amount paid (cash + card + other)"""
         total_paid = obj.cash_amount + obj.card_amount + obj.other_amount
@@ -297,36 +375,33 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             '<span style="color: #2ecc71; font-weight: bold;">{} ₼</span>',
             total_paid
         )
-
+    
     total_paid_display.short_description = _("Ödənilmiş Cəmi")
     total_paid_display.admin_order_field = 'cash_amount'
-
+    
     def cash_amount_detailed(self, obj):
-        """Display cash amount with breakdown (base + tip) - optimized"""
-        # Use cached payments to avoid multiple queries
-        payments = self._get_cached_payments(obj)
-
+        """Display cash amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
         cash_base = 0
         cash_extra = 0
-
+        
         for payment in payments:
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
-
-            # Get payment methods once (already prefetched)
-            payment_methods_list = list(payment.payment_methods.all())
-
-            if payment_methods_list:
+            
+            if payment.payment_methods.exists():
                 # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(m.amount for m in payment_methods_list)
-
-                for method in payment_methods_list:
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
                     if method.payment_type == 'cash':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
                         method_base = payment.final_price * method_ratio
                         method_extra = payment_extra * method_ratio
-
+                        
                         cash_base += method_base
                         cash_extra += method_extra
             else:
@@ -334,13 +409,13 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 if payment.payment_type == 'cash':
                     cash_base += payment.final_price
                     cash_extra += payment_extra
-
+        
         if cash_extra > 0.01:  # Show breakdown only if there's meaningful extra
             # Format numbers first
             total_str = f"{obj.cash_amount:.2f}"
             base_str = f"{cash_base:.2f}"
             extra_str = f"{cash_extra:.2f}"
-
+            
             return format_html(
                 '<span style="font-weight: bold;">{} ₼</span><br>'
                 '<span style="font-size: 10px; color: #777;">'
@@ -353,36 +428,33 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 '<span style="font-weight: bold;">{} ₼</span>',
                 obj.cash_amount
             )
-
+    
     cash_amount_detailed.short_description = _("Nağd məbləğ")
     cash_amount_detailed.admin_order_field = 'cash_amount'
-
+    
     def card_amount_detailed(self, obj):
-        """Display card amount with breakdown (base + tip) - optimized"""
-        # Use cached payments to avoid multiple queries
-        payments = self._get_cached_payments(obj)
-
+        """Display card amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
         card_base = 0
         card_extra = 0
-
+        
         for payment in payments:
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
-
-            # Get payment methods once (already prefetched)
-            payment_methods_list = list(payment.payment_methods.all())
-
-            if payment_methods_list:
+            
+            if payment.payment_methods.exists():
                 # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(m.amount for m in payment_methods_list)
-
-                for method in payment_methods_list:
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
                     if method.payment_type == 'card':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
                         method_base = payment.final_price * method_ratio
                         method_extra = payment_extra * method_ratio
-
+                        
                         card_base += method_base
                         card_extra += method_extra
             else:
@@ -390,13 +462,13 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 if payment.payment_type == 'card':
                     card_base += payment.final_price
                     card_extra += payment_extra
-
+        
         if card_extra > 0.01:  # Show breakdown only if there's meaningful extra
             # Format numbers first
             total_str = f"{obj.card_amount:.2f}"
             base_str = f"{card_base:.2f}"
             extra_str = f"{card_extra:.2f}"
-
+            
             return format_html(
                 '<span style="font-weight: bold;">{} ₼</span><br>'
                 '<span style="font-size: 10px; color: #777;">'
@@ -409,36 +481,33 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 '<span style="font-weight: bold;">{} ₼</span>',
                 obj.card_amount
             )
-
+    
     card_amount_detailed.short_description = _("Kart məbləğ")
     card_amount_detailed.admin_order_field = 'card_amount'
-
+    
     def other_amount_detailed(self, obj):
-        """Display other amount with breakdown (base + tip) - optimized"""
-        # Use cached payments to avoid multiple queries
-        payments = self._get_cached_payments(obj)
-
+        """Display other amount with breakdown (base + tip)"""
+        # Calculate actual extra amounts per payment type from individual payments
+        payments = obj.get_payments()
+        
         other_base = 0
         other_extra = 0
-
+        
         for payment in payments:
             # Calculate extra for this payment
             payment_extra = payment.paid_amount - payment.final_price
-
-            # Get payment methods once (already prefetched)
-            payment_methods_list = list(payment.payment_methods.all())
-
-            if payment_methods_list:
+            
+            if payment.payment_methods.exists():
                 # Multiple payment methods - distribute extra proportionally
-                total_paid = sum(m.amount for m in payment_methods_list)
-
-                for method in payment_methods_list:
+                total_paid = sum(m.amount for m in payment.payment_methods.all())
+                
+                for method in payment.payment_methods.all():
                     if method.payment_type == 'other':
                         # This method's share of the order
                         method_ratio = method.amount / total_paid if total_paid > 0 else 0
                         method_base = payment.final_price * method_ratio
                         method_extra = payment_extra * method_ratio
-
+                        
                         other_base += method_base
                         other_extra += method_extra
             else:
@@ -446,13 +515,13 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 if payment.payment_type == 'other':
                     other_base += payment.final_price
                     other_extra += payment_extra
-
+        
         if other_extra > 0.01:  # Show breakdown only if there's meaningful extra
             # Format numbers first
             total_str = f"{obj.other_amount:.2f}"
             base_str = f"{other_base:.2f}"
             extra_str = f"{other_extra:.2f}"
-
+            
             return format_html(
                 '<span style="font-weight: bold;">{} ₼</span><br>'
                 '<span style="font-size: 10px; color: #777;">'
@@ -465,14 +534,14 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 '<span style="font-weight: bold;">{} ₼</span>',
                 obj.other_amount
             )
-
+    
     other_amount_detailed.short_description = _("Digər məbləğ")
     other_amount_detailed.admin_order_field = 'other_amount'
-
+    
     def extra_paid_amount_display(self, obj):
         """Display extra amount paid (tips, overpayment, etc.)"""
         extra_amount = obj.extra_paid_amount
-
+        
         if extra_amount > 0:
             return format_html(
                 '<span style="color: #e67e22; font-weight: bold;">+{} ₼</span> '
@@ -489,21 +558,20 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             )
         else:
             return format_html('<span style="color: #95a5a6;">0.00 ₼</span>')
-
+    
     extra_paid_amount_display.short_description = _("Əlavə Ödənilmiş")
     extra_paid_amount_display.admin_order_field = 'total_amount'
 
     def print_button(self, obj):
         """Display a print button for each calculation"""
         if obj.pk:
-            url = reverse(
-                'admin:payments_paymentcalculation_print', args=[obj.pk])
+            url = reverse('admin:payments_paymentcalculation_print', args=[obj.pk])
             return format_html(
                 '<a href="{}" class="button" style="background-color: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px;">🖨️ Çap et</a>',
                 url
             )
         return "-"
-
+    
     print_button.short_description = _("Əməliyyat")
     print_button.allow_tags = True
 
@@ -525,8 +593,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
-        extra_context['calculate_url'] = reverse(
-            'admin:payments_paymentcalculation_calculate')
+        extra_context['calculate_url'] = reverse('admin:payments_paymentcalculation_calculate')
         return super().changelist_view(request, extra_context)
 
     def calculate_payments_view(self, request):
@@ -598,7 +665,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     other_amount=other_amount,
                     created_by=request.user
                 )
-
+                
                 # Save the payments to the calculation
                 calculation.payments.set(payments)
 
@@ -621,18 +688,6 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
 
         return render(request, 'admin/payments/payment_calculation_form.html', context)
 
-    def get_queryset(self, request):
-        """Optimize queryset to reduce database queries"""
-        return super().get_queryset(request).select_related('created_by').prefetch_related(
-            'payments__payment_methods'
-        )
-
-    def _get_cached_payments(self, obj):
-        """Cache payments for the object to avoid multiple queries"""
-        if not hasattr(obj, '_cached_payments'):
-            obj._cached_payments = list(obj.get_payments())
-        return obj._cached_payments
-
     def has_add_permission(self, request):
         return False  # Don't allow manual addition, only through calculation
 
@@ -645,12 +700,12 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
     def print_calculation_view(self, request, calculation_id):
         """Print the payment calculation details"""
         from apps.printers.utils.service_v2 import PrinterService
-
+        
         calculation = self.get_object(request, calculation_id)
         if not calculation:
             messages.error(request, _("Hesablama tapılmadı"))
             return HttpResponseRedirect(reverse('admin:payments_paymentcalculation_changelist'))
-
+        
         try:
             success, message = PrinterService.print_payment_calculation(
                 calculation=calculation,
@@ -662,5 +717,5 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 messages.error(request, message)
         except Exception as e:
             messages.error(request, _(f"Çap zamanı xəta baş verdi: {str(e)}"))
-
+        
         return HttpResponseRedirect(reverse('admin:payments_paymentcalculation_changelist'))
