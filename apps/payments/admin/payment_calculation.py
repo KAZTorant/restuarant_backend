@@ -100,6 +100,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'created_by',
         'created_at',
     )
+
+    list_per_page = 1
+
     search_fields = (
         'created_by__username',
     )
@@ -116,6 +119,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         'time_range_display',
         'payments_display',
         'product_sales_display',
+        'waiter_payments_display',
     )
 
     fieldsets = (
@@ -140,6 +144,9 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 'created_by',
                 'created_at',
             )
+        }),
+        (_('Ofisiantlar üzrə ödənişlər'), {
+            'fields': ('waiter_payments_display',),
         }),
         (_('Ödənişlər'), {
             'fields': ('payments_display',),
@@ -272,6 +279,82 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         return format_html(html)
     
     product_sales_display.short_description = _("Satılan məhsullar")
+
+    def waiter_payments_display(self, obj):
+        """Display payment summary grouped by waiter"""
+        if not obj.pk:
+            return "-"
+        
+        waiters = obj.get_waiter_payments_summary()
+        
+        if not waiters:
+            return _("Ofisiant məlumatı yoxdur")
+        
+        rows = []
+        total_amount = 0
+        total_payment_count = 0
+        total_order_count = 0
+        total_cash = 0
+        total_card = 0
+        total_other = 0
+        
+        for waiter in waiters:
+            total_amount += float(waiter['total_amount'])
+            total_payment_count += waiter['payment_count']
+            total_order_count += waiter['order_count']
+            total_cash += float(waiter['cash_amount'])
+            total_card += float(waiter['card_amount'])
+            total_other += float(waiter['other_amount'])
+            
+            rows.append(f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{waiter['waiter_name']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{waiter['order_count']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{waiter['payment_count']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">{waiter['total_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['cash_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['card_amount']:.2f}₼</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{waiter['other_amount']:.2f}₼</td>
+                </tr>
+            """)
+        
+        # Add total row
+        rows.append(f"""
+            <tr style="background-color: #e8f4f8; font-weight: bold;">
+                <td style="padding: 8px; border: 1px solid #ddd;">CƏMI</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{total_order_count}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{total_payment_count}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_amount:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_cash:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_card:.2f}₼</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{total_other:.2f}₼</td>
+            </tr>
+        """)
+        
+        html = f"""
+        <div style="margin: 20px 0;">
+            <h3>Ofisiantlar üzrə ödənişlər ({len(waiters)} ofisiant)</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Ofisiant</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Sifariş sayı</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Ödəniş sayı</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Ümumi məbləğ</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Nağd</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Kart</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Digər</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+        return format_html(html)
+    
+    waiter_payments_display.short_description = _("Ofisiantlar üzrə ödənişlər")
 
     def cash_amount_with_info(self, obj):
         """Display cash amount with an informational tooltip"""
