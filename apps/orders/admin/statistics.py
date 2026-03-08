@@ -77,16 +77,20 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     list_display = (
         'started_by', 'start_time',
         'total', 'remaining_cash',
+        'display_remaining_card', 'display_remaining_other',
         'end_time', 'is_closed')
     list_filter = ('title', 'date', 'waitress_info', 'is_closed', 'started_by')
     exclude = ('orders',)
     change_list_template = 'admin/statistics_change_list.html'
     readonly_fields = [
         'title', 'total', 'date', 'waitress_info', 'is_z_checked',
-        'started_by', 'start_time', 'initial_cash',
+        'started_by', 'start_time',
         'ended_by', 'end_time', 'is_closed',
-        'initial_cash', 'cash_total', 'card_total', 'other_total',
-        'withdrawn_amount', 'remaining_cash', 'notes', 'withdrawn_notes',
+        'initial_cash', 'initial_card', 'initial_other',
+        'cash_total', 'card_total', 'other_total',
+        'withdrawn_amount', 'withdrawn_from_card', 'withdrawn_from_other',
+        'remaining_cash', 'remaining_card', 'remaining_other',
+        'notes', 'withdrawn_notes',
         'display_per_waitress', 'display_order_items',
 
 
@@ -99,9 +103,10 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         ('💰 Məbləğlər', {
             'classes': ('collapse',),
             'fields': (
-                'initial_cash', 'cash_total', 'card_total',
-                'other_total', 'withdrawn_amount',
-                'remaining_cash'
+                'initial_cash', 'initial_card', 'initial_other',
+                'cash_total', 'card_total', 'other_total', 
+                'withdrawn_amount', 'withdrawn_from_card', 'withdrawn_from_other',
+                'remaining_cash', 'remaining_card', 'remaining_other'
             ),
         }),
         ('⏱️ Növbə Detalları', {
@@ -360,16 +365,23 @@ class StatisticsAdmin(SimpleHistoryAdmin):
     def end_shift_view(self, request, shift_id):
         shift = self.get_object(request, shift_id)
         withdrawn = Decimal(request.POST.get('withdrawn_amount', '0') or '0')
+        withdrawn_from_card = Decimal(request.POST.get('withdrawn_from_card', '0') or '0')
+        withdrawn_from_other = Decimal(request.POST.get('withdrawn_from_other', '0') or '0')
         withdrawn_notes = request.POST.get('withdrawn_notes', '-') or '-'
         try:
             shift = Statistics.objects.end_shift(
                 shift,
                 request.user,
                 withdrawn,
+                withdrawn_from_card,
+                withdrawn_from_other,
                 withdrawn_notes,
             )
+            total_withdrawn = withdrawn + withdrawn_from_card + withdrawn_from_other
             self.message_user(
-                request, f"Shift ended. Remaining cash: {shift.remaining_cash}")
+                request, 
+                f"Növbə bağlandı. Qalan nağd: {shift.remaining_cash} AZN. Ümumi çəkilən: {total_withdrawn} AZN"
+            )
         except ValidationError as e:
             self.message_user(request, e.message, level=messages.ERROR)
         return HttpResponseRedirect('../..')
@@ -395,6 +407,16 @@ class StatisticsAdmin(SimpleHistoryAdmin):
         return HttpResponseRedirect(reverse('admin:orders_summary_date_range'))
 
     title_with_date = SimpleHistoryAdmin.date_hierarchy
+    
+    def display_remaining_card(self, obj):
+        """Display remaining card amount with formatting"""
+        return f"{obj.remaining_card} AZN"
+    display_remaining_card.short_description = 'Qalan kart'
+    
+    def display_remaining_other(self, obj):
+        """Display remaining other payments with formatting"""
+        return f"{obj.remaining_other} AZN"
+    display_remaining_other.short_description = 'Qalan Digər ödənişlər'
 
     def display_per_waitress(self, obj):
         # Get all orders related to this statistic

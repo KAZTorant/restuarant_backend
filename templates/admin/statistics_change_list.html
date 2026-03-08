@@ -125,7 +125,12 @@
                 document.getElementById('es_cash_in_hand').innerText      = parseFloat(cash_in_hand).toFixed(2);
                 document.getElementById('es_total').innerText      = parseFloat(total).toFixed(2);
 
-                document.getElementById('es_withdrawn_amount').value    = '';
+                // Reset withdrawn fields
+                document.getElementById('es_withdrawn_amount').value    = '0';
+                document.getElementById('es_withdrawn_from_card').value = '0';
+                document.getElementById('es_withdrawn_from_other').value = '0';
+                document.getElementById('es_total_withdrawn').value = '0.00';
+                
                 // Set form action to /…/end-shift/
                 let form = document.getElementById('endShiftForm');
                 const idRegex = /\d+(?=\/end-shift\/$)/;
@@ -140,7 +145,24 @@
         
         function closeEndShiftModal() {
             document.getElementById('endShiftModal').style.display = 'none';
-          }
+        }
+        
+        function updateTotalWithdrawn() {
+            const withdrawnCash = parseFloat(document.getElementById('es_withdrawn_amount').value) || 0;
+            const withdrawnCard = parseFloat(document.getElementById('es_withdrawn_from_card').value) || 0;
+            const withdrawnOther = parseFloat(document.getElementById('es_withdrawn_from_other').value) || 0;
+            
+            const total = withdrawnCash + withdrawnCard + withdrawnOther;
+            document.getElementById('es_total_withdrawn').value = total.toFixed(2);
+        }
+        
+        // Add event listeners for real-time calculation
+        document.addEventListener('DOMContentLoaded', function() {
+            const withdrawnFields = document.querySelectorAll('.withdrawn-field');
+            withdrawnFields.forEach(field => {
+                field.addEventListener('input', updateTotalWithdrawn);
+            });
+        });
 
         function fetchTodaysOrders() {
             $.ajax({
@@ -441,7 +463,7 @@
                     for="es_withdrawn_amount"
                     class="col-sm-4 col-form-label font-weight-bold"
                 >
-                    {% trans "Çəkilən məbləğ (AZN)" %}
+                    {% trans "Çəkilən məbləğ (Nağd)" %}
                 </label>
                 <div class="col-sm-8">
                     <input
@@ -449,13 +471,77 @@
                         name="withdrawn_amount"
                         type="number"
                         step="0.01"
-                        class="form-control text-right"
+                        class="form-control text-right withdrawn-field"
                         placeholder="0.00"
-                        required
+                        value="0"
                     />
                     <small class="form-text text-muted">
-                        {% trans "Burada kassadan götürəcəyiniz məbləği daxil edin; əgər götürməyəcəksinizsə, 0 qeyd edin." %}
+                        {% trans "Burada kassadan götürəcəyiniz nağd məbləği daxil edin; əgər götürməyəcəksinizsə, 0 qeyd edin." %}
                     </small>
+                </div>
+            </div>
+            
+            <div class="form-group row mt-3">
+                <label
+                    for="es_withdrawn_from_card"
+                    class="col-sm-4 col-form-label font-weight-bold"
+                >
+                    {% trans "Çəkilən məbləğ (Kart)" %}
+                </label>
+                <div class="col-sm-8">
+                    <input
+                        id="es_withdrawn_from_card"
+                        name="withdrawn_from_card"
+                        type="number"
+                        step="0.01"
+                        class="form-control text-right withdrawn-field"
+                        placeholder="0.00"
+                        value="0"
+                    />
+                    <small class="form-text text-muted">
+                        {% trans "Kartla ümumi məbləğdən götürəcəyiniz məbləği daxil edin." %}
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group row mt-3">
+                <label
+                    for="es_withdrawn_from_other"
+                    class="col-sm-4 col-form-label font-weight-bold"
+                >
+                    {% trans "Çəkilən məbləğ (Digər)" %}
+                </label>
+                <div class="col-sm-8">
+                    <input
+                        id="es_withdrawn_from_other"
+                        name="withdrawn_from_other"
+                        type="number"
+                        step="0.01"
+                        class="form-control text-right withdrawn-field"
+                        placeholder="0.00"
+                        value="0"
+                    />
+                    <small class="form-text text-muted">
+                        {% trans "Digər ödənişlərdən götürəcəyiniz məbləği daxil edin." %}
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group row mt-3">
+                <label
+                    class="col-sm-4 col-form-label font-weight-bold"
+                >
+                    {% trans "Ümumi çəkilən məbləğ" %}
+                </label>
+                <div class="col-sm-8">
+                    <input
+                        id="es_total_withdrawn"
+                        type="text"
+                        class="form-control text-right font-weight-bold"
+                        readonly
+                        value="0.00"
+                        style="background-color: #e9ecef; font-size: 1.1em;"
+                    />
                 </div>
             </div>
             
