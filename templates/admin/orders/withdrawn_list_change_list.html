@@ -219,8 +219,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="stat-row" style="background: #d1ecf1; border-left-color: #5bc0de !important;">
                 <div class="stat-label">
-                    <span style="font-size: 20px;">💳</span> Kartla ümumi
-                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə ərzində kartla edilmiş ödənişlərin cəmi">ⓘ</span>
+                    <span style="font-size: 20px;">💳</span> Kartla qazanılmış
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə ərzində kartla edilmiş ödənişlərin cəmi (əvvəlki qalıq daxil deyil)">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #5bc0de;">
                     ${data.total_card} AZN
@@ -229,8 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="stat-row" style="background: #e8d6f0; border-left-color: #9b59b6 !important;">
                 <div class="stat-label">
-                    <span style="font-size: 20px;">🔄</span> Digər ödənişlər
-                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə ərzində digər metodlarla edilmiş ödənişlərin cəmi">ⓘ</span>
+                    <span style="font-size: 20px;">🔄</span> Digər ödənişlər qazanılmış
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə ərzində digər metodlarla edilmiş ödənişlərin cəmi (əvvəlki qalıq daxil deyil)">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #9b59b6;">
                     ${data.total_other} AZN
@@ -239,18 +239,38 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="stat-row" style="background: #f8d7da; border-left-color: #e74c3c !important;">
                 <div class="stat-label">
-                    <span style="font-size: 20px;">⚠️</span> Kassada Artıq Məbləğ
-                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə başlanarkən əvvəlki qalıqdan çox əlavə edilmiş məbləğ">ⓘ</span>
+                    <span style="font-size: 20px;">⚠️</span> Nağdda Artıq Məbləğ
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə başlanarkən əvvəlki qalıqdan çox əlavə edilmiş nağd məbləğ">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #e74c3c;">
-                    ${data.total_extra_initial > 0 ? '+' : ''}${data.total_extra_initial} AZN
+                    ${data.total_extra_initial_cash > 0 ? '+' : ''}${data.total_extra_initial_cash} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #d1ecf1; border-left-color: #5bc0de !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">💳</span> Kartda Artıq Məbləğ
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə başlanarkən əvvəlki qalıqdan çox əlavə edilmiş kart məbləği">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #5bc0de;">
+                    ${data.total_extra_initial_card > 0 ? '+' : ''}${data.total_extra_initial_card} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #e8d6f0; border-left-color: #9b59b6 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">🔄</span> Digər ödənişlərdə Artıq Məbləğ
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə başlanarkən əvvəlki qalıqdan çox əlavə edilmiş digər ödəniş məbləği">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #9b59b6;">
+                    ${data.total_extra_initial_other > 0 ? '+' : ''}${data.total_extra_initial_other} AZN
                 </div>
             </div>
             
             <div class="stat-row total-sales-stat">
                 <div class="stat-label">
                     <span style="font-size: 22px;">🛒</span> <strong>Ümumi Alvər</strong>
-                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Bütün ödəniş növlərinin cəmi (Nağd + Kart + Digər + Kassada Artıq Məbləğ)">ⓘ</span>
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Bütün ödəniş növlərinin cəmi (Nağd + Kart + Digər + Bütün Artıq Məbləğlər)">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #28a745; font-size: 20px;">
                     ${data.total_sales} AZN
@@ -260,16 +280,36 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="stat-row cash-stat">
                 <div class="stat-label">
                     <span style="font-size: 20px;">💵</span> Ümumi nağd
-                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Nağd Qazanılmış + Kassada Artıq Məbləğ (əvvəlki qalıqdan əlavə edilmiş)">ⓘ</span>
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Nağd Qazanılmış + Nağdda Artıq Məbləğ">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #28a745;">
                     ${data.total_cash} AZN
                 </div>
             </div>
             
+            <div class="stat-row" style="background: #d1ecf1; border-left-color: #5bc0de !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">💳</span> Ümumi kart
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Kartla Qazanılmış + Kartda Artıq Məbləğ">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #5bc0de;">
+                    ${data.total_card_with_initial} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #e8d6f0; border-left-color: #9b59b6 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">🔄</span> Ümumi digər ödənişlər
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Digər Ödənişlər Qazanılmış + Digər Ödənişlərdə Artıq Məbləğ">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #9b59b6;">
+                    ${data.total_other_with_initial} AZN
+                </div>
+            </div>
+            
             <div class="stat-row withdrawn-stat">
                 <div class="stat-label">
-                    <span style="font-size: 20px;">💸</span> Çıxarılmış məbləğ
+                    <span style="font-size: 20px;">💸</span> Nağddan çıxarılmış məbləğ
                     <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlanarkən kassadan çıxarılan nağd məbləğ">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #dc3545;">
@@ -277,13 +317,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
+            <div class="stat-row" style="background: #d1ecf1; border-left-color: #dc3545 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">💳</span> Kartdan çıxarılmış məbləğ
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlanarkən kartdan çıxarılan məbləğ">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #dc3545;">
+                    ${data.total_withdrawn_card} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #e8d6f0; border-left-color: #dc3545 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">�</span> Digər ödənişlərdən çıxarılmış məbləğ
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlanarkən digər ödənişlərdən çıxarılan məbləğ">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #dc3545;">
+                    ${data.total_withdrawn_other} AZN
+                </div>
+            </div>
+            
             <div class="stat-row remaining-stat">
                 <div class="stat-label">
-                    <span style="font-size: 20px;">🟢</span> Qalan nağd
+                    <span style="font-size: 20px;">�🟢</span> Qalan nağd
                     <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlandıqdan sonra kassada qalan nağd məbləğ">ⓘ</span>
                 </div>
                 <div class="stat-value" style="color: #17a2b8;">
-                    ${data.total_remaining} AZN
+                    ${data.total_remaining_cash} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #d1ecf1; border-left-color: #17a2b8 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">💳</span> Qalan kart
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlandıqdan sonra qalan kart məbləği">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #17a2b8;">
+                    ${data.total_remaining_card} AZN
+                </div>
+            </div>
+            
+            <div class="stat-row" style="background: #e8d6f0; border-left-color: #17a2b8 !important;">
+                <div class="stat-label">
+                    <span style="font-size: 20px;">🔄</span> Qalan digər ödənişlər
+                    <span style="cursor: help; color: #17a2b8; font-size: 16px; margin-left: 5px;" title="Növbə bağlandıqdan sonra qalan digər ödəniş məbləği">ⓘ</span>
+                </div>
+                <div class="stat-value" style="color: #17a2b8;">
+                    ${data.total_remaining_other} AZN
                 </div>
             </div>
         `;

@@ -91,12 +91,23 @@ class StatisticsManager(models.Manager):
             raise ValidationError("Açıq növbən var.")
         last = self.filter(is_closed=True).order_by(
             '-end_time').first()
-        initial = last.remaining_cash if last else Decimal('0.00')
-        return self.create(title="till_now", started_by=user, start_time=timezone.now(), initial_cash=initial)
+        initial_cash = last.remaining_cash if last else Decimal('0.00')
+        initial_card = last.remaining_card if last else Decimal('0.00')
+        initial_other = last.remaining_other if last else Decimal('0.00')
+        return self.create(
+            title="till_now", 
+            started_by=user, 
+            start_time=timezone.now(), 
+            initial_cash=initial_cash,
+            initial_card=initial_card,
+            initial_other=initial_other
+        )
 
     def end_shift(
         self, shift, user,
         withdrawn_amount=Decimal('0.00'),
+        withdrawn_from_card=Decimal('0.00'),
+        withdrawn_from_other=Decimal('0.00'),
         withdrawn_notes='',
     ):
         if shift.started_by != user:
@@ -105,14 +116,36 @@ class StatisticsManager(models.Manager):
         if shift.is_closed:
             raise ValidationError("Növbə artıq bağlanıb.")
 
-        if withdrawn_amount > shift.cash:
+        # Calculate total withdrawn from all sources
+        total_withdrawn = withdrawn_amount + withdrawn_from_card + withdrawn_from_other
+
+        # Available amounts include initial amounts plus earned during shift
+        available_cash = shift.cash_total + shift.initial_cash
+        available_card = shift.card_total + shift.initial_card
+        available_other = shift.other_total + shift.initial_other
+
+        if withdrawn_amount > available_cash:
             raise ValidationError(
-                f"Çıxarılan məbləğ nağd ümumi məbləği ötə bilməz. {withdrawn_amount} > {shift.cash}"
+                f"Çıxarılan nağd məbləğ mövcud nağd məbləği ötə bilməz. {withdrawn_amount} > {available_cash}"
+            )
+        
+        if withdrawn_from_card > available_card:
+            raise ValidationError(
+                f"Kartdan çıxarılan məbləğ mövcud kart məbləği ötə bilməz. {withdrawn_from_card} > {available_card}"
+            )
+        
+        if withdrawn_from_other > available_other:
+            raise ValidationError(
+                f"Digər ödənişlərdən çıxarılan məbləğ mövcud digər ödəniş məbləği ötə bilməz. {withdrawn_from_other} > {available_other}"
             )
 
         shift.withdrawn_amount = withdrawn_amount
+        shift.withdrawn_from_card = withdrawn_from_card
+        shift.withdrawn_from_other = withdrawn_from_other
         shift.withdrawn_notes = withdrawn_notes
-        shift.remaining_cash = shift.cash - withdrawn_amount
+        shift.remaining_cash = shift.cash_total + shift.initial_cash - withdrawn_amount
+        shift.remaining_card = shift.card_total + shift.initial_card - withdrawn_from_card
+        shift.remaining_other = shift.other_total + shift.initial_other - withdrawn_from_other
         shift.end_time = timezone.now()
         shift.ended_by = user
         shift.is_closed = True
@@ -270,15 +303,18 @@ class StatisticsManager(models.Manager):
         # )
 
         # 4) Overwrite all relevant fields
-        stat.total = (cash_total + card_total +
-                      other_total) + stat.initial_cash
+        stat.total = (cash_total + card_total + other_total) + stat.initial_cash + stat.initial_card + stat.initial_other
         stat.date = timezone.localdate()
         stat.started_by = user or stat.started_by
         stat.cash_total = cash_total
         stat.card_total = card_total
         stat.other_total = other_total
         stat.withdrawn_amount = Decimal('0.00')
+        stat.withdrawn_from_card = Decimal('0.00')
+        stat.withdrawn_from_other = Decimal('0.00')
         stat.remaining_cash = cash_total + stat.initial_cash - stat.withdrawn_amount
+        stat.remaining_card = card_total + stat.initial_card - stat.withdrawn_from_card
+        stat.remaining_other = other_total + stat.initial_other - stat.withdrawn_from_other
         stat.save()
         # logging.error("Updated statistics record fields and saved.")
 
@@ -345,6 +381,18 @@ class Statistics(DateTimeModel, models.Model):
         default=0,
         verbose_name='Başlanğıc nağd'
     )
+    initial_card = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Başlanğıc kart'
+    )
+    initial_other = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Başlanğıc Digər ödənişlər'
+    )
     ended_by = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
@@ -386,6 +434,18 @@ class Statistics(DateTimeModel, models.Model):
         default=0,
         verbose_name='Çıxarılan məbləğ'
     )
+    withdrawn_from_card = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Kartdan çıxarılan məbləğ'
+    )
+    withdrawn_from_other = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Digər ödənişlərdən çıxarılan məbləğ'
+    )
     withdrawn_notes = models.TextField(
         blank=True,
         verbose_name='Bağlanma Qeydi'
@@ -396,6 +456,18 @@ class Statistics(DateTimeModel, models.Model):
         decimal_places=2,
         default=0,
         verbose_name='Qalan nağd'
+    )
+    remaining_card = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Qalan kart'
+    )
+    remaining_other = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Qalan Digər ödənişlər'
     )
     notes = models.TextField(
         blank=True,

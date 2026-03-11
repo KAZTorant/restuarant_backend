@@ -49,8 +49,6 @@ class WithdrawnListAdmin(admin.ModelAdmin):
         'remaining_cash_display',
         'notes_short',
     ]
-    list_per_page = 10  # Limit items per page for better performance
-
     
     list_filter = ['end_time', 'started_by', 'ended_by']
     search_fields = ['withdrawn_notes', 'started_by__username', 'ended_by__username']
@@ -289,39 +287,54 @@ class WithdrawnListAdmin(admin.ModelAdmin):
             
             # Calculate totals from shifts
             total_withdrawn = sum(shift.withdrawn_amount for shift in shifts)
+            total_withdrawn_card = sum(shift.withdrawn_from_card for shift in shifts)
+            total_withdrawn_other = sum(shift.withdrawn_from_other for shift in shifts)
             
-            # Calculate total extra initial cash
-            total_extra_initial = Decimal('0.00')
+            # Calculate total extra initial amounts for each payment type
+            total_extra_initial_cash = Decimal('0.00')
+            total_extra_initial_card = Decimal('0.00')
+            total_extra_initial_other = Decimal('0.00')
+            
             shifts_list = list(shifts.order_by('start_time'))
             for i, shift in enumerate(shifts_list):
                 if i > 0:
                     # Compare with previous shift
                     prev_shift = shifts_list[i-1]
-                    expected_initial = prev_shift.remaining_cash
-                    actual_initial = shift.initial_cash
-                    extra_amount = actual_initial - expected_initial
-                    total_extra_initial += extra_amount
+                    extra_cash = shift.initial_cash - prev_shift.remaining_cash
+                    extra_card = shift.initial_card - prev_shift.remaining_card
+                    extra_other = shift.initial_other - prev_shift.remaining_other
+                    total_extra_initial_cash += extra_cash
+                    total_extra_initial_card += extra_card
+                    total_extra_initial_other += extra_other
                 else:
-                    # First shift in range, add its initial cash if it's extra
+                    # First shift in range, add its initial amounts if they're extra
                     first_before = Statistics.objects.filter(
                         title='till_now',
                         is_closed=True,
                         end_time__lt=shift.start_time
                     ).order_by('-end_time').first()
                     if first_before:
-                        extra_amount = shift.initial_cash - first_before.remaining_cash
-                        total_extra_initial += extra_amount
+                        total_extra_initial_cash += shift.initial_cash - first_before.remaining_cash
+                        total_extra_initial_card += shift.initial_card - first_before.remaining_card
+                        total_extra_initial_other += shift.initial_other - first_before.remaining_other
                     else:
-                        total_extra_initial += shift.initial_cash
+                        total_extra_initial_cash += shift.initial_cash
+                        total_extra_initial_card += shift.initial_card
+                        total_extra_initial_other += shift.initial_other
             
-            # Ümumi Alvər = Nağd qazanılmış + Kartla ümumi + Digər ödənişlər + Kassada Artıq Məbləğ
-            total_sales = total_cash_earned + total_card + total_other + total_extra_initial
+            # Ümumi Alvər = All earned + All extra initials
+            total_sales = (total_cash_earned + total_card + total_other + 
+                          total_extra_initial_cash + total_extra_initial_card + total_extra_initial_other)
             
-            # Ümumi nağd = Nağd Qazanılmış + Kassada Artıq Məbləğ
-            total_cash = total_cash_earned + total_extra_initial
+            # Ümumi amounts = Earned + Extra Initial
+            total_cash = total_cash_earned + total_extra_initial_cash
+            total_card_with_initial = total_card + total_extra_initial_card
+            total_other_with_initial = total_other + total_extra_initial_other
             
-            # Qalan nağd = Ümumi nağd - Çıxarılmış məbləğ
-            total_remaining = total_cash - total_withdrawn
+            # Qalan amounts = Total - Withdrawn
+            total_remaining_cash = total_cash - total_withdrawn
+            total_remaining_card = total_card_with_initial - total_withdrawn_card
+            total_remaining_other = total_other_with_initial - total_withdrawn_other
             
             count = shifts.count()
             
@@ -331,13 +344,21 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                 'end_date': end_date.strftime('%d.%m.%Y'),
                 'count': count,
                 'total_withdrawn': str(total_withdrawn),
+                'total_withdrawn_card': str(total_withdrawn_card),
+                'total_withdrawn_other': str(total_withdrawn_other),
                 'total_cash': str(total_cash),
                 'total_cash_earned': str(total_cash_earned),
                 'total_card': str(total_card),
+                'total_card_with_initial': str(total_card_with_initial),
                 'total_other': str(total_other),
-                'total_extra_initial': str(total_extra_initial),
+                'total_other_with_initial': str(total_other_with_initial),
+                'total_extra_initial_cash': str(total_extra_initial_cash),
+                'total_extra_initial_card': str(total_extra_initial_card),
+                'total_extra_initial_other': str(total_extra_initial_other),
                 'total_sales': str(total_sales),
-                'total_remaining': str(total_remaining),
+                'total_remaining_cash': str(total_remaining_cash),
+                'total_remaining_card': str(total_remaining_card),
+                'total_remaining_other': str(total_remaining_other),
             })
             
         except ValueError as e:
