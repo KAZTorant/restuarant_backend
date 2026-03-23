@@ -115,9 +115,11 @@
               .then(res => res.json())
               .then(data => {
                 
-                const { initial_cash, cash_in_hand, cash_total, card_total, other_total, total } = data
+                const { initial_cash, initial_card, initial_other, cash_in_hand, cash_total, card_total, other_total, total } = data
 
                 document.getElementById('es_initial_cash').innerText      = parseFloat(initial_cash).toFixed(2);
+                document.getElementById('es_initial_card').innerText      = parseFloat(initial_card || 0).toFixed(2);
+                document.getElementById('es_initial_other').innerText     = parseFloat(initial_other || 0).toFixed(2);
                 document.getElementById('es_cash_total').innerText      = parseFloat(cash_total).toFixed(2);
                 document.getElementById('es_card_total').innerText      = parseFloat(card_total).toFixed(2);
                 document.getElementById('es_other_total').innerText     = parseFloat(other_total).toFixed(2);
@@ -244,6 +246,8 @@
               .then(r => r.json())
               .then(data => {
                 document.getElementById('ss_initial_cash').value = data.initial_cash;
+                document.getElementById('ss_initial_card').value = data.initial_card || '0.00';
+                document.getElementById('ss_initial_other').value = data.initial_other || '0.00';
                 document.getElementById('startShiftModal').style.display = 'block';
               });
           }
@@ -388,6 +392,42 @@
             </small>
             </div>
     
+            <div class="form-group mt-3">
+            <label for="ss_initial_card" class="font-weight-bold">
+                {% trans "Başlanğıc Kart (AZN)" %}
+            </label>
+            <input
+                id="ss_initial_card"
+                name="initial_card"
+                type="number"
+                step="0.01"
+                class="form-control form-control-lg text-right"
+                placeholder="0.00"
+                value="0.00"
+            />
+            <small class="form-text text-muted">
+                {% trans "Buraya əvvəlki növbədən qalan kart məbləğini daxil edin." %}
+            </small>
+            </div>
+    
+            <div class="form-group mt-3">
+            <label for="ss_initial_other" class="font-weight-bold">
+                {% trans "Başlanğıc Digər ödənişlər (AZN)" %}
+            </label>
+            <input
+                id="ss_initial_other"
+                name="initial_other"
+                type="number"
+                step="0.01"
+                class="form-control form-control-lg text-right"
+                placeholder="0.00"
+                value="0.00"
+            />
+            <small class="form-text text-muted">
+                {% trans "Buraya əvvəlki növbədən qalan digər ödəniş məbləğini daxil edin." %}
+            </small>
+            </div>
+    
             <div class="form-group mt-4">
             <label for="ss_notes" class="font-weight-bold">
                 {% trans "Qeydlər (ixt.)" %}
@@ -432,6 +472,14 @@
                 <tr>
                 <td>{% trans "Nağd başlanğıc" %}</td>
                 <td><span id="es_initial_cash"></span></td>
+                </tr>
+                <tr>
+                <td>{% trans "Kart başlanğıc" %}</td>
+                <td><span id="es_initial_card"></span></td>
+                </tr>
+                <tr>
+                <td>{% trans "Digər ödənişlər başlanğıc" %}</td>
+                <td><span id="es_initial_other"></span></td>
                 </tr>
                 <tr>
                 <td>{% trans "Nağd qazanılmış" %}</td>

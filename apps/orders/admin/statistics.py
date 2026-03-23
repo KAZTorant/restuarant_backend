@@ -326,6 +326,8 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             'total': str(shift.total),
             'cash_in_hand': str(shift.cash_total + shift.initial_cash),
             'initial_cash': str(shift.initial_cash),
+            'initial_card': str(shift.initial_card),
+            'initial_other': str(shift.initial_other),
         })
 
     def start_shift_info(self, request):
@@ -335,19 +337,35 @@ class StatisticsAdmin(SimpleHistoryAdmin):
             is_closed=True
         ).order_by('-end_time').first()
         if not last:
-            JsonResponse({'initial_cash': str(0)})
-        initial = last.remaining_cash if last else Decimal('0.00')
-        return JsonResponse({'initial_cash': str(initial)})
+            return JsonResponse({
+                'initial_cash': str(0),
+                'initial_card': str(0),
+                'initial_other': str(0)
+            })
+        initial_cash = last.remaining_cash if last else Decimal('0.00')
+        initial_card = last.remaining_card if last else Decimal('0.00')
+        initial_other = last.remaining_other if last else Decimal('0.00')
+        return JsonResponse({
+            'initial_cash': str(initial_cash),
+            'initial_card': str(initial_card),
+            'initial_other': str(initial_other)
+        })
 
     def start_shift_view(self, request):
         if request.method == 'POST':
             try:
                 init_cash = Decimal(request.POST.get(
                     'initial_cash', '0') or '0')
+                init_card = Decimal(request.POST.get(
+                    'initial_card', '0') or '0')
+                init_other = Decimal(request.POST.get(
+                    'initial_other', '0') or '0')
                 notes = request.POST.get('notes', '').strip()
 
                 shift = Statistics.objects.start_shift(request.user)
                 shift.initial_cash = init_cash
+                shift.initial_card = init_card
+                shift.initial_other = init_other
                 shift.notes = notes
                 shift.save()
 
@@ -355,7 +373,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
                 self.message_user(
                     request,
-                    f"Növbə açıldı(Başlanğıc nağd: {shift.initial_cash} AZN)",
+                    f"Növbə açıldı (Başlanğıc: Nağd {shift.initial_cash} AZN, Kart {shift.initial_card} AZN, Digər {shift.initial_other} AZN)",
                     level=messages.SUCCESS
                 )
             except ValidationError as e:
