@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from inventory.models import InventoryItem, InventryCategory, Supplier, InventoryRecord
-from .serializers import InventoryItemSerializer 
+from .serializers import InventoryItemSerializer, InventoryItemNameSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -100,3 +100,15 @@ class InventoryItemAddOrUpdateView(APIView):
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class InventoryItemListView(APIView):
+    """
+    Returns all inventory item names (id, name, unit) without pagination.
+    """
+    @swagger_auto_schema(
+        responses={200: InventoryItemNameSerializer(many=True)}
+    )
+    def get(self, request):
+        items = InventoryItem.objects.all().order_by('name')
+        serializer = InventoryItemNameSerializer(items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
