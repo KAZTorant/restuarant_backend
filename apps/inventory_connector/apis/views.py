@@ -1,11 +1,14 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
-from inventory.models import InventoryItem, InventryCategory, Supplier, InventoryRecord
-from .serializers import InventoryItemSerializer, InventoryItemNameSerializer
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from inventory.models import (InventoryItem, InventoryRecord, InventryCategory,
+                              Supplier)
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from apps.inventory_connector.apis.serializers import InventoryItemNameSerializer, InventoryItemSerializer
+
 
 class InventoryItemAddOrUpdateView(APIView):
     """
@@ -109,6 +112,9 @@ class InventoryItemListView(APIView):
         responses={200: InventoryItemNameSerializer(many=True)}
     )
     def get(self, request):
+        items = InventoryItem.objects.all().order_by('name')
+        serializer = InventoryItemNameSerializer(items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
         items = InventoryItem.objects.all().order_by('name')
         serializer = InventoryItemNameSerializer(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
