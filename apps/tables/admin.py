@@ -1,11 +1,10 @@
 from django.contrib import admin
-from django.db.models import Sum, F
+from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404, render
 from django.urls import path
-from apps.orders.models import Order
 
-from apps.tables.models import Table
-from apps.tables.models import Room
+from apps.orders.models import Order
+from apps.tables.models import Room, Table
 
 admin.site.register(Room)
 
@@ -53,6 +52,8 @@ admin.site.register(Room)
 
 class CustomTableAdmin(admin.ModelAdmin):
     change_list_template = "admin/tables_changelist.html"
+    list_display = ('number', 'room', 'capacity')
+    actions = ['delete_selected']
 
     def get_urls(self):
         urls = super().get_urls()
@@ -81,12 +82,25 @@ class CustomTableAdmin(admin.ModelAdmin):
             }
         )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.order_by('room', 'number')
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         try:
             cl = response.context_data['cl']
-            cl.result_list = cl.result_list.order_by('room').order_by('number')
             cl.rooms = Room.objects.all()
+            # Annotate unpaid orders without re-slicing the queryset
             for table in cl.result_list:
                 table.has_unpaid_orders = Order.objects.exclude(
                     is_deleted=True).filter(table=table, is_paid=False).exists()
