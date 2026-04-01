@@ -105,23 +105,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
-DB_DEFAULT = os.environ.get('DB_DEFAULT', False)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+DATABASES ={
+'default': {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': 'restaurant_db',
+    'USER': 'aykhan',
+    'PASSWORD': 'your_password',  # Use the password you set
+    'HOST': 'localhost',
+    'PORT': '5432',
 }
-if DB_DEFAULT:
-    DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant_db',
-        'USER': 'aykhan',
-        'PASSWORD': 'your_password',  # Use the password you set
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
 }
 
 # Password validation
