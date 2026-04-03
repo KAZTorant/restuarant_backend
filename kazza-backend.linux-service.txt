@@ -1,0 +1,17 @@
+[Unit]
+Description=KAZZA Django Backend Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/aykhan/Desktop/KAZZA/restuarant_backend
+ExecStart=/home/aykhan/Desktop/KAZZA/restuarant_backend/venv/bin/gunicorn --wor>
+Restart=always
+RestartSec=5
+User=aykhan
+Environment=PATH=/home/aykhan/Desktop/KAZZA/restuarant_backend/venv/bin:/usr/bi>
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
