@@ -38,6 +38,9 @@ urlpatterns = [
     path('api/', include('apps.urls')),
     path('orders/', include('apps.orders.apis.urls')),  # Make sure this line exists
 
+    # ── Admin Panel APIs ─────────────────────────────────────
+    path('api/admin/meals/', include('apps.meals.apis.admin.urls')),
+
 
     # SWAGGER
     path('swagger/', schema_view.with_ui('swagger',
