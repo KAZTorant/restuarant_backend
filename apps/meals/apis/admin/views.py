@@ -9,12 +9,12 @@ from apps.meals.apis.admin.serializers import (
     AdminMealSerializer)
 from apps.meals.models import Meal, MealCategory
 from apps.meals.models.meal import MealGroup
-from apps.users.permissions import IsAdmin, IsRestaurantOwner
+from apps.users.permissions import IsAdmin, IsAdminPanelUser, IsRestaurantOwner
 
 
 class AdminRequiredMixin:
-    """Admin və ya restaurant owner tələb edir"""
-    permission_classes = [IsAdmin | IsRestaurantOwner]
+    """Superuser, staff, admin və ya restaurant owner tələb edir"""
+    permission_classes = [IsAdminPanelUser]
 
 
 # ─────────────────────────────────────────────

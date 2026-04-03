@@ -39,6 +39,7 @@ urlpatterns = [
     path('orders/', include('apps.orders.apis.urls')),  # Make sure this line exists
 
     # ── Admin Panel APIs ─────────────────────────────────────
+    path('api/admin/auth/', include('apps.users.apis.admin_auth_urls')),
     path('api/admin/meals/', include('apps.meals.apis.admin.urls')),
 
 

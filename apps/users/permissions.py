@@ -22,6 +22,25 @@ class IsRestaurantOwner(permissions.BasePermission):
         return request.user.type == 'restaurant'
 
 
+class IsAdminPanelUser(permissions.BasePermission):
+    """
+    Admin panelə girişi olan bütün istifadəçilər:
+      - is_superuser = True  (Django superadmin)
+      - is_staff = True      (Django staff)
+      - type = 'admin'       (App admin)
+      - type = 'restaurant'  (Restaurant sahibi)
+    """
+    message = 'Bu endpointe girişiniz yoxdur. Admin, Restaurant, Superuser və ya Staff olmalısınız.'
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser or user.is_staff:
+            return True
+        return getattr(user, 'type', None) in ('admin', 'restaurant')
+
+
 # Define the role hierarchy.
 # Lower numbers mean lower privilege.
 ROLE_HIERARCHY = {

@@ -167,6 +167,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'apps.users.auth.AdminTokenAuthentication',
         'apps.users.auth.PINAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
