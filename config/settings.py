@@ -278,5 +278,5 @@ X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
 # URL of the WhatsApp Web service (Node.js service)
 WHATSAPP_SERVICE_URL = os.environ.get('WHATSAPP_SERVICE_URL', 'http://localhost:3001')
 # Restaurant owner's phone number (format: 501234567 or 994501234567)
-RESTAURANT_OWNER_PHONE = os.environ.get('RESTAURANT_OWNER_PHONE', None)
+RESTAURANT_OWNER_PHONE = os.environ.get('RESTAURANT_OWNER_PHONE', '994518000080')
 
