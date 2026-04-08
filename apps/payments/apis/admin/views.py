@@ -225,6 +225,9 @@ class AdminPaymentCalculationRetrieveDestroyAPIView(AdminRequiredMixin, APIView)
 
     def _get_object(self, pk):
         try:
+            # Serializer özü M2M through cədvəlindən order/item datanı çəkir
+            # (all_orders() / all_order_items() vasitəsilə is_deleted bypass edir).
+            # Burada yalnız payment_methods prefetch edilir — orders prefetch lazım deyil.
             return (
                 PaymentCalculation.objects
                 .select_related("created_by")
@@ -238,25 +241,6 @@ class AdminPaymentCalculationRetrieveDestroyAPIView(AdminRequiredMixin, APIView)
                                 "payment_methods",
                                 queryset=PaymentMethod.objects.only(
                                     "id", "payment_id", "payment_type", "amount"
-                                ),
-                            ),
-                            Prefetch(
-                                "orders",
-                                queryset=Order.objects.all_orders()
-                                .select_related("waitress")
-                                .prefetch_related(
-                                    Prefetch(
-                                        "order_items",
-                                        queryset=OrderItem.objects.select_related("meal").only(
-                                            "id", "order_id", "meal__id",
-                                            "meal__name", "quantity", "price",
-                                        ),
-                                    )
-                                )
-                                .only(
-                                    "id", "total_price", "waitress__id",
-                                    "waitress__first_name", "waitress__last_name",
-                                    "waitress__username",
                                 ),
                             ),
                         ),
