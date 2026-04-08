@@ -41,6 +41,7 @@ urlpatterns = [
     # ── Admin Panel APIs ─────────────────────────────────────
     path('api/admin/auth/', include('apps.users.apis.admin_auth_urls')),
     path('api/admin/meals/', include('apps.meals.apis.admin.urls')),
+    path('api/admin/tables/', include('apps.tables.apis.admin.urls')),
 
 
     # SWAGGER
