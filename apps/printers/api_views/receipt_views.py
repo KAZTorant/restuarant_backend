@@ -1,6 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -8,6 +9,33 @@ from apps.printers.models import Receipt
 from apps.printers.serializers import (ReceiptDetailSerializer,
                                        ReceiptSerializer)
 from apps.users.permissions import IsAdminPanelUser
+
+
+class ReceiptPagination(PageNumberPagination):
+    """
+    Receipt-lər üçün pagination.
+    
+    Query params:
+      - page       : səhifə nömrəsi (default: 1)
+      - page_size  : səhifə ölçüsü (default: 20, max: 100)
+    """
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    page_query_param = 'page'
+
+    def get_paginated_response(self, data):
+        return Response({
+            'pagination': {
+                'count': self.page.paginator.count,
+                'total_pages': self.page.paginator.num_pages,
+                'current_page': self.page.number,
+                'page_size': self.get_page_size(self.request),
+                'next': self.get_next_link(),
+                'previous': self.get_previous_link(),
+            },
+            'results': data
+        })
 
 
 class ReceiptViewSet(viewsets.ReadOnlyModelViewSet):
@@ -26,6 +54,7 @@ class ReceiptViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['id', 'created_at']
     ordering = ['-created_at']
     filterset_fields = ['type', 'printer_response_status_code']
+    pagination_class = ReceiptPagination
     
     def get_serializer_class(self):
         """Action-a görə serializer seç"""

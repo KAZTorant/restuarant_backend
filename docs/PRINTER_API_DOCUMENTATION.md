@@ -617,40 +617,63 @@ Bütün çekləri listələ
 
 **Query Parameters:**
 
-- `search` (optional): Çek mətni üzrə axtarış
-- `type` (optional): Çek növü (customer, preperation_places, shift_summary, z_summary, order_summary)
-- `printer_response_status_code` (optional): Printer cavab status kodu
-- `date_from` (optional): Başlanğıc tarixi (YYYY-MM-DD)
-- `date_to` (optional): Bitmə tarixi (YYYY-MM-DD)
-- `ordering` (optional): Sıralama (id, created_at, -id, -created_at)
+| Parametr                       | Tip     | Default       | Açıqlama                                                                                  |
+| ------------------------------ | ------- | ------------- | ----------------------------------------------------------------------------------------- |
+| `page`                         | integer | 1             | Səhifə nömrəsi                                                                            |
+| `page_size`                    | integer | 20            | Səhifə ölçüsü (max: 100)                                                                  |
+| `search`                       | string  | -             | Çek mətni üzrə axtarış                                                                    |
+| `type`                         | string  | -             | Çek növü: `customer`, `preperation_places`, `shift_summary`, `z_summary`, `order_summary` |
+| `printer_response_status_code` | integer | -             | Printer cavab status kodu                                                                 |
+| `date_from`                    | date    | -             | Başlanğıc tarixi `YYYY-MM-DD`                                                             |
+| `date_to`                      | date    | -             | Bitmə tarixi `YYYY-MM-DD`                                                                 |
+| `ordering`                     | string  | `-created_at` | Sıralama: `id`, `created_at`, `-id`, `-created_at`                                        |
 
 **Response: 200 OK**
 
 ```json
-[
-  {
-    "id": 14393,
-    "created_at": "2026-03-31T21:11:24.123456Z",
-    "type": "customer",
-    "type_display": "Müştəri üçün",
-    "printer_response_status_code": 200,
-    "orders_count": 1
+{
+  "pagination": {
+    "count": 14393,
+    "total_pages": 720,
+    "current_page": 1,
+    "page_size": 20,
+    "next": "http://127.0.0.1:8000/api/printers/receipts/?page=2",
+    "previous": null
   },
-  {
-    "id": 14392,
-    "created_at": "2026-03-31T21:11:18.123456Z",
-    "type": "customer",
-    "type_display": "Müştəri üçün",
-    "printer_response_status_code": 200,
-    "orders_count": 1
-  }
-]
+  "results": [
+    {
+      "id": 14393,
+      "created_at": "2026-03-31T21:11:24.123456Z",
+      "type": "customer",
+      "type_display": "Müştəri üçün",
+      "printer_response_status_code": 200,
+      "orders_count": 1
+    },
+    {
+      "id": 14392,
+      "created_at": "2026-03-31T21:11:18.123456Z",
+      "type": "customer",
+      "type_display": "Müştəri üçün",
+      "printer_response_status_code": 200,
+      "orders_count": 1
+    }
+  ]
+}
 ```
 
-**Nümunə Request:**
+**Nümunə Request-lər:**
 
 ```bash
+# Standart pagination
+curl -X GET "http://127.0.0.1:8000/api/printers/receipts/?page=1&page_size=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Tarix + tip filter
 curl -X GET "http://127.0.0.1:8000/api/printers/receipts/?type=customer&date_from=2026-03-01&date_to=2026-03-31" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Böyük page_size
+curl -X GET "http://127.0.0.1:8000/api/printers/receipts/?page=1&page_size=100" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -784,7 +807,7 @@ curl -X GET "http://127.0.0.1:8000/api/printers/receipts/?type=customer&date_fro
 
 ## Əlavə Qeydlər
 
-1. **Pagination**: API-lər pagination support edir (əgər settings-də konfiqurasiya olubsa)
+1. **Pagination**: `/api/printers/receipts/` endpoint-i `page` və `page_size` query parametrləri ilə pagination dəstəkləyir. Default `page_size=20`, maksimum `page_size=100`-dür.
 2. **Permissions**: Bütün endpoint-lər admin panel istifadəçiləri üçündür (IsAdminPanelUser)
 3. **Tarix Format**: ISO 8601 (YYYY-MM-DDTHH:MM:SS.ffffffZ)
 4. **Main Printer**: Yalnız bir printer is_main=True ola bilər, sistem avtomatik idarə edir

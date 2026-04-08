@@ -171,6 +171,8 @@ REST_FRAMEWORK = {
         'apps.users.auth.PINAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 # Swagger settings (optional)
