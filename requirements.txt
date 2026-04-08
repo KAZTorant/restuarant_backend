@@ -5,6 +5,7 @@ coreapi
 coreschema
 Django
 django-cors-headers
+django-filter
 django-jazzmin
 django-jazzmin-admin-rangefilter
 django-logentry-admin
