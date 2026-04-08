@@ -389,5 +389,3 @@ class AdminPaymentCalculationDetailSerializer(AdminPaymentCalculationListSeriali
             key=lambda x: float(x["total_amount"]),
             reverse=True,
         )
-            reverse=True,
-        )
