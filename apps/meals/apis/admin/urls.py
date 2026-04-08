@@ -1,15 +1,29 @@
 from django.urls import path
 
-from apps.meals.apis.admin.views import (  # Meal Group; Meal Category; Meal; Bulk Actions
+from apps.meals.apis.admin.views import (  # Preparation Places; Meal Group; Meal Category; Meal; Bulk Actions
     AdminMealBulkUpdateCategoryAPIView,
     AdminMealBulkUpdatePreparationPlacesAPIView,
     AdminMealBulkUpdatePriceAPIView, AdminMealCategoryListCreateAPIView,
     AdminMealCategoryRetrieveUpdateDestroyAPIView,
     AdminMealGroupListCreateAPIView,
     AdminMealGroupRetrieveUpdateDestroyAPIView, AdminMealListCreateAPIView,
-    AdminMealRetrieveUpdateDestroyAPIView)
+    AdminMealRetrieveUpdateDestroyAPIView,
+    AdminPreparationPlaceListCreateAPIView,
+    AdminPreparationPlaceRetrieveUpdateDestroyAPIView)
 
 urlpatterns = [
+    # ── Preparation Places ────────────────────────────────────
+    path(
+        "preparation-places/",
+        AdminPreparationPlaceListCreateAPIView.as_view(),
+        name="admin-preparation-place-list-create",
+    ),
+    path(
+        "preparation-places/<int:pk>/",
+        AdminPreparationPlaceRetrieveUpdateDestroyAPIView.as_view(),
+        name="admin-preparation-place-detail",
+    ),
+
     # ── Meal Groups ──────────────────────────────────────────
     path(
         "groups/",

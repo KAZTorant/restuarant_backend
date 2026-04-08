@@ -6,9 +6,21 @@ from apps.printers.models.place import PreparationPlace
 
 
 class AdminPreparationPlaceSerializer(serializers.ModelSerializer):
+    """Sadə serializer (dropdown-lar və nested relations üçün)"""
+
     class Meta:
         model = PreparationPlace
         fields = ("id", "name")
+
+
+class AdminPreparationPlaceDetailSerializer(serializers.ModelSerializer):
+    """Tam serializer (CRUD əməliyyatları üçün)"""
+
+    printer_name = serializers.CharField(source="printer.name", read_only=True)
+
+    class Meta:
+        model = PreparationPlace
+        fields = ("id", "name", "printer", "printer_name")
 
 
 class AdminMealGroupSerializer(serializers.ModelSerializer):
@@ -71,7 +83,7 @@ class AdminMealCategoryDetailSerializer(serializers.ModelSerializer):
 class AdminMealSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     group_name = serializers.CharField(source="category.group.name", read_only=True)
-    preparation_places = AdminPreparationPlaceSerializer(many=True, read_only=True)
+    preparation_places = serializers.SerializerMethodField()
     preparation_place_ids = serializers.PrimaryKeyRelatedField(
         queryset=PreparationPlace.objects.all(),
         many=True,
@@ -83,6 +95,16 @@ class AdminMealSerializer(serializers.ModelSerializer):
     cost_price = serializers.SerializerMethodField()
     marja_amount = serializers.SerializerMethodField()
     marja_percentage = serializers.SerializerMethodField()
+    
+    def get_preparation_places(self, obj):
+        """
+        Köhnə preparation_place (FK) və yeni preparation_places (M2M) field-lərini birləşdirir
+        """
+        places = list(obj.preparation_places.all())
+        # Əgər köhnə single preparation_place varsa və listdə yoxdursa əlavə et
+        if obj.preparation_place and obj.preparation_place not in places:
+            places.append(obj.preparation_place)
+        return AdminPreparationPlaceSerializer(places, many=True).data
 
     class Meta:
         model = Meal

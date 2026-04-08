@@ -6,15 +6,65 @@ from rest_framework.views import APIView
 from apps.meals.apis.admin.serializers import (
     AdminMealCategoryDetailSerializer, AdminMealCategorySerializer,
     AdminMealGroupDetailSerializer, AdminMealGroupSerializer,
-    AdminMealSerializer)
+    AdminMealSerializer, AdminPreparationPlaceDetailSerializer,
+    AdminPreparationPlaceSerializer)
 from apps.meals.models import Meal, MealCategory
 from apps.meals.models.meal import MealGroup
+from apps.printers.models.place import PreparationPlace
 from apps.users.permissions import IsAdmin, IsAdminPanelUser, IsRestaurantOwner
 
 
 class AdminRequiredMixin:
     """Superuser, staff, admin və ya restaurant owner tələb edir"""
     permission_classes = [IsAdminPanelUser]
+
+
+# ─────────────────────────────────────────────
+#  PREPARATION PLACES  (Hazırlanma Yerləri)
+# ─────────────────────────────────────────────
+
+class AdminPreparationPlaceListCreateAPIView(AdminRequiredMixin, generics.ListCreateAPIView):
+    """
+    GET  → Bütün hazırlanma yerlərinin siyahısı
+    POST → Yeni hazırlanma yeri yarat
+    """
+    queryset = PreparationPlace.objects.select_related("printer").order_by("name")
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name"]
+    ordering_fields = ["id", "name"]
+
+    def get_serializer_class(self):
+        return AdminPreparationPlaceDetailSerializer
+
+
+class AdminPreparationPlaceRetrieveUpdateDestroyAPIView(AdminRequiredMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    → Hazırlanma yeri detalları
+    PUT    → Tam yenilə
+    PATCH  → Qismən yenilə
+    DELETE → Sil
+    """
+    queryset = PreparationPlace.objects.select_related("printer")
+    serializer_class = AdminPreparationPlaceDetailSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Check meals using this preparation place (many-to-many)
+        meal_count = instance.meals_multi.count()
+        # Also check the deprecated single preparation_place field
+        meal_count_single = instance.meals_single.count()
+        total_meals = meal_count + meal_count_single
+        
+        if total_meals > 0:
+            return Response(
+                {
+                    "error": f"Bu hazırlanma yerinin {total_meals} yeməyi var. "
+                             "Əvvəlcə yeməklərdən çıxarın."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ─────────────────────────────────────────────
