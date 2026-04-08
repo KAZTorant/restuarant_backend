@@ -1,11 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from apps.printers.utils.printer_discovery import discover_all_printers
-from apps.printers.utils.print_test_page import send_raw_receipt
 from apps.printers.models import Printer
+from apps.printers.utils.print_test_page import send_raw_receipt
+from apps.printers.utils.printer_discovery import discover_all_printers
 from apps.users.permissions import IsAdminPanelUser
 
 
