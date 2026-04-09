@@ -1,5 +1,6 @@
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.deletion import ProtectedError
 from rest_framework import filters, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -212,7 +213,22 @@ class AdminUserRetrieveUpdateDestroyAPIView(AdminRequiredMixin, generics.Retriev
                 {"error": "Özünüzü silə bilməzsiniz."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        instance.delete()
+        try:
+            instance.delete()
+        except ProtectedError as e:
+            # Tarixə aid qeydlər (növbə, statistika və s.) bu istifadəçiyə bağlıdır.
+            # Silmək əvəzinə is_active=False etmək tövsiyə olunur.
+            return Response(
+                {
+                    "error": (
+                        "Bu istifadəçi silinə bilməz, çünki ona bağlı tarix qeydləri var "
+                        "(növbə/statistika). Əvəzinə istifadəçini deaktiv edin: "
+                        "PATCH /api/admin/users/users/{id}/ — {\"is_active\": false}"
+                    ),
+                    "detail": str(e).split("'")[0].strip(),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

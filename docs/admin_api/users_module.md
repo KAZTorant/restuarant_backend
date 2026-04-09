@@ -2,7 +2,15 @@
 
 > **Base URL:** `http://<host>/api/admin/users`  
 > **Authentication:** `Authorization: Bearer <token>` (admin login-dən alınan token)  
-> **Permission:** `admin`, `restaurant`, `is_staff` və ya `is_superuser` tələb olunur  
+> **Permission:** `admin`, `restaurant`, `is_staff` və ya `is_superuser` tələb **Bloklanan hallar:**
+
+| Hal                                         | Status | Mesaj                                                                                                                        |
+| ------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `is_superuser = true`                       | `400`  | `"Superuser istifadəçi silinə bilməz."`                                                                                      |
+| Özünü silmək (`request.user`)               | `400`  | `"Özünüzü silə bilməzsiniz."`                                                                                                |
+| Bağlı tarix qeydləri var (növbə/statistika) | `400`  | `"Bu istifadəçi silinə bilməz, çünki ona bağlı tarix qeydləri var (növbə/statistika). Əvəzinə istifadəçini deaktiv edin..."` |
+
+> ⚠️ Əgər istifadəçi hər hansı növbəni açıb/bağlayıbsa (Statistics.started_by / ended_by) — o qeydlər tarixdir və DB tərəfindən **PROTECT** ilə qorunur. Belə hallarda silmək əvəzinə `PATCH` ilə `is_active: false` göndərin.  
 > **Pagination:** Bütün list endpointlər `page_size: 20` ilə paginate edilir
 
 ---
@@ -651,9 +659,25 @@ Future<void> deleteUser(int userId) async {
     // 204 — uğurlu
   } on ApiException catch (e) {
     if (e.statusCode == 400) {
-      showSnackbar(e.body['error']); // superuser və ya özünü silmə
+      final msg = e.body['error'] as String? ?? 'Xəta baş verdi.';
+      // "Bu istifadəçi silinə bilməz, çünki ona bağlı tarix qeydləri var..."
+      // → istifadəçiyə deaktiv etməyi təklif et
+      showDialog(
+        title: 'Silmək mümkün deyil',
+        content: msg,
+        actions: [
+          TextButton(
+            onPressed: () => deactivateUser(userId), // PATCH is_active: false
+            child: Text('Deaktiv et'),
+          ),
+        ],
+      );
     }
   }
+}
+
+Future<void> deactivateUser(int userId) async {
+  await api.patch('/api/admin/users/users/$userId/', {'is_active': false});
 }
 ```
 
