@@ -1,11 +1,19 @@
 from django.urls import path
 
+from apps.users.apis.admin.logentry_views import AdminLogEntryListAPIView
 from apps.users.apis.admin.views import (
     AdminGroupListCreateAPIView, AdminGroupRetrieveUpdateDestroyAPIView,
     AdminPermissionListAPIView, AdminUserListCreateAPIView,
     AdminUserRetrieveUpdateDestroyAPIView, AdminUserSetPasswordAPIView)
 
 urlpatterns = [
+    # ── Log Entries (Loq yazıları) ─────────────────────────────
+    path(
+        "log-entries/",
+        AdminLogEntryListAPIView.as_view(),
+        name="admin-log-entry-list",
+    ),
+
     # ── Permissions (read-only, group assign üçün) ─────────────
     path(
         "permissions/",
