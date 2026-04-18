@@ -63,6 +63,7 @@ class WhatsAppConfigAdmin(admin.ModelAdmin):
 
     readonly_fields = ('created_at', 'updated_at')
 
+    @admin.display(description="Telefon")
     def phone_display(self, obj):
         """Display phone with flag emoji"""
         icon = "📱"
@@ -70,8 +71,8 @@ class WhatsAppConfigAdmin(admin.ModelAdmin):
             '<span style="font-size: 14px;">{} <strong>{}</strong></span>',
             icon, obj.phone
         )
-    phone_display.short_description = "Telefon"
 
+    @admin.display(description="Status")
     def is_active_display(self, obj):
         """Display active status with colored badge"""
         if obj.is_active:
@@ -83,8 +84,8 @@ class WhatsAppConfigAdmin(admin.ModelAdmin):
             '<span style="background: #dc3545; color: white; padding: 3px 10px; '
             'border-radius: 3px; font-size: 11px; font-weight: bold;">✗ DEAKTİV</span>'
         )
-    is_active_display.short_description = "Status"
 
+    @admin.display(description="Əməliyyatlar")
     def actions_column(self, obj):
         """Quick toggle active/inactive"""
         if obj.is_active:
@@ -96,7 +97,6 @@ class WhatsAppConfigAdmin(admin.ModelAdmin):
             '<a class="button" href="{}">Aktiv et</a>',
             reverse('admin:users_whatsappconfig_toggle', args=[obj.pk])
         )
-    actions_column.short_description = "Əməliyyatlar"
 
     def get_urls(self):
         """Add custom URL for toggle action"""
@@ -236,6 +236,7 @@ class ShiftHandoverAdmin(admin.ModelAdmin):
                        "cash_in_kassa", "from_notes"]
         return ro
 
+    @admin.display(description="Əməliyyat")
     def confirm_button(self, obj):
         """
         Renders a styled 'Təsdiqlə' button if not yet confirmed and to_user is current user.
@@ -255,7 +256,6 @@ class ShiftHandoverAdmin(admin.ModelAdmin):
                 return format_html('<span style="color: orange;">⏳ Gözləyir</span>')
         return format_html('<span style="color: green;">✅ Təsdiqləndi</span>')
 
-    confirm_button.short_description = "Əməliyyat"
 
     def get_urls(self):
         urls = super().get_urls()
