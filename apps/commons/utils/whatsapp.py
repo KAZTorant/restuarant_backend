@@ -17,13 +17,23 @@ class WhatsAppNotifier:
     
     def __init__(self):
         self.service_url = getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3000')
-        self.owner_phone = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
+        owner_phone_raw = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
+        
+        # Support multiple phone numbers separated by comma
+        if owner_phone_raw:
+            self.owner_phones = [p.strip() for p in owner_phone_raw.split(',') if p.strip()]
+        else:
+            self.owner_phones = []
+        
+        # Backward compatibility: keep single phone as primary
+        self.owner_phone = self.owner_phones[0] if self.owner_phones else None
+        
         self.timeout = 10  # seconds
     
     def is_configured(self):
         """Check if WhatsApp service is configured and ready"""
-        if not self.owner_phone:
-            logger.warning("Restaurant owner phone not configured")
+        if not self.owner_phones:
+            logger.warning("Restaurant owner phone(s) not configured")
             return False
         
         url = f"{self.service_url}/health"
@@ -146,7 +156,8 @@ class WhatsAppNotifier:
     
     def notify_order_item_deleted(self, order_item_info):
         """
-        Send notification to restaurant owner when an order item is deleted
+        Send notification to restaurant owner(s) when an order item is deleted
+        If multiple owner phones configured, sends to all.
         
         Args:
             order_item_info (dict): Dictionary containing order item details
@@ -163,13 +174,12 @@ class WhatsAppNotifier:
                 - reason_display: Display text for reason
                 - comment: Additional comment
         """
-        if not self.owner_phone:
-            logger.warning("Restaurant owner phone not configured. Cannot send notification.")
+        if not self.owner_phones:
+            logger.warning("Restaurant owner phone(s) not configured. Cannot send notification.")
             return False
         
         url = f"{self.service_url}/notify-order-deletion"
         payload = {
-            'owner_phone': self.owner_phone,
             'admin_name': order_item_info.get('admin_name', 'N/A'),
             'room_name': order_item_info.get('room_name', 'N/A'),
             'table_number': order_item_info.get('table_number', 'N/A'),
@@ -183,70 +193,78 @@ class WhatsAppNotifier:
             'comment': order_item_info.get('comment', '')
         }
         
-        try:
-            logger.info(
-                f"Sending order deletion notification to owner.\n"
-                f"  URL: {url}\n"
-                f"  Owner Phone: {self.owner_phone}\n"
-                f"  Order ID: {payload['order_id']}\n"
-                f"  Meal: {payload['meal_name']}\n"
-                f"  Quantity: {payload['quantity']}"
-            )
-            response = requests.post(url, json=payload, timeout=self.timeout)
+        # Send to all configured owner phones
+        success_count = 0
+        for owner_phone in self.owner_phones:
+            payload['owner_phone'] = owner_phone
             
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('success'):
-                    logger.info(
-                        f"Order deletion notification sent successfully.\n"
-                        f"  Order ID: {payload['order_id']}\n"
-                        f"  Response: {data}"
-                    )
-                    return True
+            try:
+                logger.info(
+                    f"Sending order deletion notification to owner.\n"
+                    f"  URL: {url}\n"
+                    f"  Owner Phone: {owner_phone}\n"
+                    f"  Order ID: {payload['order_id']}\n"
+                    f"  Meal: {payload['meal_name']}\n"
+                    f"  Quantity: {payload['quantity']}"
+                )
+                response = requests.post(url, json=payload, timeout=self.timeout)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('success'):
+                        logger.info(
+                            f"Order deletion notification sent successfully to {owner_phone}.\n"
+                            f"  Order ID: {payload['order_id']}\n"
+                            f"  Response: {data}"
+                        )
+                        success_count += 1
+                    else:
+                        error = data.get('error', 'Unknown error')
+                        logger.error(
+                            f"Order deletion notification failed for {owner_phone}.\n"
+                            f"  URL: {url}\n"
+                            f"  Order ID: {payload['order_id']}\n"
+                            f"  Status: 200 but success=false\n"
+                            f"  Error: {error}\n"
+                            f"  Full Response: {data}"
+                        )
                 else:
-                    error = data.get('error', 'Unknown error')
                     logger.error(
-                        f"Order deletion notification failed.\n"
+                        f"Order deletion notification request failed for {owner_phone}.\n"
                         f"  URL: {url}\n"
                         f"  Order ID: {payload['order_id']}\n"
-                        f"  Status: 200 but success=false\n"
-                        f"  Error: {error}\n"
-                        f"  Full Response: {data}"
+                        f"  Status Code: {response.status_code}\n"
+                        f"  Response: {response.text[:500]}"
                     )
-                    return False
-            else:
+                    
+            except requests.exceptions.Timeout as e:
                 logger.error(
-                    f"Order deletion notification request failed.\n"
+                    f"Order deletion notification timeout (>{self.timeout}s) for {owner_phone}.\n"
                     f"  URL: {url}\n"
                     f"  Order ID: {payload['order_id']}\n"
-                    f"  Status Code: {response.status_code}\n"
-                    f"  Response: {response.text[:500]}"
+                    f"  Error: {e}"
                 )
-                return False
-                
-        except requests.exceptions.Timeout as e:
-            logger.error(
-                f"Order deletion notification timeout (>{self.timeout}s).\n"
-                f"  URL: {url}\n"
-                f"  Order ID: {payload['order_id']}\n"
-                f"  Error: {e}"
-            )
-            return False
-        except requests.exceptions.ConnectionError as e:
-            logger.error(
-                f"WhatsApp service connection failed during order deletion notification.\n"
-                f"  URL: {url}\n"
-                f"  Order ID: {payload['order_id']}\n"
-                f"  Error: {e}"
-            )
-            return False
-        except requests.exceptions.RequestException as e:
-            logger.error(
-                f"Order deletion notification request error.\n"
-                f"  URL: {url}\n"
-                f"  Order ID: {payload['order_id']}\n"
-                f"  Error: {type(e).__name__}: {e}"
-            )
+            except requests.exceptions.ConnectionError as e:
+                logger.error(
+                    f"WhatsApp service connection failed during order deletion notification for {owner_phone}.\n"
+                    f"  URL: {url}\n"
+                    f"  Order ID: {payload['order_id']}\n"
+                    f"  Error: {e}"
+                )
+            except requests.exceptions.RequestException as e:
+                logger.error(
+                    f"Order deletion notification request error for {owner_phone}.\n"
+                    f"  URL: {url}\n"
+                    f"  Order ID: {payload['order_id']}\n"
+                    f"  Error: {type(e).__name__}: {e}"
+                )
+        
+        # Return True if at least one notification was sent successfully
+        if success_count > 0:
+            logger.info(f"Order deletion notification sent to {success_count}/{len(self.owner_phones)} owner(s)")
+            return True
+        else:
+            logger.error(f"Failed to send order deletion notification to all {len(self.owner_phones)} owner(s)")
             return False
 
 
