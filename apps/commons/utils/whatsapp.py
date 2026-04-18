@@ -26,36 +26,69 @@ class WhatsAppNotifier:
             logger.warning("Restaurant owner phone not configured")
             return False
         
+        url = f"{self.service_url}/health"
         try:
-            response = requests.get(
-                f"{self.service_url}/health",
-                timeout=self.timeout
-            )
+            logger.info(f"Checking WhatsApp service health at: {url}")
+            response = requests.get(url, timeout=self.timeout)
+            
             if response.status_code == 200:
                 data = response.json()
-                return data.get('whatsapp_ready', False)
+                is_ready = data.get('whatsapp_ready', False)
+                logger.info(f"WhatsApp service health check successful. Ready: {is_ready}, Response: {data}")
+                return is_ready
+            else:
+                logger.error(
+                    f"WhatsApp service health check failed.\n"
+                    f"  URL: {url}\n"
+                    f"  Status Code: {response.status_code}\n"
+                    f"  Response: {response.text[:500]}"
+                )
+                return False
+        except requests.exceptions.Timeout as e:
+            logger.error(f"WhatsApp service timeout (>{self.timeout}s). URL: {url}, Error: {e}")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"WhatsApp service connection failed. URL: {url}, Error: {e}")
             return False
         except requests.exceptions.RequestException as e:
-            logger.error(f"WhatsApp service not reachable: {e}")
+            logger.error(f"WhatsApp service request error. URL: {url}, Error: {type(e).__name__}: {e}")
             return False
     
     def get_status(self):
         """Get WhatsApp service status"""
+        url = f"{self.service_url}/health"
         try:
-            response = requests.get(
-                f"{self.service_url}/health",
-                timeout=self.timeout
-            )
+            logger.info(f"Getting WhatsApp service status from: {url}")
+            response = requests.get(url, timeout=self.timeout)
+            
             if response.status_code == 200:
                 data = response.json()
+                logger.info(f"WhatsApp status retrieved successfully: {data}")
                 return {
                     'ready': data.get('whatsapp_ready', False),
                     'authenticated': data.get('whatsapp_ready', False),
                 }
-            return {'ready': False, 'error': 'Service unavailable'}
+            else:
+                error_msg = f"Service returned status {response.status_code}"
+                logger.error(
+                    f"WhatsApp service status check failed.\n"
+                    f"  URL: {url}\n"
+                    f"  Status Code: {response.status_code}\n"
+                    f"  Response: {response.text[:500]}"
+                )
+                return {'ready': False, 'error': error_msg}
+        except requests.exceptions.Timeout as e:
+            error_msg = f"Timeout after {self.timeout}s"
+            logger.error(f"WhatsApp service timeout. URL: {url}, Error: {e}")
+            return {'ready': False, 'error': error_msg}
+        except requests.exceptions.ConnectionError as e:
+            error_msg = "Connection refused or service not running"
+            logger.error(f"WhatsApp service connection failed. URL: {url}, Error: {e}")
+            return {'ready': False, 'error': error_msg}
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to get status: {e}")
-            return {'ready': False, 'error': str(e)}
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            logger.error(f"WhatsApp service request error. URL: {url}, Error: {error_msg}")
+            return {'ready': False, 'error': error_msg}
     
     def send_message(self, phone, message):
         """
@@ -68,30 +101,47 @@ class WhatsAppNotifier:
         Returns:
             bool: True if message sent successfully, False otherwise
         """
+        url = f"{self.service_url}/send-message"
+        payload = {'phone': phone, 'message': message}
+        
         try:
-            response = requests.post(
-                f"{self.service_url}/send-message",
-                json={
-                    'phone': phone,
-                    'message': message
-                },
-                timeout=self.timeout
-            )
+            logger.info(f"Sending WhatsApp message to {phone} via {url}")
+            response = requests.post(url, json=payload, timeout=self.timeout)
             
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success'):
-                    logger.info(f"WhatsApp message sent to {phone}")
+                    logger.info(f"WhatsApp message sent successfully to {phone}. Response: {data}")
                     return True
                 else:
-                    logger.error(f"Failed to send message: {data.get('error')}")
+                    error = data.get('error', 'Unknown error')
+                    logger.error(
+                        f"WhatsApp message sending failed.\n"
+                        f"  URL: {url}\n"
+                        f"  Phone: {phone}\n"
+                        f"  Status: 200 but success=false\n"
+                        f"  Error: {error}\n"
+                        f"  Full Response: {data}"
+                    )
                     return False
             else:
-                logger.error(f"WhatsApp service error: {response.status_code}")
+                logger.error(
+                    f"WhatsApp send message request failed.\n"
+                    f"  URL: {url}\n"
+                    f"  Phone: {phone}\n"
+                    f"  Status Code: {response.status_code}\n"
+                    f"  Response: {response.text[:500]}"
+                )
                 return False
                 
+        except requests.exceptions.Timeout as e:
+            logger.error(f"WhatsApp send message timeout (>{self.timeout}s). URL: {url}, Phone: {phone}, Error: {e}")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"WhatsApp service connection failed while sending message. URL: {url}, Phone: {phone}, Error: {e}")
+            return False
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to send WhatsApp message: {e}")
+            logger.error(f"WhatsApp send message request error. URL: {url}, Phone: {phone}, Error: {type(e).__name__}: {e}")
             return False
     
     def notify_order_item_deleted(self, order_item_info):
@@ -117,40 +167,86 @@ class WhatsAppNotifier:
             logger.warning("Restaurant owner phone not configured. Cannot send notification.")
             return False
         
+        url = f"{self.service_url}/notify-order-deletion"
+        payload = {
+            'owner_phone': self.owner_phone,
+            'admin_name': order_item_info.get('admin_name', 'N/A'),
+            'room_name': order_item_info.get('room_name', 'N/A'),
+            'table_number': order_item_info.get('table_number', 'N/A'),
+            'order_id': order_item_info.get('order_id', 'N/A'),
+            'order_created_at': order_item_info.get('order_created_at', 'N/A'),
+            'deleted_at': order_item_info.get('deleted_at', 'N/A'),
+            'meal_name': order_item_info.get('meal_name', 'N/A'),
+            'quantity': order_item_info.get('quantity', 0),
+            'price': float(order_item_info.get('price', 0)),
+            'reason_display': order_item_info.get('reason_display', 'N/A'),
+            'comment': order_item_info.get('comment', '')
+        }
+        
         try:
-            response = requests.post(
-                f"{self.service_url}/notify-order-deletion",
-                json={
-                    'owner_phone': self.owner_phone,
-                    'admin_name': order_item_info.get('admin_name', 'N/A'),
-                    'room_name': order_item_info.get('room_name', 'N/A'),
-                    'table_number': order_item_info.get('table_number', 'N/A'),
-                    'order_id': order_item_info.get('order_id', 'N/A'),
-                    'order_created_at': order_item_info.get('order_created_at', 'N/A'),
-                    'deleted_at': order_item_info.get('deleted_at', 'N/A'),
-                    'meal_name': order_item_info.get('meal_name', 'N/A'),
-                    'quantity': order_item_info.get('quantity', 0),
-                    'price': float(order_item_info.get('price', 0)),
-                    'reason_display': order_item_info.get('reason_display', 'N/A'),
-                    'comment': order_item_info.get('comment', '')
-                },
-                timeout=self.timeout
+            logger.info(
+                f"Sending order deletion notification to owner.\n"
+                f"  URL: {url}\n"
+                f"  Owner Phone: {self.owner_phone}\n"
+                f"  Order ID: {payload['order_id']}\n"
+                f"  Meal: {payload['meal_name']}\n"
+                f"  Quantity: {payload['quantity']}"
             )
+            response = requests.post(url, json=payload, timeout=self.timeout)
             
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success'):
-                    logger.info(f"Order deletion notification sent to owner")
+                    logger.info(
+                        f"Order deletion notification sent successfully.\n"
+                        f"  Order ID: {payload['order_id']}\n"
+                        f"  Response: {data}"
+                    )
                     return True
                 else:
-                    logger.error(f"Failed to send notification: {data.get('error')}")
+                    error = data.get('error', 'Unknown error')
+                    logger.error(
+                        f"Order deletion notification failed.\n"
+                        f"  URL: {url}\n"
+                        f"  Order ID: {payload['order_id']}\n"
+                        f"  Status: 200 but success=false\n"
+                        f"  Error: {error}\n"
+                        f"  Full Response: {data}"
+                    )
                     return False
             else:
-                logger.error(f"WhatsApp service error: {response.status_code}")
+                logger.error(
+                    f"Order deletion notification request failed.\n"
+                    f"  URL: {url}\n"
+                    f"  Order ID: {payload['order_id']}\n"
+                    f"  Status Code: {response.status_code}\n"
+                    f"  Response: {response.text[:500]}"
+                )
                 return False
                 
+        except requests.exceptions.Timeout as e:
+            logger.error(
+                f"Order deletion notification timeout (>{self.timeout}s).\n"
+                f"  URL: {url}\n"
+                f"  Order ID: {payload['order_id']}\n"
+                f"  Error: {e}"
+            )
+            return False
+        except requests.exceptions.ConnectionError as e:
+            logger.error(
+                f"WhatsApp service connection failed during order deletion notification.\n"
+                f"  URL: {url}\n"
+                f"  Order ID: {payload['order_id']}\n"
+                f"  Error: {e}"
+            )
+            return False
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to send order deletion notification: {e}")
+            logger.error(
+                f"Order deletion notification request error.\n"
+                f"  URL: {url}\n"
+                f"  Order ID: {payload['order_id']}\n"
+                f"  Error: {type(e).__name__}: {e}"
+            )
             return False
 
 
@@ -163,5 +259,4 @@ def get_whatsapp_notifier():
     global _whatsapp_notifier
     if _whatsapp_notifier is None:
         _whatsapp_notifier = WhatsAppNotifier()
-    return _whatsapp_notifier
     return _whatsapp_notifier
