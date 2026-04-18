@@ -1,13 +1,11 @@
-from django.utils.html import format_html
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import path, reverse
-from apps.users.models import ShiftHandover
 from django.contrib import admin, messages
-from django.contrib import messages
-from django.utils import timezone
-from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from apps.users.models import User
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.html import format_html
+
+from apps.users.models import ShiftHandover, User, WhatsAppConfig
 from apps.users.models.shift_handover import ShiftHandover
 
 
@@ -32,6 +30,107 @@ class CustomUserAdmin(UserAdmin):
 
 # Register the custom admin class
 admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(WhatsAppConfig)
+class WhatsAppConfigAdmin(admin.ModelAdmin):
+    """
+    Admin interface for managing WhatsApp notification recipient phone numbers
+    """
+    list_display = (
+        'phone_display',
+        'name',
+        'is_active_display',
+        'created_at',
+        'actions_column'
+    )
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('phone', 'name')
+    ordering = ('-is_active', 'created_at')
+
+    fieldsets = (
+        ('Telefon Məlumatları', {
+            'fields': ('phone', 'name')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+        ('Tarixlər', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ('created_at', 'updated_at')
+
+    def phone_display(self, obj):
+        """Display phone with flag emoji"""
+        icon = "📱"
+        return format_html(
+            '<span style="font-size: 14px;">{} <strong>{}</strong></span>',
+            icon, obj.phone
+        )
+    phone_display.short_description = "Telefon"
+
+    def is_active_display(self, obj):
+        """Display active status with colored badge"""
+        if obj.is_active:
+            return format_html(
+                '<span style="background: #28a745; color: white; padding: 3px 10px; '
+                'border-radius: 3px; font-size: 11px; font-weight: bold;">✓ AKTİV</span>'
+            )
+        return format_html(
+            '<span style="background: #dc3545; color: white; padding: 3px 10px; '
+            'border-radius: 3px; font-size: 11px; font-weight: bold;">✗ DEAKTİV</span>'
+        )
+    is_active_display.short_description = "Status"
+
+    def actions_column(self, obj):
+        """Quick toggle active/inactive"""
+        if obj.is_active:
+            return format_html(
+                '<a class="button" href="{}">Deaktiv et</a>',
+                reverse('admin:users_whatsappconfig_toggle', args=[obj.pk])
+            )
+        return format_html(
+            '<a class="button" href="{}">Aktiv et</a>',
+            reverse('admin:users_whatsappconfig_toggle', args=[obj.pk])
+        )
+    actions_column.short_description = "Əməliyyatlar"
+
+    def get_urls(self):
+        """Add custom URL for toggle action"""
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:pk>/toggle/',
+                self.admin_site.admin_view(self.toggle_active),
+                name='users_whatsappconfig_toggle',
+            ),
+        ]
+        return custom_urls + urls
+
+    def toggle_active(self, request, pk):
+        """Toggle is_active status"""
+        config = get_object_or_404(WhatsAppConfig, pk=pk)
+        config.is_active = not config.is_active
+        config.save()
+
+        status = "aktiv" if config.is_active else "deaktiv"
+        messages.success(
+            request,
+            f"{config.phone} nömrəsi {status} edildi."
+        )
+        return redirect('admin:users_whatsappconfig_changelist')
+
+    def save_model(self, request, obj, form, change):
+        """Add success message on save"""
+        super().save_model(request, obj, form, change)
+        if change:
+            messages.success(request, f"{obj.phone} yeniləndi.")
+        else:
+            messages.success(request, f"{obj.phone} əlavə edildi.")
+
 
 # admin.py
 

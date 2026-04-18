@@ -17,18 +17,55 @@ class WhatsAppNotifier:
     
     def __init__(self):
         self.service_url = getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3000')
-        owner_phone_raw = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
+        self.timeout = 10  # seconds
         
-        # Support multiple phone numbers separated by comma
-        if owner_phone_raw:
-            self.owner_phones = [p.strip() for p in owner_phone_raw.split(',') if p.strip()]
-        else:
-            self.owner_phones = []
+        # Get owner phones from database (preferred) or fallback to settings
+        self.owner_phones = self._get_owner_phones()
         
         # Backward compatibility: keep single phone as primary
         self.owner_phone = self.owner_phones[0] if self.owner_phones else None
+    
+    def _get_owner_phones(self):
+        """
+        Get active owner phone numbers from database.
+        Falls back to settings.RESTAURANT_OWNER_PHONE if DB is empty.
         
-        self.timeout = 10  # seconds
+        Returns:
+            list: List of active phone numbers
+        """
+        try:
+            # Import here to avoid circular dependency
+            from apps.users.models import WhatsAppConfig
+
+            # Get active phones from DB
+            phones = list(
+                WhatsAppConfig.objects
+                .filter(is_active=True)
+                .values_list('phone', flat=True)
+                .order_by('created_at')
+            )
+            
+            if phones:
+                logger.info(f"Loaded {len(phones)} active WhatsApp phone(s) from database: {phones}")
+                return phones
+            
+            # Fallback to settings if DB is empty
+            logger.warning("No active WhatsApp phones in database. Falling back to settings.")
+            
+        except Exception as e:
+            # If DB not ready or model doesn't exist yet (migrations)
+            logger.warning(f"Could not load WhatsApp phones from database: {e}. Using settings.")
+        
+        # Fallback to settings
+        owner_phone_raw = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
+        if owner_phone_raw:
+            phones = [p.strip() for p in owner_phone_raw.split(',') if p.strip()]
+            if phones:
+                logger.info(f"Using WhatsApp phone(s) from settings: {phones}")
+                return phones
+        
+        logger.warning("No WhatsApp owner phones configured in database or settings.")
+        return []
     
     def is_configured(self):
         """Check if WhatsApp service is configured and ready"""
