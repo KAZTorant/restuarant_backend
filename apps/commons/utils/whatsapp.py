@@ -28,12 +28,12 @@ class WhatsAppNotifier:
         
         try:
             response = requests.get(
-                f"{self.service_url}/status",
+                f"{self.service_url}/health",
                 timeout=self.timeout
             )
             if response.status_code == 200:
                 data = response.json()
-                return data.get('ready', False)
+                return data.get('whatsapp_ready', False)
             return False
         except requests.exceptions.RequestException as e:
             logger.error(f"WhatsApp service not reachable: {e}")
@@ -43,11 +43,15 @@ class WhatsAppNotifier:
         """Get WhatsApp service status"""
         try:
             response = requests.get(
-                f"{self.service_url}/status",
+                f"{self.service_url}/health",
                 timeout=self.timeout
             )
             if response.status_code == 200:
-                return response.json()
+                data = response.json()
+                return {
+                    'ready': data.get('whatsapp_ready', False),
+                    'authenticated': data.get('whatsapp_ready', False),
+                }
             return {'ready': False, 'error': 'Service unavailable'}
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to get status: {e}")
