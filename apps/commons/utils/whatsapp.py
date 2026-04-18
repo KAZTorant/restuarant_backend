@@ -3,6 +3,7 @@ WhatsApp Notification Utility
 Communicates with the WhatsApp Web service to send notifications
 """
 import logging
+
 import requests
 from django.conf import settings
 
@@ -15,7 +16,7 @@ class WhatsAppNotifier:
     """
     
     def __init__(self):
-        self.service_url = getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3001')
+        self.service_url = getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3000')
         self.owner_phone = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
         self.timeout = 10  # seconds
     
@@ -158,4 +159,5 @@ def get_whatsapp_notifier():
     global _whatsapp_notifier
     if _whatsapp_notifier is None:
         _whatsapp_notifier = WhatsAppNotifier()
+    return _whatsapp_notifier
     return _whatsapp_notifier
