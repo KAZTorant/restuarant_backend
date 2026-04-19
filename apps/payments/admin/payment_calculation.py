@@ -553,12 +553,12 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
         elif extra_amount < 0:
             return format_html(
                 '<span style="color: #e74c3c; font-weight: bold;">{} ₼</span> '
-                '<span title="Az ödənilmiş məbləğ" '
+                '<span title="Az ödənilmiš məbləğ" '
                 'style="cursor: help; color: #17a2b8; font-size: 12px;">ⓘ</span>',
                 extra_amount
             )
         else:
-            return format_html('<span style="color: #95a5a6;">{} ₼</span>', '0.00')
+            return mark_safe('<span style="color: #95a5a6;">0.00 ₼</span>')
     
     extra_paid_amount_display.short_description = _("Əlavə Ödənilmiş")
     extra_paid_amount_display.admin_order_field = 'total_amount'

@@ -9,6 +9,7 @@ from django.db.models import Min
 from django.db.models import Max
 from django.db.models import Sum
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from decimal import Decimal
 
@@ -532,7 +533,7 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
         table_html += "</tbody></table> <br>"
         table_html += help_text_html
-        return format_html(table_html)
+        return mark_safe(table_html)
 
     def create_table_for_order_items(self, order_items, oldest_order, latest_order):
         # Format dates to include time (hours and minutes)
@@ -592,4 +593,4 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
         table_html += "</tbody></table> <br>"
         table_html += help_text_html
-        return format_html(table_html)
+        return mark_safe(table_html)
