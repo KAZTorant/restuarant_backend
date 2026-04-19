@@ -1,22 +1,18 @@
 from datetime import datetime
-from django.contrib import admin, messages
-from django.forms import ValidationError
-from django.urls import path, reverse
-from django.http import Http404, HttpResponseRedirect, JsonResponse
-from django.utils.dateformat import format
-from django.utils.timezone import localtime
-from django.db.models import Min
-from django.db.models import Max
-from django.db.models import Sum
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-
 from decimal import Decimal
 
+from django.contrib import admin, messages
+from django.db.models import Max, Min, Sum
+from django.forms import ValidationError
+from django.http import Http404, HttpResponseRedirect, JsonResponse
+from django.urls import path, reverse
+from django.utils.dateformat import format
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django.utils.timezone import localtime
 from simple_history.admin import SimpleHistoryAdmin
 
-from apps.orders.models import Statistics, Order
-
+from apps.orders.models import Order, Statistics
 from apps.orders.models.order import OrderItem
 from apps.payments.models.pay_table_orders import Payment
 from apps.printers.models.receipt import Receipt

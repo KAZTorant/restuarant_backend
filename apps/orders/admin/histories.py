@@ -57,7 +57,7 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
         if not lines:
             lines = ["Dəyişiklik tapılmadı"]
 
-        return format_html(self._wrap_as_list(lines))
+        return mark_safe(self._wrap_as_list(lines))
 
     get_history_reason.short_description = "Dəyişiklik Səbəbi"
 
