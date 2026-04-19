@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from apps.payments.models import Payment, PaymentCalculation
@@ -222,7 +223,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             </table>
         </div>
         """
-        return format_html(html)
+        return mark_safe(html)
     
     payments_display.short_description = _("Ödənişlər")
 
@@ -276,7 +277,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             </table>
         </div>
         """
-        return format_html(html)
+        return mark_safe(html)
     
     product_sales_display.short_description = _("Satılan məhsullar")
 
@@ -352,7 +353,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
             </table>
         </div>
         """
-        return format_html(html)
+        return mark_safe(html)
     
     waiter_payments_display.short_description = _("Ofisiantlar üzrə ödənişlər")
 
@@ -557,7 +558,7 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                 extra_amount
             )
         else:
-            return format_html('<span style="color: #95a5a6;">0.00 ₼</span>')
+            return format_html('<span style="color: #95a5a6;">{} ₼</span>', '0.00')
     
     extra_paid_amount_display.short_description = _("Əlavə Ödənilmiş")
     extra_paid_amount_display.admin_order_field = 'total_amount'

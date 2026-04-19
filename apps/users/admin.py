@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.users.models import ShiftHandover, User, WhatsAppConfig
 from apps.users.models.shift_handover import ShiftHandover
@@ -165,8 +166,8 @@ class ShiftHandoverAdmin(admin.ModelAdmin):
                     'font-weight: bold;">Təsdiqlə</a>', url
                 )
             elif not obj.is_confirmed:
-                return format_html('<span style="color: orange;">⏳ Gözləyir</span>')
-        return format_html('<span style="color: green;">✅ Təsdiqləndi</span>')
+                return mark_safe('<span style="color: orange;">⏳ Gözləyir</span>')
+        return mark_safe('<span style="color: green;">✅ Təsdiqləndi</span>')
 
 
     def get_urls(self):

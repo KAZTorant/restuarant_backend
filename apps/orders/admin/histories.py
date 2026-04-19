@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+
 from django.contrib import admin
-from django.utils.html import format_html
 from django.contrib.admin.views.main import ChangeList
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from simple_history.utils import get_history_model_for_model
-from datetime import timedelta, datetime
 
 from apps.orders.models import Order, OrderItem
 
@@ -44,9 +46,9 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
     def get_history_reason(self, obj):
         # Creation or deletion
         if obj.history_type == '+':
-            return format_html("<ul><li>Yeni sifariş yaradıldı</li></ul>")
+            return mark_safe("<ul><li>Yeni sifariş yaradıldı</li></ul>")
         if obj.history_type == '-':
-            return format_html("<ul><li>Sifariş silindi</li></ul>")
+            return mark_safe("<ul><li>Sifariş silindi</li></ul>")
 
         lines = []
         lines += self._get_order_field_changes(obj)
@@ -159,4 +161,5 @@ class HistoricalOrderAdmin(admin.ModelAdmin):
         for line in lines:
             html += f"<li>{line}</li>"
         html += "</ul>"
+        return html
         return html

@@ -1,10 +1,12 @@
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 from django.contrib import admin
-from django.utils.html import format_html
-from django.utils import timezone
 from django.http import JsonResponse
 from django.urls import path
-from datetime import timedelta, datetime
-from decimal import Decimal
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.orders.models import Statistics
 
@@ -137,7 +139,7 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                 extra_amount
             )
         else:
-            return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+            return mark_safe('<span style="color: #95a5a6;">0.00 AZN</span>')
     
     extra_paid_amount_display.short_description = 'Əlavə Ödənilmiş'
     extra_paid_amount_display.admin_order_field = 'total'
@@ -167,7 +169,7 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                     extra_amount
                 )
             else:
-                return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+                return mark_safe('<span style="color: #95a5a6;">0.00 AZN</span>')
         else:
             # First shift, show initial cash
             if obj.initial_cash > 0:
@@ -175,7 +177,7 @@ class WithdrawnListAdmin(admin.ModelAdmin):
                     '<span style="color: #e74c3c; font-weight: bold;">+{} AZN</span>',
                     obj.initial_cash
                 )
-            return format_html('<span style="color: #95a5a6;">0.00 AZN</span>')
+            return mark_safe('<span style="color: #95a5a6;">0.00 AZN</span>')
     
     extra_initial_cash_display.short_description = 'Kassada Artıq Məbləğ'
     
@@ -375,4 +377,5 @@ class WithdrawnListAdmin(admin.ModelAdmin):
 
 # Register the proxy model
 admin.site.register(WithdrawnList, WithdrawnListAdmin)
+
 

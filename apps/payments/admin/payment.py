@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from apps.orders.models import Order
@@ -73,7 +74,7 @@ class OrderInline(admin.TabularInline):
             </table>
         </div>
         """
-        return format_html(html)
+        return mark_safe(html)
     
     order_details.short_description = _("Sifariş təfərrüatları")
 
