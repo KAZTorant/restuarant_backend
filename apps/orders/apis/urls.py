@@ -1,7 +1,8 @@
-from django.urls import path
+from django.urls import include, path
 
 # Import your new API view
-from apps.orders.api_views import active_orders_api, daily_report_api, period_report_api
+from apps.orders.api_views import (active_orders_api, daily_report_api,
+                                   period_report_api)
 from apps.orders.apis import (AddOrderItemAPIView, ChangeTableOrderAPIView,
                               ChangeWaitressAPIView, CheckOrderAPIView,
                               CloseTableOrderAPIView, CreateOrderAPIView,
@@ -123,4 +124,11 @@ urlpatterns = [
         AddCommentToOrderItemAPIView.as_view(),
         name='comment'
     ),
+    
+    # Statistics/Hesabatlar APIs
+    path(
+        'statistics/',
+        include('apps.orders.apis.statistics.urls')
+    ),
 ]
+
