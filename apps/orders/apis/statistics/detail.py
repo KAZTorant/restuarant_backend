@@ -103,7 +103,11 @@ class StatisticsDetailAPIView(APIView):
             shift_details['növbə_müddəti_saat'] = None
 
         # === Statistics-Order əlaqələri (Order Relations) Tab ===
-        orders = shift.orders.all()
+        # For closed shifts, get all orders including deleted ones (is_deleted=True)
+        if shift.is_closed:
+            orders = Order.objects.all_orders().filter(statistics=shift)
+        else:
+            orders = shift.orders.all()
         
         # Calculate per-waitress statistics
         waitress_stats = {}
@@ -131,7 +135,7 @@ class StatisticsDetailAPIView(APIView):
 
         # Get connection data (bağlanma qeydi)
         connection_data = {
-            'bağlanma_qeydi': 'maas-35\nrasxod nəqd-91' if shift.is_closed else '',
+            'bağlanma_qeydi': shift.withdrawn_notes or '',
             'başlanma_qeydi': shift.notes or '',
             'display_per_waitress': per_waitress,
         }
@@ -141,7 +145,13 @@ class StatisticsDetailAPIView(APIView):
         meal_totals = {}
         
         for order in orders:
-            for item in order.order_items.all():
+            # Use all_order_items to get items even for deleted orders
+            if shift.is_closed:
+                items = order.order_items.model.objects.all_order_items().filter(order=order)
+            else:
+                items = order.order_items.all()
+                
+            for item in items:
                 meal_name = item.meal.name
                 if meal_name not in meal_totals:
                     meal_totals[meal_name] = {

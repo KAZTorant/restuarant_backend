@@ -5,12 +5,15 @@
 Bu API Django admin panelindəki Statistics (Hesabatlar) modulunun bütün funksionallığını təmin edir. Tables modulu ilə eyni struktur və optimizasiyalar istifadə edilib.
 
 ## Base URL
+
 ```
 http://127.0.0.1:8000/api/orders/statistics/
 ```
 
 ## Authentication
+
 Bütün API-lər token authentication tələb edir:
+
 ```dart
 headers: {
   'Authorization': 'Bearer $token',
@@ -23,17 +26,20 @@ headers: {
 ## API Endpoint-ləri
 
 ### 1. 📋 Hesabatlar Siyahısı
+
 ```
 GET /api/orders/statistics/
 ```
 
 **Parametrlər:**
+
 - `start_date`: Başlanma tarixi (YYYY-MM-DD)
 - `end_date`: Bitmə tarixi (YYYY-MM-DD)
 - `is_closed`: true/false (bağlı/açıq növbələr)
 - `ordering`: -start_time, end_time, total
 
 **Nümunə:**
+
 ```dart
 final response = await http.get(
   Uri.parse('$baseUrl/api/orders/statistics/?is_closed=false&ordering=-start_time'),
@@ -46,11 +52,13 @@ final response = await http.get(
 ---
 
 ### 2. 🔍 Hesabat Detalları (Bütün Tab-lar)
+
 ```
 GET /api/orders/statistics/{shift_id}/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.get(
   Uri.parse('$baseUrl/api/orders/statistics/267/'),
@@ -59,20 +67,23 @@ final response = await http.get(
 ```
 
 **Response Tab-ları:**
+
 - ✅ **ümumi_məlumat**: Başlıq, ümumi məbləğ, tarix
 - 💰 **mabləğlər**: Bütün maliyyə məlumatları (başlanğıc, qazanc, çəkilən, qalan)
 - 📅 **növbə_detalları**: Kim açıb/bağlayıb, vaxtlar, qeydlər, müddət
 - 📊 **qeydlər_və_hesabatlar**: Bağlanma qeydi, ofisiantlar, məhsul xülasəsi
-- 🔗 **statistics_order_əlaqələri**: Hesabata aid sifarişlər
+- 🔗 **statistics*order*əlaqələri**: Hesabata aid sifarişlər
 
 ---
 
 ### 3. ⏰ Cari Aktiv Növbə
+
 ```
 GET /api/orders/statistics/current-shift/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.get(
   Uri.parse('$baseUrl/api/orders/statistics/current-shift/'),
@@ -87,11 +98,13 @@ final response = await http.get(
 ---
 
 ### 4. 💡 Növbə Başlatma Məlumatları
+
 ```
 GET /api/orders/statistics/start-shift-info/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.get(
   Uri.parse('$baseUrl/api/orders/statistics/start-shift-info/'),
@@ -104,11 +117,13 @@ final response = await http.get(
 ---
 
 ### 5. ▶️ Növbə Başlatma
+
 ```
 POST /api/orders/statistics/start-shift/
 ```
 
 **Request Body:**
+
 ```json
 {
   "initial_cash": "11333.20",
@@ -119,6 +134,7 @@ POST /api/orders/statistics/start-shift/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.post(
   Uri.parse('$baseUrl/api/orders/statistics/start-shift/'),
@@ -139,11 +155,13 @@ final response = await http.post(
 ---
 
 ### 6. ⏹️ Növbə Bağlama
+
 ```
 POST /api/orders/statistics/{shift_id}/end-shift/
 ```
 
 **Request Body:**
+
 ```json
 {
   "withdrawn_amount": "936.58",
@@ -154,6 +172,7 @@ POST /api/orders/statistics/{shift_id}/end-shift/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.post(
   Uri.parse('$baseUrl/api/orders/statistics/267/end-shift/'),
@@ -174,11 +193,13 @@ final response = await http.post(
 ---
 
 ### 7. 📊 Aktiv Sifarişlər Statistikası
+
 ```
 GET /api/orders/statistics/active-orders-stats/
 ```
 
 **Nümunə:**
+
 ```dart
 final response = await http.get(
   Uri.parse('$baseUrl/api/orders/statistics/active-orders-stats/'),
@@ -193,6 +214,7 @@ final response = await http.get(
 ## UI Flow Təklifləri
 
 ### 1. Hesabatlar Səhifəsi (List)
+
 ```
 ┌─────────────────────────────────────┐
 │  Hesabatlar 📊                      │
@@ -219,6 +241,7 @@ final response = await http.get(
 ---
 
 ### 2. Hesabat Detalları (Detail)
+
 ```
 ┌─────────────────────────────────────┐
 │  ← Hesabat #267                     │
@@ -245,6 +268,7 @@ final response = await http.get(
 ---
 
 ### 3. Növbə Başlatma
+
 ```
 ┌─────────────────────────────────────┐
 │  Yeni Növbə Başlat                  │
@@ -264,12 +288,14 @@ final response = await http.get(
 ```
 
 **API Sequence:**
+
 1. `GET /api/orders/statistics/start-shift-info/` → Təklif olunan məbləğləri əldə et
 2. `POST /api/orders/statistics/start-shift/` → Növbəni başlat
 
 ---
 
 ### 4. Növbə Bağlama
+
 ```
 ┌─────────────────────────────────────┐
 │  Növbə Bağlama                      │
@@ -295,12 +321,14 @@ final response = await http.get(
 ```
 
 **API Sequence:**
+
 1. `GET /api/orders/statistics/267/` → Cari məlumatları al
 2. `POST /api/orders/statistics/267/end-shift/` → Növbəni bağla
 
 ---
 
 ### 5. Dashboard Widget (Cari Növbə)
+
 ```
 ┌─────────────────────────────────────┐
 │  Cari Növbə 🟢                      │
@@ -317,6 +345,7 @@ final response = await http.get(
 ```
 
 **API (Auto-refresh hər 30 saniyə):**
+
 ```dart
 Timer.periodic(Duration(seconds: 30), (timer) async {
   final response = await http.get(
@@ -334,6 +363,7 @@ Timer.periodic(Duration(seconds: 30), (timer) async {
 ## Model Nümunələri (Dart)
 
 ### Statistics Model
+
 ```dart
 class Statistics {
   final int id;
@@ -411,6 +441,7 @@ class Statistics {
 ```
 
 ### Statistics Detail Model
+
 ```dart
 class StatisticsDetail {
   final GeneralInfo generalInfo;
@@ -472,9 +503,9 @@ class StatisticsApiService {
 
     final uri = Uri.parse('$baseUrl/api/orders/statistics/')
         .replace(queryParameters: queryParams);
-    
+
     final response = await http.get(uri, headers: _headers);
-    
+
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => Statistics.fromJson(e)).toList();
@@ -489,7 +520,7 @@ class StatisticsApiService {
       Uri.parse('$baseUrl/api/orders/statistics/$shiftId/'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       return StatisticsDetail.fromJson(jsonDecode(response.body));
     } else {
@@ -503,7 +534,7 @@ class StatisticsApiService {
       Uri.parse('$baseUrl/api/orders/statistics/current-shift/'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       return CurrentShift.fromJson(jsonDecode(response.body));
     } else if (response.statusCode == 404) {
@@ -519,7 +550,7 @@ class StatisticsApiService {
       Uri.parse('$baseUrl/api/orders/statistics/start-shift-info/'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       return StartShiftInfo.fromJson(jsonDecode(response.body));
     } else {
@@ -544,7 +575,7 @@ class StatisticsApiService {
         'notes': notes ?? '',
       }),
     );
-    
+
     if (response.statusCode == 201) {
       return StartShiftResponse.fromJson(jsonDecode(response.body));
     } else {
@@ -571,7 +602,7 @@ class StatisticsApiService {
         'withdrawn_notes': withdrawnNotes ?? '',
       }),
     );
-    
+
     if (response.statusCode == 200) {
       return EndShiftResponse.fromJson(jsonDecode(response.body));
     } else {
@@ -586,7 +617,7 @@ class StatisticsApiService {
       Uri.parse('$baseUrl/api/orders/statistics/active-orders-stats/'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       return ActiveOrdersStats.fromJson(jsonDecode(response.body));
     } else {
@@ -603,12 +634,14 @@ class StatisticsApiService {
 ### Postman-da Test Etmək
 
 1. **Environment yaradın:**
+
 ```
 base_url: http://127.0.0.1:8000
 token: your_auth_token_here
 ```
 
 2. **Collection yaradın və test edin:**
+
 ```
 ✅ List Statistics
 ✅ Get Statistics Detail
@@ -624,20 +657,24 @@ token: your_auth_token_here
 ## Əlavə Qeydlər
 
 ### ✨ Optimizasyonlar
+
 - ✅ `select_related` və `prefetch_related` istifadə olunub
 - ✅ Minimal database query-lər
 - ✅ Tables modulu ilə eyni struktur
 
 ### 🔒 Security
+
 - ✅ Authentication tələb olunur
 - ✅ İstifadəçi yalnız öz növbəsini bağlaya bilər
 - ✅ Input validation
 
 ### 📱 Real-time
+
 - ✅ Current shift auto-refresh dəstəkləyir
 - ✅ Active orders stats real-time
 
 ### 📚 Tam Dokumentasiya
+
 Ətraflı məlumat üçün bax: `docs/STATISTICS_API_DOCUMENTATION.md`
 
 ---
