@@ -55,7 +55,8 @@ class PrinterService:
                 receipt_data
             )
             response = PrinterService._send_text_to_main_printer(
-                formatted_text
+                formatted_text,
+                orders=list(orders),
             )
 
             if response.status_code == 200:
@@ -303,7 +304,7 @@ class PrinterService:
     # ========================= #
 
     @staticmethod
-    def _send_text_to_main_printer(text, payment=None, type=Receipt.ReceiptType.CUSTOMER):
+    def _send_text_to_main_printer(text, payment=None, orders=None, type=Receipt.ReceiptType.CUSTOMER):
         printer = Printer.objects.filter(is_main=True).first()
         if not printer:
             raise Exception("Sistemdə əsas printer təyin edilməyib.")
@@ -312,12 +313,14 @@ class PrinterService:
             text, printer.ip_address, printer.port
         )
 
-        Receipt.objects.create(
+        receipt = Receipt.objects.create(
             type=type,
             text=text,
             payment=payment,
             printer_response_status_code=response.status_code,
         )
+        if orders:
+            receipt.orders.set(orders)
 
         return response
 
