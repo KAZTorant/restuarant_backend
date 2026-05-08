@@ -100,16 +100,18 @@ class ReceiptAdmin(admin.ModelAdmin):
     )
 
     def table_display(self, obj):
-        # Try to get table from payment first, then from orders
+        # Try to get table from payment first
         if obj.payment and obj.payment.table:
             t = obj.payment.table
             room = t.room.name if t.room else ""
             return f"{room} - Masa {t.number}" if room else f"Masa {t.number}"
-        # Use all_orders() to include soft-deleted orders as well
-        from apps.orders.models import Order
-        order = Order.objects.all_orders().filter(receipts=obj).first()
-        if order and order.table:
-            t = order.table
+        # Use through model directly to bypass soft-delete custom managers
+        through = Receipt.orders.through
+        through_obj = through.objects.filter(receipt=obj).select_related(
+            'order__table__room'
+        ).first()
+        if through_obj and through_obj.order and through_obj.order.table:
+            t = through_obj.order.table
             room = t.room.name if t.room else ""
             return f"{room} - Masa {t.number}" if room else f"Masa {t.number}"
         return "-"
