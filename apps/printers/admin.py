@@ -105,7 +105,9 @@ class ReceiptAdmin(admin.ModelAdmin):
             t = obj.payment.table
             room = t.room.name if t.room else ""
             return f"{room} - Masa {t.number}" if room else f"Masa {t.number}"
-        order = obj.orders.first()
+        # Use all_orders() to include soft-deleted orders as well
+        from apps.orders.models import Order
+        order = Order.objects.all_orders().filter(receipts=obj).first()
         if order and order.table:
             t = order.table
             room = t.room.name if t.room else ""
