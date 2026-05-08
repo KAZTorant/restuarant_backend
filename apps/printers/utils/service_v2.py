@@ -103,16 +103,18 @@ class PrinterService:
 
     @staticmethod
     def _build_receipt_data(table, orders, is_paid, payment_type, payment_methods, discount_amount, discount_comment, paid_amount, change):
+        from decimal import Decimal
         order_data = []
         waitress = table.waitress
-        total = 0
+        total = Decimal('0')
 
         for order in orders:
             parsed = PrinterService._parse_order(order)
             order_data.append(parsed)
-            total += parsed["order_total"]
+            total += Decimal(str(parsed["order_total"]))
 
-        final_total = max(total - discount_amount, 0)
+        discount_amount = Decimal(str(discount_amount))
+        final_total = max(total - discount_amount, Decimal('0'))
 
         return {
             "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
