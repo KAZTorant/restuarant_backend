@@ -35,7 +35,7 @@ class OrderInline(admin.TabularInline):
         from collections import defaultdict
         grouped_items = defaultdict(lambda: {'quantity': 0, 'unit_price': 0, 'total': 0})
         
-        for item in order.order_items.all():
+        for item in order.order_items.all_order_items().filter(order=order):
             # Calculate unit price from total price and quantity
             unit_price = item.price / item.quantity if item.quantity > 0 else 0
             key = (item.meal.name, unit_price)

@@ -62,9 +62,6 @@ class OrderInline(admin.TabularInline):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    def has_module_permission(self, request):
-        return False
-
 
 @admin.register(Statistics)
 class StatisticsAdmin(SimpleHistoryAdmin):
