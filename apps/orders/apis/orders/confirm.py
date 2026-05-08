@@ -164,11 +164,12 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
 
             if mid not in meal_groups:
                 meal_groups[mid] = {
-                    "name":       name,
-                    "quantity":   0,
-                    "price":      price,
-                    "line_total": 0,
-                    "comments":   set(),      # collect into a set
+                    "name":             name,
+                    "quantity":         0,
+                    "price":            price,
+                    "line_total":       0,
+                    "meal_description": (item.meal.description or "").strip(),  # admin-dən set olunan
+                    "comments":         set(),  # collect into a set
                 }
             grp = meal_groups[mid]
             grp["quantity"] += item.quantity
@@ -177,6 +178,11 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
             comment = getattr(item, "comment", None)
             if comment and comment.strip():
                 grp["comments"].add(comment.strip())
+
+            # collect UI-dan yazılan note (order_item.description)
+            item_desc = getattr(item, "description", None)
+            if item_desc and item_desc.strip():
+                grp["comments"].add(item_desc.strip())
 
         # Finalize each group: compute line_total and turn comments into a sorted list
         grouped_items = []

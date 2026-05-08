@@ -256,15 +256,13 @@ class PrinterService:
         and enlarged font (medium-large size).
         """
 
-        ESC = '\x1B'
         GS = '\x1D'
-        MEDIUM_LARGE_SIZE = GS + '!' + '\x10'  # 2x height only
         NORMAL_SIZE = GS + '!' + '\x00'
         width = 48
 
         lines = []
 
-        lines.append(MEDIUM_LARGE_SIZE)
+        lines.append(NORMAL_SIZE)
         lines.append('=' * width)
         lines.append('HAZIRLANMA ÇƏKİ'.center(width))
         lines.append('=' * width)
@@ -283,6 +281,8 @@ class PrinterService:
 
             for item in order['items']:
                 lines.append(f"{item['name']:<30}{item['quantity']:>6}")
+                if item.get('meal_description'):
+                    lines.append(f"  Acıqlama: {item['meal_description']}")
                 for comment in item.get('comments', []):
                     lines.append(f"  Qeyd: {comment}")
 
