@@ -30,7 +30,10 @@ Deploy əvvəl avtomatik işləyir:
 ```bash
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
+python manage.py ensure_superuser
 ```
+
+`ensure_superuser` superuser yoxdursa yaradır (default: `admin` / `admin123`).
 
 Sonra Gunicorn başlayır (`bin/start.sh`).
 
@@ -42,11 +45,18 @@ Railway dashboard-da **Settings → Networking → Generate Domain** ilə public
 
 ## 5. Admin istifadəçisi
 
-Deploy-dan sonra Railway shell-də:
+Deploy zamanı avtomatik yaradılır:
 
-```bash
-python manage.py createsuperuser
-```
+- **Username:** `admin`
+- **Password:** `admin123`
+
+Dəyişmək üçün Railway Variables:
+
+- `SUPERUSER_USERNAME`
+- `SUPERUSER_PASSWORD`
+- `SUPERUSER_EMAIL`
+
+Superuser artıq varsa, command onu toxunmur.
 
 ## 6. Qeydlər
 
