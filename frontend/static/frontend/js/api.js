@@ -102,8 +102,9 @@ const KazzaAPI = {
     return this.get(url);
   },
 
-  confirmOrder(orderId) {
-    return this.post(`/api/orders/${orderId}/confirm/`, {});
+  confirmOrder(tableId, orderId = null) {
+    const body = orderId ? { order_id: orderId } : {};
+    return this.post(`/api/orders/${tableId}/confirm/`, body);
   },
 };
 

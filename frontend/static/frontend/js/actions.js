@@ -118,7 +118,7 @@ const ActionsPanel = {
     this.showLoading(true, 'Mətbəxə göndərilir...');
     try {
       await this.loadMainOrderId();
-      await KazzaAPI.confirmOrder(this.mainOrderId);
+      await KazzaAPI.confirmOrder(this.tableId, this.mainOrderId);
       EventBus.emit('order-confirmed');
       this.toast('Sifariş mətbəxə göndərildi', 'success');
     } catch (e) {
