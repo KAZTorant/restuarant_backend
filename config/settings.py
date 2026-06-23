@@ -234,6 +234,8 @@ SWAGGER_SETTINGS = {
 }
 
 AUTH_USER_MODEL = 'users.User'
+# username is unique per restaurant, not globally; PIN auth scopes by restaurant.
+SILENCED_SYSTEM_CHECKS = ['auth.E003']
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
