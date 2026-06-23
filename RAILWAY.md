@@ -23,11 +23,12 @@ Tam siyahı üçün `.env.example` faylına baxın.
 
 ## 3. Deploy axını
 
-Build zamanı `requirements.txt` install olunur.
+Build zamanı `requirements.txt` install olunur və `admin-frontend` production build edilir (`nixpacks.toml` + `bin/build-admin-frontend.sh`).
 
 Deploy əvvəl avtomatik işləyir:
 
 ```bash
+bash bin/build-admin-frontend.sh
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py ensure_superuser

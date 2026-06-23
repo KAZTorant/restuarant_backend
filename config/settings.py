@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'apps.printers.apps.PrintersConfig',
     'apps.payments.apps.PaymentsConfig',
     'apps.frontend.apps.FrontendConfig',
+    'apps.admin_api.apps.AdminApiConfig',
 
     # 3rd party apps
     'drf_yasg',
@@ -209,6 +210,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'static'),
+    os.path.join(BASE_DIR, 'admin-frontend', 'dist'),
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

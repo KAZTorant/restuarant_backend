@@ -15,7 +15,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
+
+from apps.admin_api.spa_view import AdminSPAAssetView, AdminSPAView
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
@@ -36,6 +39,10 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', include('apps.frontend.urls')),
     path('admin/', admin.site.urls),
+    path('panel/', AdminSPAView.as_view(), name='admin-panel'),
+    re_path(r'^panel/assets/(?P<path>.*)$', AdminSPAAssetView.as_view(), name='admin-panel-assets'),
+    re_path(r'^panel/(?P<path>.*)$', AdminSPAView.as_view(), name='admin-panel-catchall'),
+    path('admin-api/', include('apps.admin_api.urls')),
     path('api/', include('apps.urls')),
     path('orders/', include('apps.orders.apis.urls')),  # Make sure this line exists
 
