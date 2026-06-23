@@ -138,8 +138,11 @@ class ModelDetailView(APIView):
         if not obj:
             return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        schema = build_form_schema(model_admin, request, obj)
-        data = serialize_object(model_admin, request, obj)
+        try:
+            schema = build_form_schema(model_admin, request, obj)
+            data = serialize_object(model_admin, request, obj)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({
             'object': data,
@@ -210,7 +213,11 @@ class ModelCreateView(APIView):
         if not model_admin.has_add_permission(request):
             return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        schema = build_form_schema(model_admin, request, None)
+        try:
+            schema = build_form_schema(model_admin, request, None)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response({'schema': schema})
 
     def post(self, request, app_label, model_name):
@@ -255,7 +262,7 @@ class RelatedChoicesView(APIView):
                 q |= Q(**{f'{field}__icontains': search})
             qs = qs.filter(q)
 
-        limit = min(int(request.query_params.get('limit', 50)), 200)
+        limit = min(int(request.query_params.get('limit', 200)), 500)
         results = [{'id': obj.pk, 'label': str(obj)} for obj in qs[:limit]]
         return Response({'results': results})
 

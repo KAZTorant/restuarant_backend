@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       </div>`).join('') || '<p class="empty-state">Masa tapılmadı</p>';
   } catch (e) {
-    if (e.status === 401) window.location.href = '/panel/login/';
-    grid.innerHTML = '<p class="empty-state">Xəta baş verdi</p>';
+    AdminUI.handleApiError(e, 'Masalar yüklənə bilmədi');
+    grid.innerHTML = '<p class="empty-state">Masalar yüklənə bilmədi</p>';
   }
 });

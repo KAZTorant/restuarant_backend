@@ -41,26 +41,41 @@ def build_form_schema(model_admin, request, obj=None):
     fieldsets = model_admin.get_fieldsets(request, obj)
     flat_fields = flatten_fieldsets(fieldsets)
 
+    form = None
+    try:
+        form = build_model_form(model_admin, request, obj=obj)
+    except Exception:
+        form = None
+
     fields = []
     for name in flat_fields:
         if name in exclude:
             continue
-        field_meta = _field_meta(model_admin, request, name, obj, readonly)
+        field_meta = _field_meta(model_admin, request, name, obj, readonly, form=form)
         if field_meta:
             fields.append(field_meta)
 
+    field_names = {f['name'] for f in fields}
     fieldset_groups = []
     for title, options in fieldsets:
+        group_field_names = set(flatten_fieldsets([(title, options)]))
         group_fields = [
-            f['name'] for f in fields
-            if f['name'] in (options.get('fields') or ())
+            name for name in group_field_names
+            if name in field_names
         ]
         if group_fields:
             fieldset_groups.append({
-                'title': title,
+                'title': title or '',
                 'classes': list(options.get('classes', ())),
                 'fields': group_fields,
             })
+
+    if not fieldset_groups and fields:
+        fieldset_groups = [{
+            'title': '',
+            'classes': [],
+            'fields': [f['name'] for f in fields],
+        }]
 
     inlines = []
     for inline_class in model_admin.get_inlines(request, obj):
@@ -158,23 +173,26 @@ def _column_meta(model_admin, request, name):
     }
 
 
-def _field_meta(model_admin, request, name, obj, readonly):
+def _field_meta(model_admin, request, name, obj, readonly, form=None):
     if name in readonly:
+        field_type = 'computed' if _is_admin_computed(model_admin, name) else 'readonly'
         return {
             'name': name,
             'label': _field_label(model_admin, name),
-            'type': 'readonly',
+            'type': field_type,
             'required': False,
             'help_text': '',
             'choices': [],
             'related_model': None,
         }
 
-    try:
-        form = build_model_form(model_admin, request, obj=obj)
-        form_field = form.fields.get(name)
-    except Exception:
-        form_field = None
+    if form is None:
+        try:
+            form = build_model_form(model_admin, request, obj=obj)
+        except Exception:
+            form = None
+
+    form_field = form.fields.get(name) if form else None
 
     if form_field is None:
         if hasattr(model_admin, name) and callable(getattr(model_admin, name)):
@@ -294,6 +312,27 @@ def _field_label(model_admin, name):
         return name.replace('_', ' ').title()
 
 
+def _is_admin_computed(model_admin, name):
+    method = getattr(model_admin, name, None)
+    return method is not None and callable(method)
+
+
+def _serialize_scalar(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_serialize_scalar(item) for item in value]
+    return str(value)
+
+
 def _field_value(obj, name, field_meta):
     try:
         val = getattr(obj, name)
@@ -306,11 +345,7 @@ def _field_value(obj, name, field_meta):
         return [{'id': o.pk, 'label': str(o)} for o in val.all()]
     if field_meta['type'] == 'boolean':
         return bool(val)
-    if val is None:
-        return None
-    if hasattr(val, 'isoformat'):
-        return val.isoformat()
-    return val
+    return _serialize_scalar(val)
 
 
 def _computed_value(model_admin, request, obj, name):

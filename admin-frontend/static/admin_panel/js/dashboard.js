@@ -11,6 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <ul>${app.models.map((m) => `<li><a href="/panel/models/${m.app_label}/${m.model_name}/">${AdminUI.escapeHtml(m.name)}</a></li>`).join('')}</ul>
       </div>`).join('');
   } catch (e) {
-    if (e.status === 401 || e.status === 403) window.location.href = '/panel/login/';
+    AdminUI.handleApiError(e, 'Səhifə yüklənə bilmədi');
   }
 });

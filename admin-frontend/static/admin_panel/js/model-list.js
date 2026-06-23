@@ -40,12 +40,17 @@ const ModelList = {
   },
 
   async load() {
-    await AdminUI.withLoading(async () => {
-      this.meta = await AdminAPI.modelMeta(this.app, this.model);
-      document.getElementById('page-title').textContent = this.meta.verbose_name_plural;
-      this.renderActions();
-      await this.loadList();
-    });
+    try {
+      await AdminUI.withLoading(async () => {
+        this.meta = await AdminAPI.modelMeta(this.app, this.model);
+        document.getElementById('page-title').textContent = this.meta.verbose_name_plural;
+        this.renderActions();
+        await this.loadList();
+      });
+    } catch (e) {
+      document.getElementById('page-title').textContent = 'Xəta';
+      AdminUI.handleApiError(e, 'Siyahı yüklənə bilmədi');
+    }
   },
 
   renderActions() {
@@ -65,10 +70,14 @@ const ModelList = {
   },
 
   async loadList() {
-    const params = { page: String(this.page) };
-    if (this.search) params.q = this.search;
-    const data = await AdminAPI.list(this.app, this.model, params);
-    this.renderTable(data);
+    try {
+      const params = { page: String(this.page) };
+      if (this.search) params.q = this.search;
+      const data = await AdminAPI.list(this.app, this.model, params);
+      this.renderTable(data);
+    } catch (e) {
+      AdminUI.handleApiError(e, 'Siyahı yüklənə bilmədi');
+    }
   },
 
   renderTable(data) {

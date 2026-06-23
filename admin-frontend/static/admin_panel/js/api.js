@@ -45,7 +45,9 @@ const AdminAPI = {
   update(app, model, pk, data) { return this.patch(`/${app}/${model}/${pk}/`, data); },
   remove(app, model, pk) { return this.delete(`/${app}/${model}/${pk}/`); },
   choices(app, model, q = '') {
-    return this.get(`/${app}/${model}/choices/${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    const params = new URLSearchParams({ limit: '200' });
+    if (q) params.set('q', q);
+    return this.get(`/${app}/${model}/choices/?${params.toString()}`);
   },
   action(app, model, actionName, ids) {
     return this.post(`/${app}/${model}/actions/${actionName}/`, { ids });

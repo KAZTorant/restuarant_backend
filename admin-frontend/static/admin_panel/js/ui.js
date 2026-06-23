@@ -54,6 +54,12 @@ const AdminUI = {
     if (val === true) return '✓';
     if (val === false) return '—';
     if (val === null || val === undefined) return '—';
+    if (Array.isArray(val)) {
+      return val.map((item) => (typeof item === 'object' ? item.label || item.id : item)).join(', ') || '—';
+    }
+    if (typeof val === 'object') {
+      return AdminUI.escapeHtml(val.label || val.id || JSON.stringify(val));
+    }
     return AdminUI.escapeHtml(val);
   },
 
@@ -77,6 +83,21 @@ const AdminUI = {
   async withLoading(fn) {
     AdminUI.showLoading();
     try { return await fn(); } finally { AdminUI.hideLoading(); }
+  },
+
+  errorMessage(e, fallback = 'Xəta baş verdi') {
+    if (e.data?.errors) {
+      return Object.values(e.data.errors).flat().join(', ');
+    }
+    return e.message || fallback;
+  },
+
+  handleApiError(e, fallback = 'Xəta baş verdi') {
+    if (e.status === 401 || e.status === 403) {
+      window.location.href = '/panel/login/';
+      return;
+    }
+    AdminUI.toast(AdminUI.errorMessage(e, fallback), 'error');
   },
 };
 
