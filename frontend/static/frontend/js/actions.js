@@ -20,6 +20,17 @@ const ActionsPanel = {
     this.tableId = tableId;
     this.hallId = hallId;
     this.role = role;
+
+    const container = document.getElementById('admin-actions');
+    if (container && !container.dataset.actionsBound) {
+      container.dataset.actionsBound = '1';
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.action-button');
+        if (!btn) return;
+        this.handleAction(btn.dataset.method);
+      });
+    }
+
     this.render();
   },
 
@@ -72,10 +83,6 @@ const ActionsPanel = {
       else if (action.style === 'primary') cls += ' action-button--primary';
       return `<button class="${cls}" data-method="${action.method}">${action.label}</button>`;
     }).join('');
-
-    container.querySelectorAll('.action-button').forEach((btn) => {
-      btn.addEventListener('click', () => this.handleAction(btn.dataset.method));
-    });
   },
 
   async handleAction(method) {
