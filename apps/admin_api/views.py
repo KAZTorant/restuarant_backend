@@ -246,6 +246,7 @@ class RelatedChoicesView(APIView):
             return Response({'detail': str(exc)}, status=status.HTTP_404_NOT_FOUND)
 
         qs = model_admin.get_queryset(request)
+        qs = _optimize_choice_queryset(app_label, model_name, qs)
         search = request.query_params.get('q', '')
         if search:
             search_fields = getattr(model_admin, 'search_fields', ()) or ('pk',)
@@ -398,6 +399,19 @@ def _to_form_data(data):
         elif value is not None:
             qd[key] = str(value) if not isinstance(value, (dict, bool)) else json.dumps(value)
     return qd
+
+
+def _optimize_choice_queryset(app_label, model_name, qs):
+    select_related = {
+        ('tables', 'room'): ('restaurant',),
+        ('tables', 'table'): ('room', 'room__restaurant'),
+        ('meals', 'mealgroup'): ('restaurant',),
+        ('meals', 'mealcategory'): ('group', 'group__restaurant'),
+        ('meals', 'meal'): ('category', 'category__group', 'category__group__restaurant'),
+    }.get((app_label, model_name))
+    if select_related:
+        return qs.select_related(*select_related)
+    return qs
 
 
 def _save_form_instance(request, model_admin, form, change):

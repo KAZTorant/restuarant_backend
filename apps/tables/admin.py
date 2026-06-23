@@ -13,7 +13,10 @@ from apps.tenants.mixins import TenantAdminMixin
 class RoomAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'is_active', 'restaurant')
     list_filter = ('is_active',)
-    search_fields = ('name',)
+    search_fields = ('name', 'restaurant__name')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('restaurant')
 
 
 class CustomTableAdmin(TenantAdminMixin, admin.ModelAdmin):
@@ -21,6 +24,7 @@ class CustomTableAdmin(TenantAdminMixin, admin.ModelAdmin):
     show_restaurant_in_list = False
     change_list_template = "admin/tables_changelist.html"
     list_display = ('number', 'room', 'capacity')
+    search_fields = ('number', 'room__name', 'room__restaurant__name')
     actions = ['delete_selected']
 
     def get_urls(self):
@@ -56,7 +60,7 @@ class CustomTableAdmin(TenantAdminMixin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.order_by('room', 'number')
+        return qs.select_related('room', 'room__restaurant').order_by('room', 'number')
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)

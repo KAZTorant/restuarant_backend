@@ -1,6 +1,9 @@
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 
 from apps.commons.models import DateTimeModel, TenantModel
+from apps.commons.validation import validate_unique_name
 from apps.printers.models.place import PreparationPlace
 
 
@@ -11,9 +14,28 @@ class MealGroup(TenantModel, DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Yemək kateqoriyası qrupu"
         verbose_name_plural = "Yemək kateqoriyaları qrupları"
+        constraints = [
+            models.UniqueConstraint(
+                Lower('name'),
+                'restaurant',
+                name='unique_mealgroup_name_ci_per_restaurant',
+            ),
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.restaurant} — {self.name}"
+
+    def clean(self):
+        super().clean()
+        if not self.restaurant_id:
+            return
+        validate_unique_name(
+            type(self).objects.filter(restaurant_id=self.restaurant_id),
+            'name',
+            self.name,
+            'Bu restoranda eyni adlı qrup artıq mövcuddur.',
+            exclude_pk=self.pk,
+        )
 
 # Model for Meal Category
 
@@ -32,9 +54,31 @@ class MealCategory(DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Yemək kateqoriyası"
         verbose_name_plural = "Yemək kateqoriyaları"
+        constraints = [
+            models.UniqueConstraint(
+                Lower('name'),
+                'group',
+                condition=Q(group__isnull=False),
+                name='unique_mealcategory_name_ci_per_group',
+            ),
+        ]
 
     def __str__(self):
+        if self.group_id:
+            return f"{self.group.restaurant} — {self.group.name} — {self.name}"
         return self.name
+
+    def clean(self):
+        super().clean()
+        if not self.group_id:
+            return
+        validate_unique_name(
+            type(self).objects.filter(group_id=self.group_id),
+            'name',
+            self.name,
+            'Bu qrupda eyni adlı kateqoriya artıq mövcuddur.',
+            exclude_pk=self.pk,
+        )
 
 
 # Model for Meal
@@ -68,9 +112,34 @@ class Meal(DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Yemək"
         verbose_name_plural = "Yeməklər"
+        constraints = [
+            models.UniqueConstraint(
+                Lower('name'),
+                'category',
+                condition=Q(category__isnull=False),
+                name='unique_meal_name_ci_per_category',
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.category.name if self.category else 'Kateqoriya yoxdur'} - {self.name} - {self.price} AZN"
+        if self.category_id and self.category.group_id:
+            restaurant = self.category.group.restaurant
+            return f"{restaurant} — {self.category.name} — {self.name}"
+        if self.category_id:
+            return f"{self.category.name} — {self.name}"
+        return self.name
+
+    def clean(self):
+        super().clean()
+        if not self.category_id:
+            return
+        validate_unique_name(
+            type(self).objects.filter(category_id=self.category_id),
+            'name',
+            self.name,
+            'Bu kateqoriyada eyni adlı yemək artıq mövcuddur.',
+            exclude_pk=self.pk,
+        )
 
     @property
     def is_extra(self):

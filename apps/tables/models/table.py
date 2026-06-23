@@ -1,7 +1,10 @@
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.contrib.auth import get_user_model
 
 from apps.commons.models import DateTimeModel, TenantModel
+from apps.commons.validation import validate_unique_name
 
 User = get_user_model()
 
@@ -14,9 +17,28 @@ class Room(TenantModel, DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Zal"
         verbose_name_plural = "Zallar"
+        constraints = [
+            models.UniqueConstraint(
+                Lower('name'),
+                'restaurant',
+                name='unique_room_name_ci_per_restaurant',
+            ),
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.restaurant} — {self.name}"
+
+    def clean(self):
+        super().clean()
+        if not self.restaurant_id:
+            return
+        validate_unique_name(
+            type(self).objects.filter(restaurant_id=self.restaurant_id),
+            'name',
+            self.name,
+            'Bu restoranda eyni adlı zal artıq mövcuddur.',
+            exclude_pk=self.pk,
+        )
 
 
 class Table(DateTimeModel, models.Model):
@@ -32,9 +54,31 @@ class Table(DateTimeModel, models.Model):
     class Meta:
         verbose_name = "Stol"
         verbose_name_plural = "Stollar"
+        constraints = [
+            models.UniqueConstraint(
+                Lower('number'),
+                'room',
+                condition=Q(number__isnull=False) & ~Q(number=''),
+                name='unique_table_number_ci_per_room',
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.number} | Ərazi {self.room.name if self.room else ''} "
+        if self.room_id:
+            return f"{self.room.restaurant} — {self.room.name} — Stol {self.number or self.pk}"
+        return f"Stol {self.number or self.pk}"
+
+    def clean(self):
+        super().clean()
+        if not self.room_id or not self.number:
+            return
+        validate_unique_name(
+            type(self).objects.filter(room_id=self.room_id),
+            'number',
+            self.number,
+            'Bu zalda eyni nömrəli stol artıq mövcuddur.',
+            exclude_pk=self.pk,
+        )
 
     @property
     def waitress(self) -> User:

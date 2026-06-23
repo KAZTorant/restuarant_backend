@@ -30,6 +30,7 @@ const ModelForm = {
         document.getElementById('page-title').textContent = 'Yeni qeyd';
       }
       this.render();
+      await this.loadForeignKeyChoices();
     });
   },
 
@@ -46,6 +47,21 @@ const ModelForm = {
           ${g.fields.map((name) => this.renderField(name)).join('')}
         </div>
       </fieldset>`).join('');
+  },
+
+  async loadForeignKeyChoices() {
+    const selects = document.querySelectorAll('#form-fields select[data-fk]');
+    await Promise.all([...selects].map(async (select) => {
+      const [app, model] = select.dataset.fk.split('/');
+      const res = await AdminAPI.choices(app, model);
+      const current = select.value;
+      select.innerHTML = [
+        '<option value="">—</option>',
+        ...res.results.map((item) => (
+          `<option value="${item.id}" ${String(item.id) === String(current) ? 'selected' : ''}>${AdminUI.escapeHtml(item.label)}</option>`
+        )),
+      ].join('');
+    }));
   },
 
   renderField(name) {

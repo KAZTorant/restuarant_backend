@@ -13,7 +13,10 @@ from apps.tenants.mixins import TenantAdminMixin
 @admin.register(MealGroup)
 class MealGroupAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'restaurant')
-    search_fields = ('name',)
+    search_fields = ('name', 'restaurant__name')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('restaurant')
 
 
 @admin.register(MealCategory)
@@ -22,7 +25,10 @@ class MealCategoryAdmin(TenantAdminMixin, admin.ModelAdmin):
     show_restaurant_in_list = False
     list_display = ('name', 'group', 'is_extra')
     list_filter = ('group', 'is_extra')
-    search_fields = ('name',)
+    search_fields = ('name', 'group__name', 'group__restaurant__name')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('group', 'group__restaurant')
 
 
 class PreparationPlaceActionForm(forms.Form):
@@ -43,10 +49,17 @@ class MealAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'category', 'get_preparation_places_display',
                     'price', 'cost_price', 'marja_amount', 'marja_percentage']
     list_filter = ['category', 'preparation_places']
-    search_fields = ['name', 'description']
+    search_fields = ['name', 'description', 'category__name', 'category__group__restaurant__name']
     actions = ['set_preparation_place']
     readonly_fields = ['cost_price', 'marja_amount', 'marja_percentage']
     filter_horizontal = ['preparation_places']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'category',
+            'category__group',
+            'category__group__restaurant',
+        )
 
     def get_preparation_places_display(self, obj):
         places = obj.get_all_preparation_places()
