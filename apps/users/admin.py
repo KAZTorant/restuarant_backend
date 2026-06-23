@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from apps.tenants.admin_utils import strip_field_from_fieldsets
 from apps.tenants.mixins import TenantAdminMixin
 from apps.users.models import ShiftHandover, User, WhatsAppConfig
 
@@ -27,6 +28,16 @@ class CustomUserAdmin(TenantAdminMixin, UserAdmin):
     )
     search_fields = ('username',)
     ordering = ('username',)
+
+    def get_add_fieldsets(self, request):
+        if request.user.is_superuser:
+            return self.add_fieldsets
+        return strip_field_from_fieldsets(self.add_fieldsets, 'restaurant')
+
+    def get_fieldsets(self, request, obj=None):
+        if obj is None and not request.user.is_superuser:
+            return self.get_add_fieldsets(request)
+        return super().get_fieldsets(request, obj)
 
 
 # Register the custom admin class

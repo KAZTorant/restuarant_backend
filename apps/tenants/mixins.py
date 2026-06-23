@@ -1,8 +1,11 @@
 from apps.tenants.admin_utils import (
+    apply_tenant_to_form_data,
+    enforce_tenant_on_instance,
     filter_queryset_by_restaurant,
     get_tenant_lookup,
     get_user_restaurant,
     scope_foreign_key_queryset,
+    strip_field_from_fieldsets,
 )
 from apps.tenants.context import get_current_restaurant
 
@@ -36,20 +39,13 @@ class TenantAdminMixin:
         return filter_queryset_by_restaurant(qs, restaurant, lookup)
 
     def save_model(self, request, obj, form, change):
-        restaurant = self._admin_restaurant(request)
-        if (
-            not change
-            and restaurant
-            and hasattr(obj, self.tenant_field)
-            and not getattr(obj, f'{self.tenant_field}_id', None)
-        ):
-            setattr(obj, self.tenant_field, restaurant)
+        enforce_tenant_on_instance(self, request, obj)
         super().save_model(request, obj, form, change)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         restaurant = self._admin_restaurant(request)
         if restaurant and db_field.name in (
-            'room', 'table', 'group', 'category', 'meal', 'printer',
+            'restaurant', 'room', 'table', 'group', 'category', 'meal', 'printer',
             'waitress', 'started_by', 'ended_by', 'created_by', 'paid_by',
             'from_user', 'to_user', 'deleted_by', 'work_period_config',
             'preparation_place', 'connector',
@@ -84,6 +80,8 @@ class TenantAdminMixin:
                     restaurant,
                     'printer__restaurant',
                 )
+            elif db_field.name == 'groups':
+                kwargs['queryset'] = kwargs.get('queryset', db_field.remote_field.model.objects.all())
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     def get_list_filter(self, request):
@@ -95,6 +93,11 @@ class TenantAdminMixin:
             and 'restaurant' not in filters
         ):
             filters.insert(0, 'restaurant')
+        elif (
+            not request.user.is_superuser
+            and 'restaurant' in filters
+        ):
+            filters = [f for f in filters if f != 'restaurant']
         return filters
 
     def get_list_display(self, request):
@@ -106,22 +109,33 @@ class TenantAdminMixin:
             and 'restaurant' not in display
         ):
             display.insert(0, 'restaurant')
+        elif (
+            not request.user.is_superuser
+            and 'restaurant' in display
+            and not self.show_restaurant_in_list
+        ):
+            display = [d for d in display if d != 'restaurant']
         return display
 
     def get_fields(self, request, obj=None):
         fields = list(super().get_fields(request, obj))
-        if (
-            request.user.is_superuser
-            and hasattr(self.model, 'restaurant_id')
-            and 'restaurant' not in fields
-        ):
-            fields = ['restaurant'] + fields
+        if not hasattr(self.model, 'restaurant_id'):
+            return fields
+        if request.user.is_superuser:
+            if 'restaurant' not in fields:
+                fields = ['restaurant'] + fields
+        else:
+            fields = [f for f in fields if f != 'restaurant']
         return fields
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
-        if not request.user.is_superuser or not hasattr(self.model, 'restaurant_id'):
+        if not hasattr(self.model, 'restaurant_id'):
             return fieldsets
+
+        if not request.user.is_superuser:
+            return strip_field_from_fieldsets(fieldsets, 'restaurant')
+
         if any('restaurant' in (fs[1].get('fields') or ()) for fs in fieldsets):
             return fieldsets
         fieldsets = list(fieldsets)
@@ -131,3 +145,13 @@ class TenantAdminMixin:
             options = {**options, 'fields': ('restaurant',) + tuple(fields)}
             fieldsets[0] = (title, options)
         return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if (
+            not request.user.is_superuser
+            and hasattr(self.model, 'restaurant_id')
+            and 'restaurant' not in readonly
+        ):
+            readonly.append('restaurant')
+        return readonly

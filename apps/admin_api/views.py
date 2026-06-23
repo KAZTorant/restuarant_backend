@@ -6,7 +6,7 @@ from datetime import datetime
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth import authenticate, login, logout
-from django.core.exceptions import FieldError, ValidationError
+from django.core.exceptions import FieldError, PermissionDenied, ValidationError
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Q
 from django.http import QueryDict
@@ -26,6 +26,7 @@ from apps.admin_api.schema import (
     serialize_list_row,
     serialize_object,
 )
+from apps.tenants.admin_utils import apply_tenant_to_form_data
 
 
 class NavigationView(APIView):
@@ -190,15 +191,21 @@ class ModelDetailView(APIView):
         if not model_admin.has_change_permission(request, obj):
             return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        form_data = _to_form_data(request.data)
+        form_data = _to_form_data(apply_tenant_to_form_data(model_admin, request, request.data))
         form = build_model_form(model_admin, request, data=form_data, obj=obj)
 
         if not form.is_valid():
             return Response({'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        obj = _save_form_instance(request, model_admin, form, change=True)
+        try:
+            obj = _save_form_instance(request, model_admin, form, change=True)
+            data = serialize_object(model_admin, request, obj)
+        except PermissionDenied as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serialize_object(model_admin, request, obj))
+        return Response(data)
 
 
 class ModelCreateView(APIView):
@@ -229,16 +236,25 @@ class ModelCreateView(APIView):
         if not model_admin.has_add_permission(request):
             return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        form_data = _to_form_data(request.data)
-        form = build_model_form(model_admin, request, data=form_data, obj=None)
+        form_data = _to_form_data(apply_tenant_to_form_data(model_admin, request, request.data))
+        try:
+            form = build_model_form(model_admin, request, data=form_data, obj=None)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not form.is_valid():
             return Response({'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        obj = _save_form_instance(request, model_admin, form, change=False)
+        try:
+            obj = _save_form_instance(request, model_admin, form, change=False)
+            data = serialize_object(model_admin, request, obj)
+        except PermissionDenied as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            serialize_object(model_admin, request, obj),
+            data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -415,6 +431,9 @@ def _optimize_choice_queryset(app_label, model_name, qs):
         ('meals', 'mealgroup'): ('restaurant',),
         ('meals', 'mealcategory'): ('group', 'group__restaurant'),
         ('meals', 'meal'): ('category', 'category__group', 'category__group__restaurant'),
+        ('tenants', 'restaurant'): tuple(),
+        ('users', 'user'): ('restaurant',),
+        ('auth', 'group'): tuple(),
     }.get((app_label, model_name))
     if select_related:
         return qs.select_related(*select_related)
@@ -425,7 +444,8 @@ def _save_form_instance(request, model_admin, form, change):
     """Mirror Django admin save flow: save_form → save_model → save_m2m."""
     obj = model_admin.save_form(request, form, change=change)
     model_admin.save_model(request, obj, form, change=change)
-    form.save_m2m()
+    if hasattr(form, 'save_m2m'):
+        form.save_m2m()
     _save_inlines(request, model_admin, obj)
     return obj
 

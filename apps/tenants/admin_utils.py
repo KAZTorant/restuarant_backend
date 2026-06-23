@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
 from apps.tenants.models import Restaurant
@@ -36,6 +37,7 @@ TENANT_LOOKUPS = {
 
 # FK sahələri admin formunda restorana görə filtirlənir
 SCOPED_FOREIGN_KEYS = {
+    'restaurant': 'pk',  # staff users only see their own restaurant
     'room': 'restaurant',
     'table': 'room__restaurant',
     'group': 'restaurant',
@@ -64,6 +66,87 @@ def get_user_restaurant(user):
     if hasattr(user, 'restaurant_id') and user.restaurant_id:
         return user.restaurant
     return None
+
+
+def user_belongs_to_restaurant(user, restaurant):
+    if user.is_superuser or restaurant is None:
+        return True
+    user_restaurant = get_user_restaurant(user)
+    return user_restaurant is not None and user_restaurant.pk == restaurant.pk
+
+
+def resolve_restaurant_via_lookup(obj, lookup):
+    """Walk a tenant lookup path (e.g. room__restaurant) from obj to Restaurant."""
+    if not lookup:
+        return None
+    if lookup == 'restaurant' or lookup.endswith('.restaurant'):
+        return getattr(obj, 'restaurant', None)
+    parts = lookup.split('__')
+    if parts[-1] != 'restaurant':
+        return None
+    current = obj
+    for part in parts:
+        if current is None:
+            return None
+        current = getattr(current, part, None)
+    return current
+
+
+def enforce_tenant_on_instance(model_admin, request, obj):
+    """Force or validate tenant ownership for staff users."""
+    if request.user.is_superuser:
+        return
+
+    restaurant = get_user_restaurant(request.user)
+    if restaurant is None:
+        return
+
+    model = obj.__class__
+    if hasattr(model, 'restaurant_id'):
+        setattr(obj, 'restaurant', restaurant)
+        return
+
+    lookup = getattr(model_admin, 'tenant_lookup', None) or get_tenant_lookup(model)
+    if not lookup:
+        return
+
+    related_restaurant = resolve_restaurant_via_lookup(obj, lookup)
+    if related_restaurant is None:
+        return
+    if related_restaurant.pk != restaurant.pk:
+        raise PermissionDenied('Seçilmiş qeyd sizin restorana aid deyil.')
+
+
+def apply_tenant_to_form_data(model_admin, request, data):
+    """Strip cross-tenant values from API payloads for staff users."""
+    if request.user.is_superuser or not isinstance(data, dict):
+        return data
+
+    restaurant = get_user_restaurant(request.user)
+    if restaurant is None:
+        return data
+
+    data = dict(data)
+    if hasattr(model_admin.model, 'restaurant_id'):
+        data['restaurant'] = str(restaurant.pk)
+    return data
+
+
+def strip_field_from_fieldsets(fieldsets, field_name):
+    updated = []
+    for title, options in fieldsets:
+        fields = options.get('fields') or ()
+        flat = []
+        for item in fields:
+            if isinstance(item, (list, tuple)):
+                nested = tuple(f for f in item if f != field_name)
+                if nested:
+                    flat.append(nested)
+            elif item != field_name:
+                flat.append(item)
+        if flat:
+            updated.append((title, {**options, 'fields': tuple(flat)}))
+    return tuple(updated)
 
 
 def get_tenant_lookup(model):

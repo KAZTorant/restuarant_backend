@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render
 from django.urls import path, reverse
 
 from apps.tenants.forms import RestaurantImportForm
+from apps.tenants.admin_utils import get_user_restaurant
 from apps.tenants.import_export import import_restaurant_data
 from apps.tenants.models import Restaurant
 
@@ -27,6 +28,27 @@ class RestaurantAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at'),
         }),
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        restaurant = get_user_restaurant(request.user)
+        if restaurant:
+            return qs.filter(pk=restaurant.pk)
+        return qs
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return super().has_change_permission(request, obj)
+        restaurant = get_user_restaurant(request.user)
+        if obj is None:
+            return restaurant is not None
+        return restaurant is not None and obj.pk == restaurant.pk
 
     def get_urls(self):
         urls = super().get_urls()

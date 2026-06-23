@@ -114,7 +114,8 @@ def build_form_schema(model_admin, request, obj=None):
 
 def build_model_form(model_admin, request, data=None, obj=None):
     """Build and return a ModelForm using admin's form machinery."""
-    form_class = model_admin.get_form(request, obj=obj)
+    change = obj is not None
+    form_class = model_admin.get_form(request, obj=obj, change=change)
     if data is not None:
         return form_class(data, instance=obj, files=request.FILES if hasattr(request, 'FILES') else None)
     return form_class(instance=obj)
@@ -210,18 +211,15 @@ def _field_meta(model_admin, request, name, obj, readonly, form=None):
     field_type = _form_field_type(form_field)
     related = None
     if field_type in ('foreign_key', 'many_to_many'):
-        related = {
-            'app_label': form_field.queryset.model._meta.app_label,
-            'model_name': form_field.queryset.model._meta.model_name,
-        }
+        try:
+            related = {
+                'app_label': form_field.queryset.model._meta.app_label,
+                'model_name': form_field.queryset.model._meta.model_name,
+            }
+        except Exception:
+            related = None
 
-    choices = []
-    if hasattr(form_field, 'choices') and form_field.choices:
-        choices = [
-            {'value': str(v) if v is not None else '', 'label': str(l)}
-            for v, l in form_field.choices
-            if v != ''
-        ]
+    choices = _static_field_choices(form_field, field_type)
 
     return {
         'name': name,
@@ -263,6 +261,8 @@ def _form_field_type(form_field):
     from django.contrib.admin.widgets import FilteredSelectMultiple
 
     widget = form_field.widget
+    if isinstance(widget, forms.PasswordInput):
+        return 'password'
     if isinstance(widget, FilteredSelectMultiple):
         return 'many_to_many'
     if isinstance(form_field, forms.ModelChoiceField):
@@ -294,6 +294,8 @@ def _form_field_type(form_field):
 
 def _widget_hint(form_field):
     from django import forms
+    if isinstance(form_field.widget, forms.PasswordInput):
+        return 'password'
     if isinstance(form_field.widget, forms.Textarea):
         return 'textarea'
     if isinstance(form_field.widget, forms.Select):
@@ -315,6 +317,23 @@ def _field_label(model_admin, name):
 def _is_admin_computed(model_admin, name):
     method = getattr(model_admin, name, None)
     return method is not None and callable(method)
+
+
+def _static_field_choices(form_field, field_type):
+    """Only serialize small static choice lists; FK/M2M use the choices API."""
+    if field_type in ('foreign_key', 'many_to_many'):
+        return []
+
+    try:
+        if not hasattr(form_field, 'choices') or not form_field.choices:
+            return []
+        return [
+            {'value': str(v) if v is not None else '', 'label': str(l)}
+            for v, l in form_field.choices
+            if v != ''
+        ]
+    except Exception:
+        return []
 
 
 def _serialize_scalar(value):
