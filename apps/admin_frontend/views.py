@@ -1,4 +1,6 @@
+from django.contrib.auth import logout
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_http_methods
 
 from apps.admin_frontend.decorators import staff_required
 
@@ -6,6 +8,12 @@ from apps.admin_frontend.decorators import staff_required
 @staff_required
 def dashboard_view(request):
     return render(request, 'admin_panel/dashboard.html')
+
+
+@require_http_methods(['GET', 'POST'])
+def logout_view(request):
+    logout(request)
+    return redirect('admin_panel:login')
 
 
 def login_view(request):

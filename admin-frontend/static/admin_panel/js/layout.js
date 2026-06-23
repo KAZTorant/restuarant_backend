@@ -21,12 +21,6 @@ const AdminLayout = {
       }
     }
 
-    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await AdminAPI.logout();
-      window.location.href = '/panel/login/';
-    });
-
     this.highlightActive();
   },
 
