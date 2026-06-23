@@ -33,7 +33,6 @@ class User(DateTimeModel, AbstractUser):
     class Meta:
         verbose_name = 'Ofisiant və Menecer'
         verbose_name_plural = 'Ofisiant və Menecerlər'
-        silenced_system_checks = ['auth.E003']
         constraints = [
             models.UniqueConstraint(
                 fields=['restaurant', 'username'],

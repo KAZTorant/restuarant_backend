@@ -5,3 +5,4 @@ class UsersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.users'
     verbose_name = "İstifadəçi"
+    silenced_system_checks = ['auth.E003']
