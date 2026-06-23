@@ -5,11 +5,13 @@ from datetime import datetime
 
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
+from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import FieldError, ValidationError
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Q
 from django.http import QueryDict
-from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -293,10 +295,6 @@ class AuthLoginView(APIView):
     permission_classes = []
 
     def post(self, request):
-        from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.utils.decorators import method_decorator
-
         username = request.data.get('username', '')
         password = request.data.get('password', '')
 
@@ -320,7 +318,6 @@ class AuthLogoutView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
-        from django.contrib.auth import logout
         logout(request)
         return Response({'detail': 'Logged out'})
 
