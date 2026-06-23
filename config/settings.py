@@ -14,6 +14,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,16 +22,42 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in ('true', '1', 'yes', 'on')
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-m5t0j_%cj*lz*#8jlrq$5ua4a4u-9zvh7%9@!4r*3acu3n1r8o'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-m5t0j_%cj*lz*#8jlrq$5ua4a4u-9zvh7%9@!4r*3acu3n1r8o',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = ["*"]
+_allowed_hosts = os.environ.get('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = ['*'] if _allowed_hosts.strip() == '*' else [
+    host.strip() for host in _allowed_hosts.split(',') if host.strip()
+]
+
+_railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if _railway_domain and _railway_domain not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_railway_domain)
+
+_csrf_origins = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+if _railway_domain:
+    _csrf_origins.append(f'https://{_railway_domain}')
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_csrf_origins))
 
 # Application definition
 
@@ -109,16 +136,25 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
-DATABASES ={
-'default': {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': 'restaurant_db',
-    'USER': 'aykhan',
-    'PASSWORD': 'your_password',  # Use the password you set
-    'HOST': 'localhost',
-    'PORT': '5432',
-}
-}
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'restaurant_db'),
+            'USER': os.environ.get('DB_USER', 'aykhan'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'your_password'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -230,23 +266,26 @@ CACHES = {
 
 CACHE_TIME_IN_SECONDS = 150
 
+_log_handlers = {
+    'console': {
+        'level': 'INFO',
+        'class': 'logging.StreamHandler',
+    },
+}
+if DEBUG:
+    _log_handlers['file'] = {
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': os.path.join(BASE_DIR, 'error.log'),
+    }
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'error.log'),
-        },
-    },
+    'handlers': _log_handlers,
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': list(_log_handlers.keys()),
             'level': 'INFO',
             'propagate': True,
         },

@@ -4,7 +4,10 @@ import concurrent.futures
 import platform
 import socket
 
-import cups
+try:
+    import cups
+except ImportError:
+    cups = None
 
 
 def get_printer_name(ip, port=9100, timeout=1):
@@ -50,6 +53,9 @@ def get_local_cups_printers():
     Returns list of {'type': 'usb/local', 'name': ..., 'info': ...}
     """
     printers = []
+    if cups is None:
+        print("[!] pycups is not installed; skipping local CUPS printer discovery.")
+        return printers
     try:
         conn = cups.Connection()
         local_printers = conn.getPrinters()

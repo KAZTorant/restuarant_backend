@@ -38,6 +38,8 @@ typing_extensions
 uritemplate
 urllib3
 whitenoise
+dj-database-url
+gunicorn
 python-escpos
 python-telegram-bot
 
