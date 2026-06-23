@@ -62,6 +62,7 @@ CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_csrf_origins))
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -90,6 +91,8 @@ INSTALLED_APPS = [
 
     # Apps
     'apps.inventory_connector',
+
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -300,6 +303,29 @@ PRINTER_SERVICE = os.environ.get(
     "PRINTER_SERVICE",
     None
 )
+
+# Print Gateway (restoran PC → cloud WebSocket)
+PRINT_GATEWAY_ENABLED = _env_bool('PRINT_GATEWAY_ENABLED', default=False)
+PRINT_GATEWAY_MODE = os.environ.get('PRINT_GATEWAY_MODE', 'websocket')
+PRINT_GATEWAY_DEFAULT_LOCATION_ID = os.environ.get('PRINT_GATEWAY_DEFAULT_LOCATION_ID', '1')
+PRINT_GATEWAY_TIMEOUT = int(os.environ.get('PRINT_GATEWAY_TIMEOUT', '15'))
+PRINT_GATEWAY_URL = os.environ.get('PRINT_GATEWAY_URL', 'http://127.0.0.1:3000')
+PRINT_GATEWAY_API_KEY = os.environ.get('PRINT_GATEWAY_API_KEY', '')
+
+_redis_url = os.environ.get('REDIS_URL')
+if _redis_url:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [_redis_url]},
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 BACKEND_PORT = os.environ.get('BACKEND_PORT', '8000')
 

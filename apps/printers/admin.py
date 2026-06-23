@@ -10,6 +10,7 @@ from django.shortcuts import redirect
 from apps.printers.models import Printer
 from apps.printers.models import PreparationPlace
 from apps.printers.models import Receipt
+from apps.printers.models import PrintGatewayLocation
 from apps.printers.utils.print_test_page import send_raw_receipt
 from apps.printers.utils.printer_discovery import discover_all_printers
 
@@ -61,6 +62,17 @@ class PrinterAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Printer, PrinterAdmin)
+
+
+@admin.register(PrintGatewayLocation)
+class PrintGatewayLocationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'is_online', 'last_seen_at')
+    readonly_fields = ('token', 'is_online', 'last_seen_at', 'printers_status')
+
+    def get_fields(self, request, obj=None):
+        if obj is None:
+            return ('name',)
+        return ('name', 'token', 'is_online', 'last_seen_at', 'printers_status')
 
 
 @admin.register(PreparationPlace)

@@ -325,7 +325,19 @@ class PrinterService:
         return response
 
     @staticmethod
-    def _send_text_to_printer(text, ip_address, port):
+    def _send_text_to_printer(text, ip_address, port, meta=None):
+        from django.conf import settings
+        from apps.printers.utils.gateway_client import PrintGatewayClient
+
+        if settings.PRINT_GATEWAY_ENABLED:
+            resp = PrintGatewayClient.send(
+                text=text,
+                target={'type': 'ip', 'ip': ip_address, 'port': port},
+                meta=meta or {},
+            )
+            if resp is not None:
+                return DummyResponse(resp.status_code)
+
         ESC_CUT = b'\x1D\x56\x00'
         BEEP = b'\x1B\x42\x03\x02'  # Beep 3 times, 200ms each
 

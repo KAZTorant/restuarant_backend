@@ -26,6 +26,9 @@ psycopg2-binary
 python-dotenv
 pytz
 PyYAML
+channels>=4.0,<5
+channels-redis>=4.2,<5
+daphne>=4.0,<5
 requests
 python-telegram-bot==20.7
 ruamel.yaml
