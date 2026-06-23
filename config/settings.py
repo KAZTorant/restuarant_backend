@@ -50,6 +50,18 @@ _railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
 if _railway_domain and _railway_domain not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_railway_domain)
 
+_custom_domains = [
+    domain.strip()
+    for domain in os.environ.get(
+        'CUSTOM_DOMAINS',
+        'kazza.qr-menu.cc',
+    ).split(',')
+    if domain.strip()
+]
+for domain in _custom_domains:
+    if domain not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(domain)
+
 _csrf_origins = [
     origin.strip()
     for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
@@ -57,6 +69,8 @@ _csrf_origins = [
 ]
 if _railway_domain:
     _csrf_origins.append(f'https://{_railway_domain}')
+for domain in _custom_domains:
+    _csrf_origins.append(f'https://{domain}')
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_csrf_origins))
 
 # Application definition

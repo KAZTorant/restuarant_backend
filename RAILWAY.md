@@ -16,6 +16,7 @@
 | `DATABASE_URL` | Bəli | PostgreSQL (Railway avtomatik verir) |
 | `ALLOWED_HOSTS` | Xeyr | Default: `*` |
 | `CSRF_TRUSTED_ORIGINS` | Tövsiyə | `https://<your-domain>.up.railway.app` |
+| `CUSTOM_DOMAINS` | Xeyr | Əlavə domainlər (default: `kazza.qr-menu.cc`) |
 | `WHATSAPP_SERVICE_URL` | Xeyr | WhatsApp servis URL-i |
 | `PRINTER_URL` | Xeyr | Print gateway URL-i |
 
@@ -44,6 +45,8 @@ Sonra Gunicorn başlayır (`bin/start.sh`).
 Railway dashboard-da **Settings → Networking → Generate Domain** ilə public URL alın.
 
 `CSRF_TRUSTED_ORIGINS` dəyişəninə həmin URL-i əlavə edin (məs: `https://restuarant-backend-production.up.railway.app`).
+
+Xüsusi domain (məs: `kazza.qr-menu.cc`) üçün Railway **Settings → Networking → Custom Domain** bölməsində domaini backend servisinə yönəldin. Kod tərəfində `https://kazza.qr-menu.cc` avtomatik `CSRF_TRUSTED_ORIGINS`-ə əlavə olunur; əlavə domainlər üçün `CUSTOM_DOMAINS` env dəyişənindən istifadə edin.
 
 ## 5. Admin istifadəçisi
 
