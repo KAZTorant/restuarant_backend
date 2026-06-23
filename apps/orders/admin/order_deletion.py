@@ -1,11 +1,12 @@
-# apps/orders/admin.py
-
 from django.contrib import admin
 from apps.orders.models import OrderItemDeletionLog
+from apps.tenants.mixins import TenantAdminMixin
 
 
 @admin.register(OrderItemDeletionLog)
-class OrderItemDeletionLogAdmin(admin.ModelAdmin):
+class OrderItemDeletionLogAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'deleted_by__restaurant'
+    show_restaurant_in_list = False
     list_display = (
         'deleted_at',
         'order_id',

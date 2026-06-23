@@ -11,10 +11,12 @@ from apps.orders.models import Summary, Statistics, Order, OrderItem
 from apps.printers.utils.service_v2 import PrinterService
 from apps.printers.models.receipt import Receipt
 from apps.payments.models import Payment
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
 
 @admin.register(Summary)
-class SummaryAdmin(SimpleHistoryAdmin):
+class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
     """
     Admin for date-range Summary reports.
     """
@@ -142,13 +144,20 @@ class SummaryAdmin(SimpleHistoryAdmin):
         end_datetime = timezone.make_aware(
             datetime.combine(end_date, datetime.max.time()))
 
-        # Get orders in the date range
-        orders = Order.objects.all_orders().filter(
-            created_at__range=(start_datetime, end_datetime),
-            is_paid=True
+        restaurant = getattr(user, 'restaurant', None)
+        orders = filter_queryset_by_restaurant(
+            Order.objects.all_orders().filter(
+                created_at__range=(start_datetime, end_datetime),
+                is_paid=True,
+            ),
+            restaurant,
+            'table__room__restaurant',
         )
 
-        if not orders.exists():
+        if not restaurant and orders.exists():
+            restaurant = orders.first().table.room.restaurant
+
+        if not restaurant:
             return None
 
         # Calculate totals
@@ -202,12 +211,14 @@ class SummaryAdmin(SimpleHistoryAdmin):
             card_total=card_total,
             other_total=other_total,
             total=total,
-            created_by=user
+            created_by=user,
+            restaurant=restaurant,
         )
 
         # Link to relevant statistics
-        statistics = Statistics.objects.filter(
-            date__range=(start_date, end_date)
+        statistics = filter_queryset_by_restaurant(
+            Statistics.objects.filter(date__range=(start_date, end_date)),
+            restaurant,
         )
         summary.statistics.set(statistics)
 

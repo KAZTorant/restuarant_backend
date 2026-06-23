@@ -10,7 +10,7 @@ from apps.tenants.mixins import TenantAdminMixin
 from apps.users.models import ShiftHandover, User, WhatsAppConfig
 
 
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(TenantAdminMixin, UserAdmin):
     list_display = ('username', 'type', 'restaurant', 'first_name',
                     'last_name', 'is_staff', 'is_active')
     list_filter = ('type', 'restaurant', 'is_staff', 'is_active')

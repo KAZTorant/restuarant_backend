@@ -18,6 +18,8 @@ from apps.payments.models.pay_table_orders import Payment
 from apps.printers.models.receipt import Receipt
 from apps.printers.utils.service import PrinterService
 from apps.printers.utils.service_v2 import PrinterService as PrinterServiceV2
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
 
 class OrderInline(admin.TabularInline):
@@ -64,7 +66,7 @@ class OrderInline(admin.TabularInline):
 
 
 @admin.register(Statistics)
-class StatisticsAdmin(SimpleHistoryAdmin):
+class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
     """
     Admin for shift-based Statistics with both historical Z-check and shift start/end.
     """
@@ -123,9 +125,9 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(started_by=request.user)
+        if not request.user.is_superuser:
+            qs = qs.filter(started_by=request.user)
+        return qs
 
     def has_add_permission(self, request):
         # Creation only via Start Shift action
@@ -294,9 +296,11 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
     # === Active orders JSON ===
     def active_orders(self, request):
-        paid = Order.objects.filter(is_paid=True).aggregate(
+        restaurant = get_user_restaurant(request.user)
+        orders_qs = filter_queryset_by_restaurant(Order.objects.all(), restaurant, 'table__room__restaurant')
+        paid = orders_qs.filter(is_paid=True).aggregate(
             sum=Sum('total_price'))['sum'] or 0
-        unpaid = Order.objects.filter(is_paid=False).aggregate(
+        unpaid = orders_qs.filter(is_paid=False).aggregate(
             sum=Sum('total_price'))['sum'] or 0
         return JsonResponse({'total_paid': paid, 'total_unpaid': unpaid})
 
@@ -326,10 +330,12 @@ class StatisticsAdmin(SimpleHistoryAdmin):
 
     def start_shift_info(self, request):
         Statistics.objects.calculate_till_now(request.user)
-
-        last = Statistics.objects.filter(
-            is_closed=True
-        ).order_by('-end_time').first()
+        restaurant = get_user_restaurant(request.user)
+        last_qs = filter_queryset_by_restaurant(
+            Statistics.objects.filter(is_closed=True),
+            restaurant,
+        )
+        last = last_qs.order_by('-end_time').first()
         if not last:
             return JsonResponse({
                 'initial_cash': str(0),

@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 from simple_history.utils import get_history_model_for_model
 
 from apps.orders.models import Order, OrderItem
+from apps.tenants.mixins import TenantAdminMixin
 
 # Retrieve the generated history models
 HistoricalOrder = get_history_model_for_model(Order)
@@ -31,7 +32,9 @@ class SingleItemChangeList(ChangeList):
 
 
 @admin.register(HistoricalOrder)
-class HistoricalOrderAdmin(admin.ModelAdmin):
+class HistoricalOrderAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'table__room__restaurant'
+    show_restaurant_in_list = False
     list_display = [
         'id', 'table', 'is_paid', 'waitress',
         'total_price', 'history_type', 'history_date',

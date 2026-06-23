@@ -3,13 +3,13 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 from apps.orders.models import Order
 from apps.orders.models import OrderItem
-
-
-# Register the Order model with SimpleHistoryAdmin
+from apps.tenants.mixins import TenantAdminMixin
 
 
 @admin.register(Order)
-class OrderAdmin(SimpleHistoryAdmin):
+class OrderAdmin(TenantAdminMixin, SimpleHistoryAdmin):
+    tenant_lookup = 'table__room__restaurant'
+    show_restaurant_in_list = False
     list_display = [
 
         'table_number',
@@ -46,7 +46,9 @@ class OrderAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(OrderItem)
-class OrderItemAdmin(SimpleHistoryAdmin):
+class OrderItemAdmin(TenantAdminMixin, SimpleHistoryAdmin):
+    tenant_lookup = 'order__table__room__restaurant'
+    show_restaurant_in_list = False
     list_display = [
         'order',
         'meal',

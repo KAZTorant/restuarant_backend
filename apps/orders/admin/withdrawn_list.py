@@ -9,6 +9,8 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from apps.orders.models import Statistics
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
 
 class WithdrawnList(Statistics):
@@ -21,7 +23,7 @@ class WithdrawnList(Statistics):
         verbose_name_plural = "Çıxarılmış Məbləğlər 💰"
 
 
-class WithdrawnListAdmin(admin.ModelAdmin):
+class WithdrawnListAdmin(TenantAdminMixin, admin.ModelAdmin):
     """
     Admin view to display only withdrawn amounts from closed shifts.
     This creates a dedicated section in the admin panel.
@@ -58,7 +60,6 @@ class WithdrawnListAdmin(admin.ModelAdmin):
     ordering = ['-end_time']
     
     def get_queryset(self, request):
-        """Show all closed shifts"""
         qs = super().get_queryset(request)
         return qs.filter(
             title='till_now',
@@ -248,19 +249,26 @@ class WithdrawnListAdmin(admin.ModelAdmin):
             )
             
             # Get all closed shifts in date range
-            shifts = Statistics.objects.filter(
-                title='till_now',
-                is_closed=True,
-                end_time__gte=start_datetime,
-                end_time__lte=end_datetime
+            shifts = filter_queryset_by_restaurant(
+                Statistics.objects.filter(
+                    title='till_now',
+                    is_closed=True,
+                    end_time__gte=start_datetime,
+                    end_time__lte=end_datetime,
+                ),
+                get_user_restaurant(request.user),
             )
             
             # Get payments directly from Payment model for accurate amounts (includes tips/extra)
             from apps.payments.models import Payment
-            
-            payments = Payment.objects.filter(
-                paid_at__gte=start_datetime,
-                paid_at__lte=end_datetime
+
+            payments = filter_queryset_by_restaurant(
+                Payment.objects.filter(
+                    paid_at__gte=start_datetime,
+                    paid_at__lte=end_datetime,
+                ),
+                get_user_restaurant(request.user),
+                'table__room__restaurant',
             )
             
             # Calculate totals from actual payment amounts

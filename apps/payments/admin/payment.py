@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.orders.models import Order
 from apps.payments.models import Payment, PaymentMethod
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
 
 class PaymentMethodInline(admin.TabularInline):
@@ -83,7 +85,9 @@ class OrderInline(admin.TabularInline):
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'table__room__restaurant'
+    show_restaurant_in_list = False
     list_display = (
         'id',
         'table',
@@ -170,7 +174,11 @@ class PaymentAdmin(admin.ModelAdmin):
         from apps.printers.utils.service_v2 import PrinterService
 
         try:
-            payment = Payment.objects.get(pk=payment_id)
+            payment = filter_queryset_by_restaurant(
+                Payment.objects.filter(pk=payment_id),
+                get_user_restaurant(request.user),
+                'table__room__restaurant',
+            ).get()
         except Payment.DoesNotExist:
             self.message_user(request, "Ödəmə tapılmadı.", level=messages.ERROR)
             return redirect('../../')

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django import forms
 from apps.inventory_connector.models import MealInventoryConnector, MealInventoryMapping
+from apps.tenants.mixins import TenantAdminMixin
 
 
 class MealInventoryMappingForm(forms.ModelForm):
@@ -26,7 +27,7 @@ class MealInventoryMappingForm(forms.ModelForm):
             'step': '0.001'
         })
     )
-    
+
     class Meta:
         model = MealInventoryMapping
         fields = '__all__'
@@ -39,41 +40,39 @@ class MealInventoryMappingInline(admin.StackedInline):
     verbose_name = "Menu-Anbar Miqdarı Əlaqəsi"
     verbose_name_plural = "Menu-Anbar Miqdarı Əlaqələri"
     fields = ('inventory_item', 'quantity', 'price')
-    
+
     class Media:
         css = {
             'all': ('admin/css/forms.css',)
         }
 
 
-class MealInventoryConnectorAdmin(admin.ModelAdmin):
+@admin.register(MealInventoryConnector)
+class MealInventoryConnectorAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'meal__category__group__restaurant'
+    show_restaurant_in_list = False
     list_display = ('meal', 'get_meal_category', 'get_meal_price', 'get_cost_price', 'get_inventory_count')
     inlines = [MealInventoryMappingInline]
     search_fields = ('meal__name', 'meal__category__name')
     list_filter = ('meal__category',)
-    
     fields = ('meal',)
-    
+
     def get_meal_category(self, obj):
         return obj.meal.category.name if obj.meal and obj.meal.category else "Yoxdur"
     get_meal_category.short_description = 'Kateqoriya'
-    
+
     def get_meal_price(self, obj):
         return f"{obj.meal.price} AZN" if obj.meal else "Yoxdur"
     get_meal_price.short_description = 'Menu Qiyməti'
-    
+
     def get_cost_price(self, obj):
-        """Calculate total cost price based on ingredient costs and quantities"""
         total_cost = 0
         for mapping in obj.mappings.all():
             ingredient_cost = mapping.quantity * mapping.price
             total_cost += ingredient_cost
         return f"{total_cost:.3f} AZN"
     get_cost_price.short_description = 'Maya Dəyəri'
-    
+
     def get_inventory_count(self, obj):
         return obj.mappings.count()
     get_inventory_count.short_description = 'Anbar Məhsulu Sayı'
-
-
-admin.site.register(MealInventoryConnector, MealInventoryConnectorAdmin)

@@ -13,6 +13,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from apps.payments.models import Payment, PaymentCalculation
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
 
 class PaymentCalculationForm(forms.Form):
@@ -79,7 +81,7 @@ class PaymentCalculationForm(forms.Form):
 
 
 @admin.register(PaymentCalculation)
-class PaymentCalculationAdmin(admin.ModelAdmin):
+class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'date_range_display',
@@ -617,9 +619,13 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     end_datetime = timezone.make_aware(end_datetime)
 
                 # Filter payments by datetime range
-                payments = Payment.objects.filter(
-                    paid_at__gte=start_datetime,
-                    paid_at__lte=end_datetime
+                payments = filter_queryset_by_restaurant(
+                    Payment.objects.filter(
+                        paid_at__gte=start_datetime,
+                        paid_at__lte=end_datetime,
+                    ),
+                    get_user_restaurant(request.user),
+                    'table__room__restaurant',
                 )
 
                 # Calculate totals
@@ -654,6 +660,10 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                             other_amount += payment.paid_amount
 
                 # Create calculation record
+                restaurant = getattr(request.user, 'restaurant', None)
+                if not restaurant and payments.exists():
+                    restaurant = payments.first().table.room.restaurant
+
                 calculation = PaymentCalculation.objects.create(
                     start_date=start_date,
                     end_date=end_date,
@@ -664,7 +674,8 @@ class PaymentCalculationAdmin(admin.ModelAdmin):
                     cash_amount=cash_amount,
                     card_amount=card_amount,
                     other_amount=other_amount,
-                    created_by=request.user
+                    created_by=request.user,
+                    restaurant=restaurant,
                 )
                 
                 # Save the payments to the calculation

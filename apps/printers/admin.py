@@ -11,6 +11,8 @@ from apps.printers.models import Printer
 from apps.printers.models import PreparationPlace
 from apps.printers.models import Receipt
 from apps.printers.models import PrintGatewayLocation
+from apps.tenants.mixins import TenantAdminMixin
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
 from apps.printers.utils.print_test_page import send_raw_receipt
 from apps.printers.utils.printer_discovery import discover_all_printers
 
@@ -21,7 +23,7 @@ class PrinterForm(forms.ModelForm):
         fields = '__all__'
 
 
-class PrinterAdmin(admin.ModelAdmin):
+class PrinterAdmin(TenantAdminMixin, admin.ModelAdmin):
     form = PrinterForm
     actions = ["send_test_page_action"]
 
@@ -65,7 +67,7 @@ admin.site.register(Printer, PrinterAdmin)
 
 
 @admin.register(PrintGatewayLocation)
-class PrintGatewayLocationAdmin(admin.ModelAdmin):
+class PrintGatewayLocationAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ('id', 'name', 'is_online', 'last_seen_at')
     readonly_fields = ('token', 'is_online', 'last_seen_at', 'printers_status')
 
@@ -76,14 +78,18 @@ class PrintGatewayLocationAdmin(admin.ModelAdmin):
 
 
 @admin.register(PreparationPlace)
-class PreparationPlaceAdmin(admin.ModelAdmin):
+class PreparationPlaceAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'printer__restaurant'
+    show_restaurant_in_list = False
     list_display = ['name', 'printer']
     search_fields = ['name']
     list_filter = ['printer']
 
 
 @admin.register(Receipt)
-class ReceiptAdmin(admin.ModelAdmin):
+class ReceiptAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = None
+    show_restaurant_in_list = False
     list_display = (
         'id', 'created_at', 'type',
         'table_display',
@@ -155,7 +161,11 @@ class ReceiptAdmin(admin.ModelAdmin):
         from apps.printers.utils.service_v2 import PrinterService
 
         try:
-            receipt = Receipt.objects.get(pk=receipt_id)
+            receipt_qs = filter_queryset_by_restaurant(
+                Receipt.objects.filter(pk=receipt_id),
+                get_user_restaurant(request.user),
+            )
+            receipt = receipt_qs.get()
         except Receipt.DoesNotExist:
             self.message_user(request, "Çek tapılmadı.", level=messages.ERROR)
             return redirect('../../')
@@ -177,8 +187,11 @@ class ReceiptAdmin(admin.ModelAdmin):
                         break
 
             if not worker_printer:
-                # Fallback: use first non-main printer
-                worker_printer = Printer.objects.filter(is_main=False).first()
+                restaurant = get_user_restaurant(request.user)
+                worker_printer = filter_queryset_by_restaurant(
+                    Printer.objects.filter(is_main=False),
+                    restaurant,
+                ).first()
 
             if not worker_printer:
                 self.message_user(request, "Worker printer tapılmadı.", level=messages.ERROR)

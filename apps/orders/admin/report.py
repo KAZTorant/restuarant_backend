@@ -1,9 +1,10 @@
 from django.contrib import admin
 from apps.orders.models import WorkPeriodConfig, Report
+from apps.tenants.mixins import TenantAdminMixin
 
 
 @admin.register(WorkPeriodConfig)
-class WorkPeriodConfigAdmin(admin.ModelAdmin):
+class WorkPeriodConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'start_time', 'end_time',
                     'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
@@ -24,7 +25,7 @@ class WorkPeriodConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(Report)
-class ReportAdmin(admin.ModelAdmin):
+class ReportAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = ('work_period_config', 'start_datetime', 'end_datetime',
                     'total_amount', 'cash_total', 'card_total', 'other_total', 'unpaid_total')
     list_filter = ('work_period_config', 'start_datetime', 'created_at')

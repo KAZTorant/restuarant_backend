@@ -1,19 +1,28 @@
-from apps.printers.models.place import PreparationPlace
-from django.contrib import messages
+from django.contrib import admin, messages
 from django import forms
 from django.urls import path
 from django.shortcuts import render, redirect
-from apps.meals.models import Meal
-from apps.meals.models import MealCategory
-from apps.meals.models import MealGroup
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 
+from apps.printers.models.place import PreparationPlace
+from apps.meals.models import Meal, MealCategory, MealGroup
+from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.mixins import TenantAdminMixin
 
-from django.contrib import admin
+
+@admin.register(MealGroup)
+class MealGroupAdmin(TenantAdminMixin, admin.ModelAdmin):
+    list_display = ('name', 'restaurant')
+    search_fields = ('name',)
 
 
-admin.site.register(MealGroup)
-admin.site.register(MealCategory)
+@admin.register(MealCategory)
+class MealCategoryAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'group__restaurant'
+    show_restaurant_in_list = False
+    list_display = ('name', 'group', 'is_extra')
+    list_filter = ('group', 'is_extra')
+    search_fields = ('name',)
 
 
 class PreparationPlaceActionForm(forms.Form):
@@ -28,7 +37,9 @@ class PreparationPlaceActionForm(forms.Form):
 
 
 @admin.register(Meal)
-class MealAdmin(admin.ModelAdmin):
+class MealAdmin(TenantAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'category__group__restaurant'
+    show_restaurant_in_list = False
     list_display = ['name', 'category', 'get_preparation_places_display',
                     'price', 'cost_price', 'marja_amount', 'marja_percentage']
     list_filter = ['category', 'preparation_places']
@@ -38,7 +49,6 @@ class MealAdmin(admin.ModelAdmin):
     filter_horizontal = ['preparation_places']
 
     def get_preparation_places_display(self, obj):
-        """Display all preparation places for a meal"""
         places = obj.get_all_preparation_places()
         if places:
             return ", ".join([place.name for place in places])
@@ -46,20 +56,18 @@ class MealAdmin(admin.ModelAdmin):
     get_preparation_places_display.short_description = "Hazırlanma Yerləri"
 
     def cost_price(self, obj):
-        """Calculate total cost price from inventory mappings"""
         try:
             connector = obj.inventory_connector
             total_cost = 0
             for mapping in connector.mappings.all():
                 total_cost += mapping.quantity * mapping.price
             return f"{total_cost:.2f} AZN"
-        except:
+        except Exception:
             return "0.00 AZN"
     cost_price.short_description = "Xərc Qiyməti"
-    cost_price.admin_order_field = 'price'  # For sorting
+    cost_price.admin_order_field = 'price'
 
     def marja_amount(self, obj):
-        """Calculate marja amount (profit amount)"""
         try:
             connector = obj.inventory_connector
             total_cost = 0
@@ -67,7 +75,7 @@ class MealAdmin(admin.ModelAdmin):
                 total_cost += mapping.quantity * mapping.price
             marja_amount = obj.price - total_cost
             return f"{marja_amount:.2f} AZN"
-        except:
+        except Exception:
             if obj.price is not None:
                 return f"{obj.price:.2f} AZN"
             return "0.00 AZN"
@@ -75,7 +83,6 @@ class MealAdmin(admin.ModelAdmin):
     marja_amount.admin_order_field = 'price'
 
     def marja_percentage(self, obj):
-        """Calculate marja percentage"""
         try:
             connector = obj.inventory_connector
             total_cost = 0
@@ -85,7 +92,7 @@ class MealAdmin(admin.ModelAdmin):
                 marja_percentage = ((obj.price - total_cost) / obj.price) * 100
                 return f"{marja_percentage:.1f}%"
             return "0.0%"
-        except:
+        except Exception:
             return "100.0%"
     marja_percentage.short_description = "Marja (%)"
     marja_percentage.admin_order_field = 'price'
@@ -112,16 +119,24 @@ class MealAdmin(admin.ModelAdmin):
     def set_preparation_place_view(self, request):
         ids = request.GET.get("ids", "")
         meal_ids = ids.split(",")
-        meals = Meal.objects.filter(pk__in=meal_ids)
+        restaurant = get_user_restaurant(request.user)
+        meals = filter_queryset_by_restaurant(
+            Meal.objects.filter(pk__in=meal_ids),
+            restaurant,
+            'category__group__restaurant',
+        )
 
         if request.method == "POST":
             form = PreparationPlaceActionForm(request.POST)
             if form.is_valid():
-                preparation_places = form.cleaned_data['preparation_places']
-                # Update each meal's preparation_places
+                preparation_places = filter_queryset_by_restaurant(
+                    form.cleaned_data['preparation_places'],
+                    restaurant,
+                    'printer__restaurant',
+                )
                 for meal in meals:
                     meal.preparation_places.set(preparation_places)
-                
+
                 places_names = ", ".join([place.name for place in preparation_places])
                 self.message_user(
                     request,
@@ -130,12 +145,16 @@ class MealAdmin(admin.ModelAdmin):
                 )
                 return redirect("admin:meals_meal_changelist")
         else:
-            form = PreparationPlaceActionForm(
-                initial={'_selected_action': ids})
+            form = PreparationPlaceActionForm(initial={'_selected_action': ids})
+            form.fields['preparation_places'].queryset = filter_queryset_by_restaurant(
+                PreparationPlace.objects.all(),
+                restaurant,
+                'printer__restaurant',
+            )
 
         return render(request, "admin/set_preparation_place.html", {
             'meals': meals,
             'form': form,
             'title': "Hazırlanma yeri təyin et",
-            'selected_ids': meal_ids,  # Pass as a list, not a string
+            'selected_ids': meal_ids,
         })
