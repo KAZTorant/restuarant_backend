@@ -11,12 +11,16 @@ fi
 
 cd "${FRONTEND_DIR}"
 
-if [[ ! -d node_modules ]]; then
-  if [[ -f package-lock.json ]]; then
-    npm ci
-  else
-    npm install
-  fi
+echo "Node: $(node --version)"
+echo "npm: $(npm --version)"
+
+# Always fresh install on deploy — avoids macOS lockfile / Linux native binding mismatch
+rm -rf node_modules
+
+if [[ -f package-lock.json ]]; then
+  npm ci --include=optional
+else
+  npm install --include=optional
 fi
 
 npm run build
