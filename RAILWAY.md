@@ -23,7 +23,7 @@ Tam siyahı üçün `.env.example` faylına baxın.
 
 ## 3. Deploy axını
 
-Build zamanı `requirements.txt` install olunur və `admin-frontend` production build edilir (`nixpacks.toml` + `bin/build-admin-frontend.sh`).
+Build zamanı Nixpacks həm **Python** (requirements.txt), həm **Node.js 22** (admin-frontend) quraşdırır.
 
 Deploy əvvəl avtomatik işləyir:
 
