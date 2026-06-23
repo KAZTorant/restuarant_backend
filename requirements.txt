@@ -3,7 +3,7 @@ certifi
 charset-normalizer
 coreapi
 coreschema
-Django
+Django>=4.2,<5
 django-cors-headers
 django-jazzmin
 django-jazzmin-admin-rangefilter
@@ -19,7 +19,6 @@ Jinja2
 MarkupSafe
 openapi-codec
 packaging
-pycups
 pyfiglet
 pyinstaller
 pylint-django
@@ -41,6 +40,5 @@ whitenoise
 dj-database-url
 gunicorn
 python-escpos
-python-telegram-bot
 
 git+https://github.com/KAZTorant/kazza_inventory.git
