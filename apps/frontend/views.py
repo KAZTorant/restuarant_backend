@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from apps.frontend.decorators import pin_login_required
-from apps.tables.models import Room
+from apps.tables.models import Room, Table
 from apps.tenants.models import Restaurant
 
 User = get_user_model()
@@ -144,6 +144,16 @@ def order_view(request, slug, hall_id, table_id):
     restaurant = _get_restaurant(slug)
     if request.session.get('restaurant_slug') != slug:
         return redirect('frontend:login', slug=slug)
+
+    rooms = _rooms_for_restaurant(restaurant)
+    if not rooms.filter(pk=hall_id).exists():
+        first_hall = rooms.order_by('id').first()
+        if first_hall:
+            return redirect('frontend:floor_plan', slug=slug, hall_id=first_hall.id)
+        return redirect('frontend:login', slug=slug)
+
+    if not Table.objects.filter(pk=table_id, room_id=hall_id, room__restaurant=restaurant).exists():
+        return redirect('frontend:floor_plan', slug=slug, hall_id=hall_id)
 
     return render(request, 'frontend/order.html', {
         'hall_id': hall_id,

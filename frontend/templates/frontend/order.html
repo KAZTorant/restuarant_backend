@@ -30,10 +30,10 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <a href="{% url 'frontend:floor_plan' hall_id=hall_id %}" class="action-btn action-btn--secondary">
+                    <a href="{% url 'frontend:floor_plan' slug=restaurant_slug hall_id=hall_id %}" class="action-btn action-btn--secondary">
                         ← Masalar
                     </a>
-                    <a href="{% url 'frontend:logout' %}" class="action-btn action-btn--danger">
+                    <a href="{% url 'frontend:logout' slug=restaurant_slug %}" class="action-btn action-btn--danger">
                         Çıxış
                     </a>
                 </div>
