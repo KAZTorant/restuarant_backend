@@ -1,0 +1,76 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}Kazza — Daxil ol{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'frontend/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <div class="login-container">
+        <div class="login-brand">
+            <h1>Kazza</h1>
+            <p>Restoran idarəetmə sistemi.<br>PIN kodunuzla daxil olun.</p>
+            <div class="qr-code" id="qr-section">
+                <div class="qr-code-wrapper">
+                    <div id="qr-code"></div>
+                </div>
+                <p>Mobil cihazdan skan edin</p>
+            </div>
+        </div>
+
+        <div class="login-form-card">
+            <h2>Xoş gəldiniz</h2>
+            <p class="subtitle">4 rəqəmli PIN kodunuzu daxil edin</p>
+
+            <form method="post" id="login-form">
+                {% csrf_token %}
+                <div class="pin-display-wrapper">
+                    <label>PIN kod</label>
+                    <div class="pin-dots" id="pin-dots">
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                        <div class="pin-dot"></div>
+                    </div>
+                    <input type="hidden" name="pin" id="pin-input" value="">
+                </div>
+
+                <div class="keypad">
+                    <button type="button" class="btn number" data-key="1">1</button>
+                    <button type="button" class="btn number" data-key="2">2</button>
+                    <button type="button" class="btn number" data-key="3">3</button>
+                    <button type="button" class="btn number" data-key="4">4</button>
+                    <button type="button" class="btn number" data-key="5">5</button>
+                    <button type="button" class="btn number" data-key="6">6</button>
+                    <button type="button" class="btn number" data-key="7">7</button>
+                    <button type="button" class="btn number" data-key="8">8</button>
+                    <button type="button" class="btn number" data-key="9">9</button>
+                    <button type="button" class="btn number zero" data-key="0">0</button>
+                    <button type="button" class="btn control clear" id="clear-btn">Təmizlə</button>
+                    <button type="submit" class="btn control enter" id="submit-btn">Daxil ol</button>
+                </div>
+            </form>
+
+            {% if error %}
+            <div class="login-error">
+                <div class="alert alert--error" role="alert">
+                    <span class="alert-icon">✕</span>
+                    <span>{{ error }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+    window.KAZZA_QR_URL = "{{ qr_url|escapejs }}";
+</script>
+<script src="{% static 'frontend/js/login.js' %}"></script>
+{% endblock %}

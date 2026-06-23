@@ -1,0 +1,41 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}Kazza — Masalar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'frontend/css/floor-plan.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="floor-page" id="floor-plan-app"
+     data-hall-id="{{ hall_id }}"
+     data-pin="{{ pin }}"
+     data-role="{{ role }}"
+     data-full-name="{{ full_name }}">
+
+    <header class="floor-header">
+        <div class="user-chip">
+            <div class="user-avatar">{{ full_name|slice:":1"|upper }}</div>
+            <div class="user-info-text">
+                <span class="user-role">{{ role_display_name }}</span>
+                <span class="user-name">{{ full_name }}</span>
+            </div>
+        </div>
+        <a href="{% url 'frontend:logout' %}" class="logout-button">Çıxış</a>
+    </header>
+
+    <main class="floor-content">
+        <div class="tables-grid" id="tables-grid"></div>
+    </main>
+
+    <div class="halls-container">
+        <div class="halls" id="halls-bar"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'frontend/js/api.js' %}"></script>
+<script src="{% static 'frontend/js/floor-plan.js' %}"></script>
+{% endblock %}

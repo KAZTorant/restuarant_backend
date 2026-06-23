@@ -1,0 +1,78 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}Kazza — Sifariş{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'frontend/css/order.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="order-page" id="order-app"
+     data-hall-id="{{ hall_id }}"
+     data-table-id="{{ table_id }}"
+     data-pin="{{ pin }}"
+     data-role="{{ role }}"
+     data-full-name="{{ full_name }}">
+
+    <div class="order-header-wrap" id="header-toggle">
+        <header class="order-header" id="header-container">
+            <div class="header-top">
+                <div class="header-stats">
+                    <div class="stat-chip">
+                        <span class="stat-label">Masa</span>
+                        <span class="stat-value" id="table-number">—</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">Ümumi məbləğ</span>
+                        <span class="stat-value stat-value--price" id="total-price">₼ 0.00</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <a href="{% url 'frontend:floor_plan' hall_id=hall_id %}" class="action-btn action-btn--secondary">
+                        ← Masalar
+                    </a>
+                    <a href="{% url 'frontend:logout' %}" class="action-btn action-btn--danger">
+                        Çıxış
+                    </a>
+                </div>
+            </div>
+            <div class="admin-actions" id="admin-actions"></div>
+        </header>
+        <button type="button" class="toggle-header-btn" id="toggle-header-btn" aria-label="Başlığı gizlət">▲</button>
+    </div>
+
+    <div class="mobile-tabs hidden" id="mobile-tabs">
+        <button type="button" class="tab-button active" data-tab="orders">Sifarişlər</button>
+        <button type="button" class="tab-button" data-tab="menu">Menyu</button>
+    </div>
+
+    <div class="content-container" id="content-container">
+        <div class="panel panel--orders" id="order-section">
+            <div class="section-header">
+                <div class="section-header-icon section-header-icon--green">📋</div>
+                Sifarişlər
+            </div>
+            <div class="panel-body" id="order-items"></div>
+        </div>
+        <div class="panel panel--menu" id="menu-section">
+            <div class="section-header">
+                <div class="section-header-icon section-header-icon--green">🍽</div>
+                Menyu
+            </div>
+            <div class="panel-body" id="menu-panel"></div>
+        </div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden" id="popup-overlay"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'frontend/js/api.js' %}"></script>
+<script src="{% static 'frontend/js/event-bus.js' %}"></script>
+<script src="{% static 'frontend/js/order-items.js' %}"></script>
+<script src="{% static 'frontend/js/menu.js' %}"></script>
+<script src="{% static 'frontend/js/actions.js' %}"></script>
+<script src="{% static 'frontend/js/order.js' %}"></script>
+{% endblock %}

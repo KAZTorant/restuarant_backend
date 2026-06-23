@@ -34,6 +34,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path('', include('apps.frontend.urls')),
     path('admin/', admin.site.urls),
     path('api/', include('apps.urls')),
     path('orders/', include('apps.orders.apis.urls')),  # Make sure this line exists

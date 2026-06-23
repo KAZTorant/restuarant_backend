@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Kazza{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'frontend/css/base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+
+    <div class="loading-overlay hidden" id="loading-overlay">
+        <div class="loading-card">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Yüklənir...</p>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="{% static 'frontend/js/ui.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+    <script src="{% static 'frontend/js/disable-zoom.js' %}"></script>
+</body>
+</html>

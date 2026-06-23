@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.finance.apps.FinanceConfig',
     'apps.printers.apps.PrintersConfig',
     'apps.payments.apps.PaymentsConfig',
+    'apps.frontend.apps.FrontendConfig',
 
     # 3rd party apps
     'drf_yasg',
@@ -85,7 +86,10 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+            os.path.join(BASE_DIR, 'frontend', 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -160,6 +164,9 @@ STORAGES = {
 }
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'frontend', 'static'),
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
