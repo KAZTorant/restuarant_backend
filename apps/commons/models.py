@@ -9,3 +9,15 @@ class DateTimeModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class TenantModel(models.Model):
+    restaurant = models.ForeignKey(
+        'tenants.Restaurant',
+        on_delete=models.CASCADE,
+        related_name='%(app_label)s_%(class)s_set',
+        verbose_name='Restoran',
+    )
+
+    class Meta:
+        abstract = True

@@ -2,10 +2,12 @@ from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
+from apps.commons.models import TenantModel
+
 User = settings.AUTH_USER_MODEL
 
 
-class ShiftHandover(models.Model):
+class ShiftHandover(TenantModel, models.Model):
     from_user = models.ForeignKey(
         User,
         related_name='shift_handover_from',

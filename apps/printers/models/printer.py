@@ -3,8 +3,10 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.commons.models import TenantModel
 
-class Printer(models.Model):
+
+class Printer(TenantModel, models.Model):
     name = models.CharField(_('Printer Name'), max_length=100)
     ip_address = models.GenericIPAddressField(_('IP Address'))
     port = models.IntegerField(_('Port'), default=9100)

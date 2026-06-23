@@ -6,23 +6,23 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from apps.tenants.mixins import TenantAdminMixin
 from apps.users.models import ShiftHandover, User, WhatsAppConfig
-from apps.users.models.shift_handover import ShiftHandover
 
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'type', 'first_name',
+    list_display = ('username', 'type', 'restaurant', 'first_name',
                     'last_name', 'is_staff', 'is_active')
-    list_filter = ('type', 'is_staff', 'is_active')
+    list_filter = ('type', 'restaurant', 'is_staff', 'is_active')
     fieldsets = (
-        (None, {'fields': ('username', "first_name", "last_name",)}),
+        (None, {'fields': ('username', "first_name", "last_name", 'restaurant')}),
         ('Permissions', {'fields': ('is_staff', 'is_active', 'groups',)}),
         ('User Type', {'fields': ('type',)}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'type', 'is_staff', 'is_active'),
+            'fields': ('username', 'password1', 'password2', 'type', 'restaurant', 'is_staff', 'is_active'),
         }),
     )
     search_fields = ('username',)
@@ -34,7 +34,7 @@ admin.site.register(User, CustomUserAdmin)
 
 
 @admin.register(WhatsAppConfig)
-class WhatsAppConfigAdmin(admin.ModelAdmin):
+class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     """
     Admin interface for managing WhatsApp notification recipient phone numbers
     """
@@ -49,7 +49,7 @@ class WhatsAppConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(ShiftHandover)
-class ShiftHandoverAdmin(admin.ModelAdmin):
+class ShiftHandoverAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = (
         "from_user", "to_user", "shift_start", "shift_end",
         "cash_in_kassa", "expected_cash", "discrepancy",

@@ -1,14 +1,15 @@
 from django.db import models
 
+from apps.commons.models import TenantModel
 
-class WhatsAppConfig(models.Model):
+
+class WhatsAppConfig(TenantModel, models.Model):
     """
     WhatsApp notification configuration.
     Stores owner phone numbers for notifications.
     """
     phone = models.CharField(
         max_length=20,
-        unique=True,
         verbose_name="Telefon nömrəsi",
         help_text="Format: 994XXXXXXXXX (ölkə kodu ilə birlikdə)"
     )
@@ -36,6 +37,12 @@ class WhatsAppConfig(models.Model):
         verbose_name = "WhatsApp Konfiqurasiyası"
         verbose_name_plural = "WhatsApp Konfiqurasiyaları"
         ordering = ['-is_active', 'created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['restaurant', 'phone'],
+                name='unique_restaurant_whatsapp_phone',
+            ),
+        ]
 
     def __str__(self):
         status = "✓" if self.is_active else "✗"

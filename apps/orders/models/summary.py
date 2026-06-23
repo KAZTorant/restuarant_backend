@@ -3,13 +3,13 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from apps.commons.models import DateTimeModel
+from apps.commons.models import DateTimeModel, TenantModel
 from apps.orders.models.statistics import Statistics
 
 User = get_user_model()
 
 
-class Summary(DateTimeModel, models.Model):
+class Summary(TenantModel, DateTimeModel, models.Model):
     """
     Model for date-range summary reports of restaurant statistics.
     No additional name field needed - we use date range for identification.

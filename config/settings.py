@@ -92,6 +92,8 @@ INSTALLED_APPS = [
     # Apps
     'apps.inventory_connector',
 
+    'apps.tenants.apps.TenantsConfig',
+
     'channels',
 ]
 
@@ -106,6 +108,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'apps.tenants.middleware.TenantMiddleware',
     'apps.tables.middleware.DisableCSRFMiddleware',
 
 
@@ -336,6 +339,7 @@ JAZZMIN_SETTINGS = {
     "site_brand": "KAZZA",
     "welcome_sign": "Xoş gəldiniz!",
     "copyright": "KAZZA Team © 2025",
+    "order_with_respect_to": ["tenants", "users", "tables", "meals", "orders", "payments", "finance", "printers"],
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.

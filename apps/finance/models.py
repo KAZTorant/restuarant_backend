@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils.timezone import now
 
+from apps.commons.models import TenantModel
 
-class Income(models.Model):
+
+class Income(TenantModel, models.Model):
     PAYMENT_TYPES = [
         ('cashier', 'Cashier'),
         ('c2c', 'C2C'),
@@ -22,7 +24,7 @@ class Income(models.Model):
         return f"{self.payment_type} - {self.amount}"
 
 
-class Expense(models.Model):
+class Expense(TenantModel, models.Model):
     CATEGORY_TYPES = [
         ('salary', 'Salary'),
         ('fees', 'Fees'),

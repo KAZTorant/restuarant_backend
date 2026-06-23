@@ -7,8 +7,8 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
-from apps.tables.models import Table
-from apps.tables.models import Room
+from apps.tenants.utils import filter_by_restaurant
+from apps.tables.models import Room, Table
 
 from apps.tables.serializers import TableSerializer
 from apps.tables.serializers import TableDetailSerializer
@@ -21,7 +21,8 @@ class TableAPIView(ListAPIView):
 
     def get_queryset(self):
         room_id = self.kwargs.get("room_id", None)
-        return Table.objects.filter(room__id=room_id).order_by("id")
+        qs = Table.objects.filter(room__id=room_id).order_by("id")
+        return filter_by_restaurant(qs)
 
 
 class RoomAPIView(ListAPIView):
@@ -29,7 +30,8 @@ class RoomAPIView(ListAPIView):
     serializer_class = RoomSerializer
 
     def get_queryset(self):
-        return Room.objects.filter(is_active=True)
+        qs = Room.objects.filter(is_active=True)
+        return filter_by_restaurant(qs)
 
     @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
@@ -39,7 +41,8 @@ class RoomAPIView(ListAPIView):
 class TableDetailAPIView(APIView):
 
     def get(self, request, table_id):
-        table = Table.objects.filter(id=table_id).first()
+        qs = filter_by_restaurant(Table.objects.filter(id=table_id))
+        table = qs.first()
 
         if not table:
             return Response(

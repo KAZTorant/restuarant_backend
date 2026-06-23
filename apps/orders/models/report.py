@@ -4,13 +4,13 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from apps.commons.models import DateTimeModel
+from apps.commons.models import DateTimeModel, TenantModel
 from apps.orders.models import Order
 
 User = get_user_model()
 
 
-class WorkPeriodConfig(models.Model):
+class WorkPeriodConfig(TenantModel, models.Model):
     """Configuration for work periods (start/end times)"""
 
     name = models.CharField(max_length=100, verbose_name="Ad")
@@ -80,7 +80,7 @@ class ReportManager(models.Manager):
         return report, created
 
 
-class Report(DateTimeModel, models.Model):
+class Report(TenantModel, DateTimeModel, models.Model):
     """Automatic work period reports based on WorkPeriodConfig"""
 
     work_period_config = models.ForeignKey(

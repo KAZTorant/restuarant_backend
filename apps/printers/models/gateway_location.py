@@ -4,8 +4,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.commons.models import TenantModel
 
-class PrintGatewayLocation(models.Model):
+
+class PrintGatewayLocation(TenantModel, models.Model):
     name = models.CharField(_('Location name'), max_length=100)
     token = models.CharField(
         _('Gateway token'),

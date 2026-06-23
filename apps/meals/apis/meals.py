@@ -12,12 +12,15 @@ from apps.meals.models.meal import MealGroup
 from apps.meals.serializers import MealSerializer
 from apps.meals.serializers import MealCategorySerializer
 from apps.meals.serializers.meals import MealGroupSerializer
+from apps.tenants.utils import filter_by_restaurant
 
 
 class MealCategoryAPIView(ListAPIView):
     model = MealCategory
     serializer_class = MealCategorySerializer
-    queryset = MealCategory.objects.all()
+
+    def get_queryset(self):
+        return filter_by_restaurant(MealCategory.objects.all())
 
     @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
@@ -27,7 +30,9 @@ class MealCategoryAPIView(ListAPIView):
 class MealGroupAPIView(ListAPIView):
     model = MealGroup
     serializer_class = MealGroupSerializer
-    queryset = MealGroup.objects.all()
+
+    def get_queryset(self):
+        return filter_by_restaurant(MealGroup.objects.all())
 
     @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
@@ -54,5 +59,7 @@ class MealAPIView(ListAPIView):
     def get_queryset(self):
         meal_category_id = self.request.GET.get("meal_category_id", 0)
         if meal_category_id:
-            return Meal.objects.filter(category__id=meal_category_id)
-        return Meal.objects.filter(category__isnull=True)
+            qs = Meal.objects.filter(category__id=meal_category_id)
+        else:
+            qs = Meal.objects.filter(category__isnull=True)
+        return filter_by_restaurant(qs)

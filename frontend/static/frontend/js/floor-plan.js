@@ -6,10 +6,11 @@
   const pin = app.dataset.pin;
   const role = app.dataset.role;
   const fullName = app.dataset.fullName;
+  const restaurantSlug = app.dataset.restaurantSlug || '';
   const isWaitress = role === 'waitress' || role === 'captain_waitress';
   const isAdmin = role === 'admin' || role === 'restaurant';
 
-  KazzaAPI.init(pin);
+  KazzaAPI.init(pin, restaurantSlug);
 
   let currentHallId = hallId;
   let pollInterval = null;
@@ -59,7 +60,7 @@
     grid.querySelectorAll('.table-card:not(.table-card--locked)').forEach((el) => {
       el.addEventListener('click', () => {
         KazzaUI.showLoading('Sifariş açılır...');
-        window.location.href = `/hall/${currentHallId}/table/${el.dataset.tableId}/`;
+        window.location.href = `/r/${restaurantSlug}/hall/${currentHallId}/table/${el.dataset.tableId}/`;
       });
     });
   }
@@ -80,7 +81,7 @@
     bar.querySelectorAll('.hall-pill').forEach((el) => {
       el.addEventListener('click', () => {
         currentHallId = parseInt(el.dataset.hallId, 10);
-        history.replaceState(null, '', `/hall/${currentHallId}/`);
+        history.replaceState(null, '', `/r/${restaurantSlug}/hall/${currentHallId}/`);
         loadTables(true);
         renderHalls();
       });

@@ -10,14 +10,23 @@ from django.db.models import Sum, Count, Q
 
 from simple_history.models import HistoricalRecords
 
-from apps.commons.models import DateTimeModel
+from apps.commons.models import DateTimeModel, TenantModel
 from apps.orders.models import Order
 from apps.payments.models import Payment
+
+from apps.tenants.context import get_current_restaurant
 
 User = get_user_model()
 
 
 class StatisticsManager(models.Manager):
+    def _for_restaurant(self, restaurant=None):
+        restaurant = restaurant or get_current_restaurant()
+        qs = self.get_queryset()
+        if restaurant is not None:
+            qs = qs.filter(restaurant=restaurant)
+        return qs
+
     # === Existing summary methods ===
     def calculate_per_waitress(self, date=None):
         if not date:
@@ -87,20 +96,23 @@ class StatisticsManager(models.Manager):
         return self.update_or_create(title='yearly', date=first, defaults={'total': total})
 
     def start_shift(self, user):
-        if self.filter(is_closed=False).exists():
+        restaurant = getattr(user, 'restaurant', None) or get_current_restaurant()
+        open_qs = self._for_restaurant(restaurant).filter(is_closed=False)
+        if open_qs.exists():
             raise ValidationError("Açıq növbən var.")
-        last = self.filter(is_closed=True).order_by(
+        last = self._for_restaurant(restaurant).filter(is_closed=True).order_by(
             '-end_time').first()
         initial_cash = last.remaining_cash if last else Decimal('0.00')
         initial_card = last.remaining_card if last else Decimal('0.00')
         initial_other = last.remaining_other if last else Decimal('0.00')
         return self.create(
-            title="till_now", 
-            started_by=user, 
-            start_time=timezone.now(), 
+            title="till_now",
+            started_by=user,
+            start_time=timezone.now(),
             initial_cash=initial_cash,
             initial_card=initial_card,
-            initial_other=initial_other
+            initial_other=initial_other,
+            restaurant=restaurant,
         )
 
     def end_shift(
@@ -325,7 +337,7 @@ class StatisticsManager(models.Manager):
         return stat
 
 
-class Statistics(DateTimeModel, models.Model):
+class Statistics(TenantModel, DateTimeModel, models.Model):
     TITLE_CHOICES = (
         ("till_now", "Hesabat"), ("daily", "Günlük"),
         ("monthly", "Aylıq"), ("yearly", "İllik"),

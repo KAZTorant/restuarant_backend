@@ -12,7 +12,7 @@
     <div class="login-container">
         <div class="login-brand">
             <h1>Kazza</h1>
-            <p>Restoran idarəetmə sistemi.<br>PIN kodunuzla daxil olun.</p>
+            <p>{% if restaurant %}{{ restaurant.name }}<br>{% endif %}PIN kodunuzla daxil olun.</p>
             <div class="qr-code" id="qr-section">
                 <div class="qr-code-wrapper">
                     <div id="qr-code"></div>

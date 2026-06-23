@@ -1,10 +1,10 @@
 from django.db import models
 
-from apps.commons.models import DateTimeModel
+from apps.commons.models import DateTimeModel, TenantModel
 from apps.printers.models.place import PreparationPlace
 
 
-class MealGroup(DateTimeModel, models.Model):
+class MealGroup(TenantModel, DateTimeModel, models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
 
+from apps.tenants.context import get_current_restaurant
 from apps.users.serializers import PinLoginSerializer
 
 User = get_user_model()
@@ -22,9 +23,13 @@ class PinLoginAPIView(APIView):
         serializer = PinLoginSerializer(data=request.data)
         if serializer.is_valid():
             pin = serializer.validated_data['pin']
+            restaurant = get_current_restaurant()
 
             try:
-                user = User.objects.get(username=pin)
+                if restaurant:
+                    user = User.objects.get(username=pin, restaurant=restaurant)
+                else:
+                    user = User.objects.get(username=pin)
             except User.DoesNotExist:
                 return Response(
                     {'error': 'User not found'},

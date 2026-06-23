@@ -6,8 +6,9 @@
   const tableId = parseInt(app.dataset.tableId, 10);
   const pin = app.dataset.pin;
   const role = app.dataset.role;
+  const restaurantSlug = app.dataset.restaurantSlug || '';
 
-  KazzaAPI.init(pin);
+  KazzaAPI.init(pin, restaurantSlug);
 
   async function refreshTableDetails() {
     try {
@@ -30,7 +31,7 @@
     MenuPanel.init(tableId),
     refreshTableDetails(),
   ]).finally(() => {
-    ActionsPanel.init(tableId, hallId, role);
+    ActionsPanel.init(tableId, hallId, role, restaurantSlug);
     KazzaUI.hideLoading();
   });
 

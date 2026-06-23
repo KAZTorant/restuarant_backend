@@ -5,10 +5,12 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.commons.models import TenantModel
+
 User = get_user_model()
 
 
-class PaymentCalculation(models.Model):
+class PaymentCalculation(TenantModel, models.Model):
     start_date = models.DateField(_("Başlanğıc tarixi"))
     end_date = models.DateField(_("Son tarixi"))
     start_time = models.TimeField(_("Başlanğıc saatı"))

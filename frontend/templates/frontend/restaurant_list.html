@@ -1,0 +1,28 @@
+{% extends 'frontend/base.html' %}
+{% load static %}
+
+{% block title %}Kazza — Restoran seçimi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'frontend/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <div class="login-card">
+        <h1 class="login-title">Kazza</h1>
+        <p class="login-subtitle">Restoranınızı seçin</p>
+        <ul class="restaurant-list">
+            {% for restaurant in restaurants %}
+            <li>
+                <a href="{% url 'frontend:login' slug=restaurant.slug %}" class="restaurant-link">
+                    {{ restaurant.name }}
+                </a>
+            </li>
+            {% empty %}
+            <li>Heç bir aktiv restoran yoxdur.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

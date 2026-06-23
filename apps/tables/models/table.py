@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
-from apps.commons.models import DateTimeModel
+from apps.commons.models import DateTimeModel, TenantModel
 
 User = get_user_model()
 
 
-class Room(DateTimeModel, models.Model):
+class Room(TenantModel, DateTimeModel, models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)

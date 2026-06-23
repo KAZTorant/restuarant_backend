@@ -1,16 +1,22 @@
 const KazzaAPI = {
   pin: '',
+  restaurantSlug: '',
 
-  init(pin) {
+  init(pin, restaurantSlug = '') {
     this.pin = pin;
+    this.restaurantSlug = restaurantSlug;
   },
 
   headers() {
-    return {
+    const headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'X-PIN': this.pin,
     };
+    if (this.restaurantSlug) {
+      headers['X-Restaurant-Slug'] = this.restaurantSlug;
+    }
+    return headers;
   },
 
   async request(method, url, body = null) {

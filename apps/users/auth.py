@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import authentication, exceptions
 
+from apps.tenants.context import get_current_restaurant
+
 User = get_user_model()
 
 
@@ -10,8 +12,12 @@ class PINAuthentication(authentication.BaseAuthentication):
         if not pin:
             return None
 
+        restaurant = get_current_restaurant()
         try:
-            user = User.objects.get(username=pin)
+            if restaurant:
+                user = User.objects.get(username=pin, restaurant=restaurant)
+            else:
+                user = User.objects.get(username=pin)
             if not user.is_active:
                 raise exceptions.AuthenticationFailed(
                     'User account is inactive')

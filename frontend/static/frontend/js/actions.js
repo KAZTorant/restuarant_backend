@@ -2,6 +2,7 @@ const ActionsPanel = {
   tableId: null,
   hallId: null,
   role: null,
+  restaurantSlug: '',
   totalPrice: 0,
   printCheck: false,
   mainOrderId: null,
@@ -16,10 +17,11 @@ const ActionsPanel = {
     { id: 6, label: 'Masanı birləşdir', method: 'openCombine', style: '' },
   ],
 
-  init(tableId, hallId, role) {
+  init(tableId, hallId, role, restaurantSlug = '') {
     this.tableId = tableId;
     this.hallId = hallId;
     this.role = role;
+    this.restaurantSlug = restaurantSlug;
 
     const container = document.getElementById('admin-actions');
     if (container && !container.dataset.actionsBound) {
@@ -255,7 +257,7 @@ const ActionsPanel = {
           overlay.classList.add('hidden');
           overlay.innerHTML = '';
           KazzaUI.success('Ödəniş uğurla tamamlandı!');
-          setTimeout(() => { window.location.href = `/hall/${this.hallId}/`; }, 800);
+          setTimeout(() => { window.location.href = `/r/${this.restaurantSlug}/hall/${this.hallId}/`; }, 800);
         } catch (e) {
           KazzaUI.error(KazzaUI.parseError(e, 'Ödəniş zamanı xəta baş verdi.'));
           btn.disabled = false;
@@ -373,7 +375,7 @@ const ActionsPanel = {
         overlay.classList.add('hidden');
         overlay.innerHTML = '';
         KazzaUI.success('Masa uğurla köçürüldü');
-        setTimeout(() => { window.location.href = `/hall/${this.hallId}/table/${newId}/`; }, 600);
+        setTimeout(() => { window.location.href = `/r/${this.restaurantSlug}/hall/${this.hallId}/table/${newId}/`; }, 600);
       } catch (e) {
         KazzaUI.error(KazzaUI.parseError(e, 'Masa köçürülə bilmədi.'));
       } finally {

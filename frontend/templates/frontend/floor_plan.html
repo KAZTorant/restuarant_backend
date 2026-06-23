@@ -12,7 +12,8 @@
      data-hall-id="{{ hall_id }}"
      data-pin="{{ pin }}"
      data-role="{{ role }}"
-     data-full-name="{{ full_name }}">
+     data-full-name="{{ full_name }}"
+     data-restaurant-slug="{{ restaurant_slug }}">
 
     <header class="floor-header">
         <div class="user-chip">
@@ -22,7 +23,7 @@
                 <span class="user-name">{{ full_name }}</span>
             </div>
         </div>
-        <a href="{% url 'frontend:logout' %}" class="logout-button">Çıxış</a>
+        <a href="{% url 'frontend:logout' slug=restaurant_slug %}" class="logout-button">Çıxış</a>
     </header>
 
     <main class="floor-content">
