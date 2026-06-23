@@ -1,0 +1,31 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Statistika{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+  <h1 class="page-title" style="margin:0">Statistika / Növbə</h1>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+    <button class="btn btn-primary btn-sm" id="btn-start-shift">Növbəni Başlat</button>
+    <button class="btn btn-danger btn-sm hidden" id="btn-end-shift">Növbəni Bağla</button>
+    <button class="btn btn-secondary btn-sm" id="btn-refresh">Yenilə</button>
+  </div>
+</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="label">Ödənilmiş</div><div class="value success" id="stat-paid">—</div></div>
+  <div class="stat-card"><div class="label">Ödənilməmiş</div><div class="value warning" id="stat-unpaid">—</div></div>
+  <div id="shift-cards" style="display:contents"></div>
+</div>
+<div class="card card-body" style="margin-bottom:1rem">
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+    <button class="btn btn-secondary btn-sm" id="btn-daily">Günlük</button>
+    <button class="btn btn-secondary btn-sm" id="btn-monthly">Aylıq</button>
+    <button class="btn btn-secondary btn-sm" id="btn-yearly">İllik</button>
+    <button class="btn btn-secondary btn-sm" id="btn-waitress">Ofisiant</button>
+  </div>
+</div>
+{% include 'admin_panel/partials/model_table.html' %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-list.js' %}"></script>
+<script src="{% static 'admin_panel/js/statistics.js' %}"></script>
+{% endblock %}

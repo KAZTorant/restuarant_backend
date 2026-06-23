@@ -1,0 +1,14 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Ödəniş Hesablaması{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <h1 class="page-title" style="margin:0">Ödəniş Hesablaması</h1>
+  <button class="btn btn-primary btn-sm" id="btn-calculate">Yeni Hesablama</button>
+</div>
+{% include 'admin_panel/partials/model_table.html' %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-list.js' %}"></script>
+<script src="{% static 'admin_panel/js/payment-calculation.js' %}"></script>
+{% endblock %}

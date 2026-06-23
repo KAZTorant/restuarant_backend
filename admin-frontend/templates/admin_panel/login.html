@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KAZZA Admin — Giriş</title>
+  <link rel="stylesheet" href="{% static 'admin_panel/css/base.css' %}">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>KAZZA Admin</h1>
+      <p class="subtitle">İdarə panelinə daxil olun</p>
+      {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+      <div id="login-error" class="alert error hidden"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">İstifadəçi adı</label>
+          <input type="text" id="username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Şifrə</label>
+          <input type="password" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Daxil ol</button>
+      </form>
+    </div>
+  </div>
+  <script src="{% static 'admin_panel/js/api.js' %}"></script>
+  <script src="{% static 'admin_panel/js/ui.js' %}"></script>
+  <script src="{% static 'admin_panel/js/login.js' %}"></script>
+</body>
+</html>

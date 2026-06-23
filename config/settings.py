@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'apps.payments.apps.PaymentsConfig',
     'apps.frontend.apps.FrontendConfig',
     'apps.admin_api.apps.AdminApiConfig',
+    'apps.admin_frontend.apps.AdminFrontendConfig',
 
     # 3rd party apps
     'drf_yasg',
@@ -123,6 +124,7 @@ TEMPLATES = [
         'DIRS': [
             os.path.join(BASE_DIR, 'templates'),
             os.path.join(BASE_DIR, 'frontend', 'templates'),
+            os.path.join(BASE_DIR, 'admin-frontend', 'templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -210,7 +212,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'static'),
-    os.path.join(BASE_DIR, 'admin-frontend', 'dist'),
+    os.path.join(BASE_DIR, 'admin-frontend', 'static'),
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

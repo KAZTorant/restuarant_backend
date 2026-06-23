@@ -1,0 +1,14 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Hesabatlar{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <h1 class="page-title" style="margin:0">Hesabatlar</h1>
+  <button class="btn btn-primary btn-sm" id="btn-create-summary">Tarix Aralığı Yarat</button>
+</div>
+{% include 'admin_panel/partials/model_table.html' %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-list.js' %}"></script>
+<script src="{% static 'admin_panel/js/summary.js' %}"></script>
+{% endblock %}

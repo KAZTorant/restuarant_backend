@@ -1,42 +1,23 @@
-# Admin Frontend
+# KAZZA Admin Panel
 
-Modern React admin panel for KAZZA Restaurant Backend.
+Adi HTML/JS/CSS admin panel (`frontend/` qovluğu ilə eyni yanaşma).
 
-## Development
+## Struktur
 
-```bash
-cd admin-frontend
-npm install
-npm run dev
+```
+admin-frontend/
+  templates/admin_panel/   # Django template-lər
+  static/admin_panel/      # CSS + JS
 ```
 
-Dev server runs at http://localhost:5174 with API proxy to Django.
+## URL-lər
 
-## Production Build
+| URL | Təsvir |
+|-----|--------|
+| `/panel/` | Dashboard |
+| `/panel/login/` | Giriş |
+| `/panel/models/<app>/<model>/` | Model siyahısı |
+| `/panel/statistics/` | Növbə idarəetməsi |
+| `/admin-api/` | Backend API |
 
-```bash
-cd admin-frontend
-npm run build
-```
-
-Built files go to `admin-frontend/dist/` and are served by Django at `/panel/`.
-
-## URLs
-
-| URL | Description |
-|-----|-------------|
-| `/panel/` | Admin SPA (new frontend) |
-| `/admin-api/` | REST API for admin operations |
-| `/admin/` | Legacy Django admin (Jazzmin) |
-
-## Stack
-
-- React 18 + TypeScript + Vite
-- TanStack Query (caching, performance)
-- TanStack Table (virtualized lists)
-- Tailwind CSS 4
-- Lucide icons
-
-## Authentication
-
-Uses Django session auth. Login with staff user credentials (username + password).
+Build lazım deyil — `collectstatic` ilə deploy olunur.

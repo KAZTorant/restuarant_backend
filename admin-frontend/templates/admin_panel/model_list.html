@@ -1,0 +1,29 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Siyahı{% endblock %}
+{% block content %}
+<h1 class="page-title" id="page-title">Yüklənir...</h1>
+<div class="toolbar">
+  <input type="search" class="search-input" id="search-input" placeholder="Axtar...">
+  <div id="toolbar-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap"></div>
+</div>
+<div class="card">
+  <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead id="table-head"></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <span id="page-info"></span>
+    <div style="display:flex;gap:0.25rem">
+      <button class="btn btn-secondary btn-sm" id="prev-page">←</button>
+      <button class="btn btn-secondary btn-sm" id="next-page">→</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-list.js' %}"></script>
+<script>document.addEventListener('DOMContentLoaded', () => ModelList.init('{{ app_label }}', '{{ model_name }}'));</script>
+{% endblock %}

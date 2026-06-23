@@ -1,0 +1,17 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}{% if is_add %}Yeni{% else %}Düzəliş{% endif %}{% endblock %}
+{% block content %}
+<h1 class="page-title" id="page-title">Yüklənir...</h1>
+<form id="model-form">
+  <div id="form-fields"></div>
+  <div style="margin-top:1rem;display:flex;gap:0.5rem">
+    <button type="submit" class="btn btn-primary">Saxla</button>
+    <a href="/panel/models/{{ app_label }}/{{ model_name }}/" class="btn btn-secondary">Geri</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-form.js' %}"></script>
+<script>document.addEventListener('DOMContentLoaded', () => ModelForm.init('{{ app_label }}', '{{ model_name }}', {% if pk %}{{ pk }}{% else %}null{% endif %}));</script>
+{% endblock %}

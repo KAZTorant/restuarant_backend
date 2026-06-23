@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}KAZZA Admin{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'admin_panel/css/base.css' %}">
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">KAZZA</div>
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <a href="/panel/" class="nav-link">İdarə Paneli</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logout-btn" class="nav-link">Çıxış</a>
+      </div>
+    </aside>
+    <div class="main-wrap">
+      <header class="topbar">
+        <span class="topbar-badge hidden" id="topbar-restaurant"></span>
+        <span class="topbar-user" id="topbar-user"></span>
+      </header>
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <div id="admin-loading" class="loading-overlay hidden"><div class="spinner"></div></div>
+  <div id="toast-container" class="toast-container"></div>
+  <script src="{% static 'admin_panel/js/api.js' %}"></script>
+  <script src="{% static 'admin_panel/js/ui.js' %}"></script>
+  <script src="{% static 'admin_panel/js/layout.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

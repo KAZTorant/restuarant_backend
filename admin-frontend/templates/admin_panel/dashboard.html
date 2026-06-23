@@ -1,0 +1,19 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}KAZZA — Panel{% endblock %}
+{% block content %}
+<h1 class="page-title" id="welcome-text">Xoş gəldiniz!</h1>
+
+<div class="quick-grid">
+  <a href="/panel/statistics/" class="quick-card"><div class="icon" style="background:#2563eb;color:#fff">📊</div>Statistika</a>
+  <a href="/panel/models/orders/order/" class="quick-card"><div class="icon" style="background:#16a34a;color:#fff">🧾</div>Sifarişlər</a>
+  <a href="/panel/models/payments/payment/" class="quick-card"><div class="icon" style="background:#9333ea;color:#fff">💳</div>Ödənişlər</a>
+  <a href="/panel/models/meals/meal/" class="quick-card"><div class="icon" style="background:#ea580c;color:#fff">🍽</div>Yeməklər</a>
+  <a href="/panel/tables/" class="quick-card"><div class="icon" style="background:#0d9488;color:#fff">🪑</div>Masalar</a>
+  <a href="/panel/payment-calculation/" class="quick-card"><div class="icon" style="background:#db2777;color:#fff">🧮</div>Hesablama</a>
+</div>
+
+<h2 style="font-size:1rem;margin-bottom:0.75rem">Modullar</h2>
+<div class="modules-grid" id="modules-grid"></div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'admin_panel/js/dashboard.js' %}"></script>{% endblock %}

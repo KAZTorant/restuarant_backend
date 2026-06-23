@@ -1,0 +1,11 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Masalar{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <h1 class="page-title" style="margin:0">Masalar</h1>
+  <a href="/panel/models/tables/table/add/" class="btn btn-primary btn-sm">Masa əlavə et</a>
+</div>
+<div class="tables-grid" id="tables-grid"></div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'admin_panel/js/tables.js' %}"></script>{% endblock %}

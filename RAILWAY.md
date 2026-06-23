@@ -23,16 +23,17 @@ Tam siyahı üçün `.env.example` faylına baxın.
 
 ## 3. Deploy axını
 
-Build zamanı Nixpacks həm **Python** (requirements.txt), həm **Node.js 22** (admin-frontend) quraşdırır.
+Build zamanı yalnız `requirements.txt` install olunur (Node.js / npm lazım deyil).
 
 Deploy əvvəl avtomatik işləyir:
 
 ```bash
-bash bin/build-admin-frontend.sh
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py ensure_superuser
 ```
+
+Admin panel `/panel/` ünvanında adi HTML/JS/CSS ilə işləyir (`admin-frontend/` qovluğu).
 
 `ensure_superuser` superuser yoxdursa yaradır (default: `admin` / `admin123`).
 

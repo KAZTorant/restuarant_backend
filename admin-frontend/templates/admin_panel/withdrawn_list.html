@@ -1,0 +1,17 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Götürülən Məbləğlər{% endblock %}
+{% block content %}
+<h1 class="page-title">Götürülən Məbləğlər</h1>
+<div class="card card-body" style="margin-bottom:1rem;display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+  <div class="form-group" style="margin:0"><label>Başlanğıc</label><input type="date" id="w-start"></div>
+  <div class="form-group" style="margin:0"><label>Bitiş</label><input type="date" id="w-end"></div>
+  <button class="btn btn-primary btn-sm" id="btn-calc-withdrawn">Hesabla</button>
+  <strong id="w-result" style="color:var(--success)"></strong>
+</div>
+{% include 'admin_panel/partials/model_table.html' %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'admin_panel/js/model-list.js' %}"></script>
+<script src="{% static 'admin_panel/js/withdrawn-list.js' %}"></script>
+{% endblock %}
