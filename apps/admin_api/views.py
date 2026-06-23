@@ -193,11 +193,9 @@ class ModelDetailView(APIView):
         if not form.is_valid():
             return Response({'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        model_admin.save_model(request, form.instance, form, change=True)
-        form.save_m2m()
-        _save_inlines(request, model_admin, form.instance)
+        obj = _save_form_instance(request, model_admin, form, change=True)
 
-        return Response(serialize_object(model_admin, request, form.instance))
+        return Response(serialize_object(model_admin, request, obj))
 
 
 class ModelCreateView(APIView):
@@ -230,12 +228,10 @@ class ModelCreateView(APIView):
         if not form.is_valid():
             return Response({'errors': form.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        model_admin.save_model(request, form.instance, form, change=False)
-        form.save_m2m()
-        _save_inlines(request, model_admin, form.instance)
+        obj = _save_form_instance(request, model_admin, form, change=False)
 
         return Response(
-            serialize_object(model_admin, request, form.instance),
+            serialize_object(model_admin, request, obj),
             status=status.HTTP_201_CREATED,
         )
 
@@ -402,6 +398,15 @@ def _to_form_data(data):
         elif value is not None:
             qd[key] = str(value) if not isinstance(value, (dict, bool)) else json.dumps(value)
     return qd
+
+
+def _save_form_instance(request, model_admin, form, change):
+    """Mirror Django admin save flow: save_form → save_model → save_m2m."""
+    obj = model_admin.save_form(request, form, change=change)
+    model_admin.save_model(request, obj, form, change=change)
+    form.save_m2m()
+    _save_inlines(request, model_admin, obj)
+    return obj
 
 
 def _save_inlines(request, model_admin, obj):
