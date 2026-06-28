@@ -18,8 +18,7 @@ class PrintCheckAPIView(APIView):
             return Response({"error": "Table ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            printer = PrinterService()
-            success, message = printer.print_orders_for_table(table_id)
+            success, message = PrinterService.print_orders_for_table(table_id)
 
             logging.error(f"Print, {success}, {message} ")
             if success:

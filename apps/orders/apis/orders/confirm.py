@@ -77,7 +77,10 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
         printer_groups = self.group_items_by_worker_printer(unconfirmed_items)
 
         try:
-            self.confirm_order_items(printer_groups)
+            with transaction.atomic():
+                for item in unconfirmed_items:
+                    item.confirmed = True
+                    item.save()
         except Exception as e:
             return Response({"error": f"Error confirming order items: {str(e)}"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)

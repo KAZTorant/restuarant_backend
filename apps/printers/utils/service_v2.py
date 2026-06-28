@@ -4,7 +4,7 @@ from apps.orders.models import Statistics
 from apps.orders.models.order import Order
 from apps.printers.models import Receipt
 from apps.tables.models import Table
-from apps.printers.models import Printer
+from apps.printers.models import Printer, PrintGatewayLocation
 
 from django.db.models import Sum
 
@@ -57,6 +57,7 @@ class PrinterService:
             response = PrinterService._send_text_to_main_printer(
                 formatted_text,
                 orders=list(orders),
+                table=table,
             )
 
             if response.status_code == 200:
@@ -82,6 +83,7 @@ class PrinterService:
                 formatted_text,
                 worker_printer.ip_address,
                 worker_printer.port,
+                restaurant=worker_printer.restaurant,
             )
 
             receipt = Receipt.objects.create(
@@ -304,13 +306,88 @@ class PrinterService:
     # ========================= #
 
     @staticmethod
-    def _send_text_to_main_printer(text, payment=None, orders=None, type=Receipt.ReceiptType.CUSTOMER):
-        printer = Printer.objects.filter(is_main=True).first()
+    def _resolve_restaurant(table=None, orders=None, printer=None, payment=None):
+        from apps.tenants.context import get_current_restaurant
+
+        restaurant = get_current_restaurant()
+        if restaurant:
+            return restaurant
+
+        if payment is not None and getattr(payment, 'table_id', None):
+            table = payment.table
+
+        if table is not None:
+            room = getattr(table, 'room', None)
+            if room is not None and getattr(room, 'restaurant_id', None):
+                return room.restaurant
+
+        if orders:
+            first = orders[0] if isinstance(orders, list) else orders.first()
+            if first is not None and getattr(first, 'table_id', None):
+                order_table = first.table
+                room = getattr(order_table, 'room', None)
+                if room is not None and getattr(room, 'restaurant_id', None):
+                    return room.restaurant
+
+        if printer is not None and getattr(printer, 'restaurant_id', None):
+            return printer.restaurant
+
+        return None
+
+    @staticmethod
+    def _get_main_printer(restaurant=None):
+        qs = Printer.objects.filter(is_main=True)
+        if restaurant:
+            printer = qs.filter(restaurant=restaurant).first()
+            if printer:
+                return printer
+        return qs.first()
+
+    @staticmethod
+    def _get_gateway_location_id(restaurant=None):
+        from django.conf import settings
+
+        qs = PrintGatewayLocation.objects.filter(is_online=True)
+        if restaurant:
+            location = qs.filter(restaurant=restaurant).first()
+            if location:
+                return location.pk
+
+        default_id = settings.PRINT_GATEWAY_DEFAULT_LOCATION_ID
+        try:
+            default_id = int(default_id)
+        except (TypeError, ValueError):
+            return default_id
+
+        if qs.filter(pk=default_id).exists():
+            return default_id
+
+        fallback = qs.first()
+        return fallback.pk if fallback else default_id
+
+    @staticmethod
+    def _send_text_to_main_printer(
+        text,
+        payment=None,
+        orders=None,
+        type=Receipt.ReceiptType.CUSTOMER,
+        table=None,
+        restaurant=None,
+    ):
+        restaurant = restaurant or PrinterService._resolve_restaurant(
+            table=table,
+            orders=orders,
+            payment=payment,
+        )
+        printer = PrinterService._get_main_printer(restaurant)
         if not printer:
             raise Exception("Sistemdə əsas printer təyin edilməyib.")
 
         response = PrinterService._send_text_to_printer(
-            text, printer.ip_address, printer.port
+            text,
+            printer.ip_address,
+            printer.port,
+            restaurant=restaurant,
         )
 
         receipt = Receipt.objects.create(
@@ -325,18 +402,21 @@ class PrinterService:
         return response
 
     @staticmethod
-    def _send_text_to_printer(text, ip_address, port, meta=None):
+    def _send_text_to_printer(text, ip_address, port, meta=None, restaurant=None):
         from django.conf import settings
         from apps.printers.utils.gateway_client import PrintGatewayClient
 
         if settings.PRINT_GATEWAY_ENABLED:
+            location_id = PrinterService._get_gateway_location_id(restaurant)
             resp = PrintGatewayClient.send(
                 text=text,
                 target={'type': 'ip', 'ip': ip_address, 'port': port},
                 meta=meta or {},
+                location_id=location_id,
+                restaurant=restaurant,
             )
-            if resp is not None:
-                return DummyResponse(resp.status_code)
+            if resp is not None and resp.status_code == 200:
+                return DummyResponse(200)
 
         ESC_CUT = b'\x1D\x56\x00'
         BEEP = b'\x1B\x42\x03\x02'  # Beep 3 times, 200ms each
@@ -378,6 +458,7 @@ class PrinterService:
         except Statistics.DoesNotExist:
             return False, f"Statistika id={stat_id} tapılmadı."
 
+        restaurant = stat.restaurant
         cash = stat.cash_total
         card = stat.card_total
         other = stat.other_total
@@ -403,7 +484,7 @@ class PrinterService:
         lines.append("NÖVBƏ YEKUNU".center(width))
         lines.append("=" * width)
 
-        main_printer = Printer.objects.filter(is_main=True).first()
+        main_printer = PrinterService._get_main_printer(restaurant)
         terminal = main_printer.name if main_printer else "N/A"
         lines.append(f"Terminal: {terminal}")
         lines.append(f"Kassa növbəsi: {stat.id}")
@@ -458,7 +539,8 @@ class PrinterService:
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.SHIFT_SUMMARY
+            type=Receipt.ReceiptType.SHIFT_SUMMARY,
+            restaurant=restaurant,
         )
 
         if response.status_code == 200:
@@ -472,6 +554,7 @@ class PrinterService:
         except Statistics.DoesNotExist:
             return False, f"Statistika id={stat_id} tapılmadı."
 
+        restaurant = stat.restaurant
         cash = stat.cash_total
         card = stat.card_total
         other = stat.other_total
@@ -499,7 +582,7 @@ class PrinterService:
         lines.append("Z-HESABAT".center(width))
         lines.append("=" * width)
 
-        main_printer = Printer.objects.filter(is_main=True).first()
+        main_printer = PrinterService._get_main_printer(restaurant)
         term = main_printer.name if main_printer else "N/A"
         lines.append(f"Terminal: {term}")
         lines.append(f"Kassa növbəsi: {stat.id}")
@@ -537,7 +620,8 @@ class PrinterService:
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.Z_SUMMRY
+            type=Receipt.ReceiptType.Z_SUMMRY,
+            restaurant=restaurant,
         )
 
         if response.status_code == 200:
@@ -558,6 +642,7 @@ class PrinterService:
         except Statistics.DoesNotExist:
             return False, f"Statistika id={stat_id} tapılmadı."
 
+        restaurant = stat.restaurant
         orders = Order.objects.all_orders().filter(statistics=stat)
         order_items = OrderItem.objects.all_order_items().filter(order__in=orders).distinct()
 
@@ -670,7 +755,8 @@ class PrinterService:
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.ORDER_SUMMARY
+            type=Receipt.ReceiptType.ORDER_SUMMARY,
+            restaurant=restaurant,
         )
 
         return (response.status_code == 200), (
@@ -688,7 +774,8 @@ class PrinterService:
             formatted = PrinterService._format_deletion_receipt(receipt_data)
             resp = PrinterService._send_text_to_printer(formatted,
                                                         worker_printer.ip_address,
-                                                        worker_printer.port)
+                                                        worker_printer.port,
+                                                        restaurant=worker_printer.restaurant)
             Receipt.objects.create(
                 type=Receipt.ReceiptType.PREPERATION_PLACE,
                 text=formatted,
@@ -744,6 +831,7 @@ class PrinterService:
     @staticmethod
     def print_payment_calculation(calculation, user=None):
         """Print payment calculation summary with detailed payment list"""
+        restaurant = calculation.restaurant
         width = 48
         lines = []
 
@@ -751,7 +839,7 @@ class PrinterService:
         lines.append("ÖDƏNİŞ HESABLAMASI".center(width))
         lines.append("=" * width)
 
-        main_printer = Printer.objects.filter(is_main=True).first()
+        main_printer = PrinterService._get_main_printer(restaurant)
         terminal = main_printer.name if main_printer else "N/A"
         lines.append(f"Terminal: {terminal}")
         lines.append(f"Hesablama ID: {calculation.id}")
@@ -878,7 +966,8 @@ class PrinterService:
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.SHIFT_SUMMARY
+            type=Receipt.ReceiptType.SHIFT_SUMMARY,
+            restaurant=restaurant,
         )
 
         if response.status_code == 200:

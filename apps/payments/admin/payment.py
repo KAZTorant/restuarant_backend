@@ -214,7 +214,12 @@ class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
         )
 
         formatted_text = PrinterService._format_customer_receipt(receipt_data)
-        response = PrinterService._send_text_to_main_printer(formatted_text)
+        response = PrinterService._send_text_to_main_printer(
+            formatted_text,
+            payment=payment,
+            table=table,
+            orders=list(orders),
+        )
 
         if response.status_code == 200:
             self.message_user(request, f"#{payment_id} ödəməsinin çeki uğurla çap edildi.")

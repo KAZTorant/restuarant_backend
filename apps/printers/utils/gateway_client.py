@@ -23,18 +23,38 @@ class GatewayResponse:
 
 class PrintGatewayClient:
     @staticmethod
-    def send(text, target=None, meta=None, location_id=None):
+    def send(text, target=None, meta=None, location_id=None, restaurant=None):
         if not settings.PRINT_GATEWAY_ENABLED:
             return None
 
         target = target or {'type': 'main'}
         meta = meta or {}
-        location_id = location_id or settings.PRINT_GATEWAY_DEFAULT_LOCATION_ID
+        location_id = location_id or PrintGatewayClient._resolve_location_id(restaurant)
 
         mode = settings.PRINT_GATEWAY_MODE
         if mode == 'http':
             return PrintGatewayClient._send_http(text, target, meta)
         return PrintGatewayClient._send_websocket(text, target, meta, location_id)
+
+    @staticmethod
+    def _resolve_location_id(restaurant=None):
+        qs = PrintGatewayLocation.objects.filter(is_online=True)
+        if restaurant:
+            location = qs.filter(restaurant=restaurant).first()
+            if location:
+                return location.pk
+
+        default_id = settings.PRINT_GATEWAY_DEFAULT_LOCATION_ID
+        try:
+            default_id = int(default_id)
+        except (TypeError, ValueError):
+            return default_id
+
+        if qs.filter(pk=default_id).exists():
+            return default_id
+
+        fallback = qs.first()
+        return fallback.pk if fallback else default_id
 
     @staticmethod
     def _send_websocket(text, target, meta, location_id):
