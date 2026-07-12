@@ -135,7 +135,7 @@ const OrderItems = {
         </div>`;
     }
 
-    const rows = this.orderItems.map((item) => {
+    const rows = this.orderItems.map((item, index) => {
       const canIncrement = item.order_item_id === 0;
       const canDecrement = this.isAdmin() && !item.confirmed;
       const statusBadge = item.confirmed
@@ -150,17 +150,17 @@ const OrderItems = {
           </td>
           <td>
             <div class="item-actions">
-              ${canDecrement ? `<button class="minus" data-action="dec" data-item-id="${item.order_item_id}">−</button>` : ''}
+              ${canDecrement ? `<button class="minus" data-action="dec" data-item-index="${index}">−</button>` : ''}
               <span style="min-width:20px;text-align:center;font-weight:700">${item.quantity}</span>
-              ${canIncrement ? `<button class="plus" data-action="inc" data-item-id="${item.order_item_id}">+</button>` : ''}
+              ${canIncrement ? `<button class="plus" data-action="inc" data-item-index="${index}">+</button>` : ''}
             </div>
           </td>
           <td>₼${item.meal.price}</td>
           <td><strong>₼${(item.meal.price * item.quantity).toFixed(2)}</strong></td>
           <td>${statusBadge}</td>
           <td>
-            ${!item.confirmed ? `<button class="action-chip" data-action="comment" data-item-id="${item.order_item_id}">Qeyd</button>` : ''}
-            ${this.isAdmin() && item.confirmed ? `<button class="action-chip" data-action="return" data-item-id="${item.order_item_id}">Qaytar</button>` : ''}
+            ${!item.confirmed ? `<button class="action-chip" data-action="comment" data-item-index="${index}">Qeyd</button>` : ''}
+            ${this.isAdmin() && item.confirmed ? `<button class="action-chip" data-action="return" data-item-index="${index}">Qaytar</button>` : ''}
           </td>
         </tr>`;
     }).join('');
@@ -218,9 +218,7 @@ const OrderItems = {
   },
 
   _bindItemActions(container) {
-    const findItem = (btn) => this.orderItems.find(
-      (i) => String(i.order_item_id) === btn.dataset.itemId
-    );
+    const findItem = (btn) => this.orderItems[parseInt(btn.dataset.itemIndex, 10)];
 
     container.querySelectorAll('[data-action="inc"]').forEach((btn) => {
       btn.addEventListener('click', () => { const item = findItem(btn); if (item) this.incrementQuantity(item); });
