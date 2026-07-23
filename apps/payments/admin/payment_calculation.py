@@ -707,7 +707,7 @@ class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
         return False  # Read-only calculations
 
     def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser  # Only superuser can delete calculations
+        return super().has_delete_permission(request, obj)
 
     def print_calculation_view(self, request, calculation_id):
         """Print the payment calculation details"""
