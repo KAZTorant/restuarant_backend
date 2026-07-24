@@ -1,5 +1,5 @@
-from datetime import datetime
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -199,7 +199,7 @@ class ConfirmOrderItemsToWorkerPrintersAPIView(APIView):
 
         # Build the receipt payload
         receipt_data = {
-            "date": datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            "date": timezone.localtime(timezone.now()).strftime('%d.%m.%Y %H:%M:%S'),
             "table": {
                 "room":   table.room.name if table and table.room else "N/A",
                 "number": table.number if table else "N/A"

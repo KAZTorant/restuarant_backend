@@ -1,5 +1,7 @@
 import socket
-from datetime import datetime
+
+from django.utils import timezone
+
 from apps.orders.models import Statistics
 from apps.orders.models.order import Order
 from apps.printers.models import Receipt
@@ -17,6 +19,25 @@ class DummyResponse:
 
 
 class PrinterService:
+
+    @staticmethod
+    def _local_now_str(fmt="%Y-%m-%d %H:%M"):
+        return timezone.localtime(timezone.now()).strftime(fmt)
+
+    @staticmethod
+    def _format_local_datetime(dt, fmt="%d.%m.%Y %H:%M"):
+        if dt is None:
+            return ""
+        return timezone.localtime(dt).strftime(fmt)
+
+    @staticmethod
+    def _restaurant_display_name(restaurant):
+        if not restaurant or not restaurant.slug:
+            return "Restoran"
+        return " ".join(
+            word.capitalize()
+            for word in restaurant.slug.replace("-", " ").split()
+        )
 
     # ========================= #
     #   CORE PUBLIC ENTRYPOINT #
@@ -118,9 +139,11 @@ class PrinterService:
 
         discount_amount = Decimal(str(discount_amount))
         final_total = max(total - discount_amount, Decimal('0'))
+        restaurant = PrinterService._resolve_restaurant(table=table, orders=orders)
 
         return {
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "date": PrinterService._local_now_str("%Y-%m-%d %H:%M"),
+            "restaurant_name": PrinterService._restaurant_display_name(restaurant),
             "table": {
                 "room": table.room.name if table.room else "N/A",
                 "number": table.number
@@ -199,7 +222,7 @@ class PrinterService:
         lines = []
 
         lines.append("=" * width)
-        lines.append("Qonaq Baku".center(width))
+        lines.append(data.get("restaurant_name", "Restoran").center(width))
         lines.append("=" * width)
 
         lines.append(f"Tarix: {data['date']}")
@@ -491,9 +514,9 @@ class PrinterService:
         lines.append(
             f"Status: {'Təsdiqlənib' if stat.is_closed else 'Qaralama'}")
         lines.append(
-            f"Növbə açıldı: {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
-        lines.append(f"Cari vaxt: {now}")
+            f"Növbə açıldı: {PrinterService._format_local_datetime(stat.start_time)}")
+        lines.append(
+            f"Cari vaxt: {PrinterService._local_now_str('%d.%m.%Y %H:%M')}")
         if user:
             name = user.get_full_name() or user.username
             lines.append(f"Cari istifadəçi: {name}")
@@ -589,9 +612,9 @@ class PrinterService:
         lines.append(
             f"Status: {'Təsdiqlənib' if stat.is_z_checked else 'Qaralama'}")
         lines.append(
-            f"Növbə açıldı: {stat.start_time.strftime('%d.%m.%Y %H:%M')}")
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
-        lines.append(f"Cari vaxt: {now}")
+            f"Növbə açıldı: {PrinterService._format_local_datetime(stat.start_time)}")
+        lines.append(
+            f"Cari vaxt: {PrinterService._local_now_str('%d.%m.%Y %H:%M')}")
         if user:
             name = user.get_full_name() or user.username
             lines.append(f"Cari istifadəçi: {name}")
@@ -631,9 +654,7 @@ class PrinterService:
     @staticmethod
     def print_order_items_summary(stat_id, user=None):
         from decimal import Decimal
-        from datetime import datetime
         from django.db.models import Min
-        from django.utils import timezone
         from apps.orders.models.order import OrderItem
         from apps.orders.models.order_deletion import OrderItemDeletionLog
 
@@ -661,7 +682,8 @@ class PrinterService:
         lines.append("SATILMIŞ MƏHSULLAR".center(width))
         lines.append("=" * width)
         lines.append(f"Kassa növbəsi: {stat.id}")
-        lines.append(f"Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        lines.append(
+            f"Tarix: {PrinterService._local_now_str('%d.%m.%Y %H:%M')}")
         if user:
             lines.append(
                 f"Istifadəçi: {user.get_full_name() or user.username}")
@@ -847,7 +869,8 @@ class PrinterService:
         lines.append(f"Saat: {calculation.time_range_display}")
         created_by_name = calculation.created_by.get_full_name() or calculation.created_by.username
         lines.append(f"Yaradan: {created_by_name}")
-        lines.append(f"Yaradılma: {calculation.created_at.strftime('%d.%m.%Y %H:%M')}")
+        lines.append(
+            f"Yaradılma: {PrinterService._format_local_datetime(calculation.created_at)}")
         if user:
             name = user.get_full_name() or user.username
             lines.append(f"Çap edən: {name}")

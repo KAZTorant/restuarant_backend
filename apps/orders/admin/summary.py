@@ -363,7 +363,7 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
             total = round(float(item.price), 2)  # Total rounded to 2 digits
             reason = item.get_reason_display()
             deleted_by = item.deleted_by.get_full_name() if item.deleted_by else "Bilinmir"
-            deleted_at = item.deleted_at.strftime('%d.%m.%Y %H:%M')
+            deleted_at = timezone.localtime(item.deleted_at).strftime('%d.%m.%Y %H:%M')
 
             # Find if we already have this meal with the same reason
             existing_item = next((
@@ -466,7 +466,8 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
         lines.append("=" * width)
         lines.append(f"Hesabat ID: {summary.id}")
         lines.append(f"Tarix aralığı: {summary.date_range_display}")
-        lines.append(f"Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        lines.append(
+            f"Tarix: {timezone.localtime(timezone.now()).strftime('%d.%m.%Y %H:%M')}")
         if user:
             lines.append(
                 f"Istifadəçi: {user.get_full_name() or user.username}")

@@ -1,6 +1,8 @@
 import socket
 import json
-from datetime import datetime
+
+from django.utils import timezone
+
 from apps.tables.models import Table
 from apps.printers.models import Printer
 
@@ -11,6 +13,28 @@ class DummyResponse:
 
 
 class PrinterService:
+    @staticmethod
+    def _local_now_str(fmt='%d.%m.%Y %H:%M:%S'):
+        return timezone.localtime(timezone.now()).strftime(fmt)
+
+    @staticmethod
+    def _restaurant_display_name(restaurant):
+        if not restaurant or not restaurant.slug:
+            return "Restoran"
+        return " ".join(
+            word.capitalize()
+            for word in restaurant.slug.replace("-", " ").split()
+        )
+
+    @staticmethod
+    def _resolve_restaurant(table=None):
+        if table is None:
+            return None
+        room = getattr(table, 'room', None)
+        if room is not None and getattr(room, 'restaurant_id', None):
+            return room.restaurant
+        return None
+
     @staticmethod
     def _generate_order_data(order):
         """Hər sifariş üçün JSON strukturu yaradır."""
@@ -41,7 +65,10 @@ class PrinterService:
             return {}
 
         receipt_data = {
-            'date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'date': PrinterService._local_now_str(),
+            'restaurant_name': PrinterService._restaurant_display_name(
+                PrinterService._resolve_restaurant(table)
+            ),
             'table': {
                 'room': table.room.name if table and table.room else 'N/A',
                 'number': table.number if table else 'N/A'
@@ -98,7 +125,7 @@ class PrinterService:
             lines = []
 
             # Başlıq (mərkəzləşdirilmiş)
-            header = "Qonaq Baku"
+            header = data.get('restaurant_name', 'Restoran')
             centered_header = header.center(receipt_width)
             lines.append("=" * receipt_width)
             lines.append(centered_header)
