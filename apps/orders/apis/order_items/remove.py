@@ -4,6 +4,7 @@ import logging
 from decimal import Decimal
 from django.db.models import Sum
 from django.db import models
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +20,13 @@ from apps.users.permissions import IsAdmin
 from apps.commons.utils.whatsapp import get_whatsapp_notifier
 
 logger = logging.getLogger(__name__)
+
+
+def _format_baku_time(value):
+    if not value:
+        return 'N/A'
+    local = timezone.localtime(value)
+    return local.strftime('%d.%m.%Y %H:%M:%S.') + f'{local.microsecond // 1000:03d}'
 
 
 class DeleteOrderItemAPIView(APIView):
@@ -198,7 +206,6 @@ class DeleteOrderItemAPIView(APIView):
         Send WhatsApp notification to restaurant owner when order item is deleted
         """
         try:
-            from django.utils import timezone
             whatsapp = get_whatsapp_notifier()
             restaurant = None
             if order.table_id and order.table.room_id:
@@ -226,8 +233,8 @@ class DeleteOrderItemAPIView(APIView):
                 'room_name': room_name,
                 'table_number': order.table.number if order.table else 'N/A',
                 'order_id': order.id,
-                'order_created_at': order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else 'N/A',
-                'deleted_at': timezone.now().strftime('%d.%m.%Y %H:%M'),
+                'order_created_at': _format_baku_time(order.created_at),
+                'deleted_at': _format_baku_time(timezone.now()),
                 'meal_name': order_item.meal.name,
                 'quantity': 1 if order_item.quantity > 1 else order_item.quantity,
                 'price': order_item.meal.price if order_item.quantity > 1 else order_item.price,
