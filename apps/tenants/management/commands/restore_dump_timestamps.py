@@ -1,4 +1,4 @@
-"""Dump importunun eyni vaxta vurduğu ödəniş və sifariş tarixlərini bərpa edir."""
+"""Dump importunun eyni vaxta vurduğu tarixləri bərpa edir."""
 
 import gzip
 import json
@@ -15,7 +15,7 @@ from django.utils import timezone
 # Normal növbədə bir dəqiqədə bu qədər ödəniş olmur. Bu hədd import dalğasını ayırır.
 IMPORT_BURST_PER_MINUTE = 30
 
-from apps.orders.models import Order
+from apps.orders.models import Order, Statistics
 from apps.payments.admin.payment_calculation import recalculate_payment_calculation
 from apps.payments.models import Payment, PaymentCalculation, PaymentMethod
 from apps.tenants.models import Restaurant
@@ -78,8 +78,8 @@ def _import_cluster_pks(queryset, field_name):
 
 class Command(BaseCommand):
     help = (
-        'Dump importu zamanı indi-yə yazılmış paid_at və sifariş tarixlərini '
-        'orijinal JSON dump-dan bərpa edir.'
+        'Dump importu zamanı indi-yə yazılmış ödəniş, sifariş və '
+        'hesabat başlama tarixlərini orijinal JSON dump-dan bərpa edir.'
     )
 
     def add_arguments(self, parser):
@@ -106,14 +106,17 @@ class Command(BaseCommand):
             payment_map, payment_stats = self._restore_payments(restaurant, payload, tables)
             if payment_stats.get('no_burst'):
                 self.stdout.write(self.style.WARNING(
-                    'Import dalğası tapılmadı. Ödəniş tarixləri artıq səpələnib, dəyişiklik edilmədi.'
+                    'Ödəniş import dalğası tapılmadı. Ödəniş tarixləri dəyişdirilmədi.'
                 ))
-                if options['dry_run']:
-                    transaction.set_rollback(True)
-                return
-            order_stats = self._restore_orders(restaurant, payload, tables)
-            method_stats = self._restore_payment_methods(payload, payment_map)
-            refreshed = self._refresh_calculations(restaurant)
+                order_stats = {'restored': 0, 'skipped': 0, 'untouched': 0}
+                method_stats = {'restored': 0, 'skipped': 0}
+                refreshed = 0
+            else:
+                order_stats = self._restore_orders(restaurant, payload, tables)
+                method_stats = self._restore_payment_methods(payload, payment_map)
+                refreshed = self._refresh_calculations(restaurant)
+
+            stat_stats = self._restore_statistics(restaurant, payload)
 
             self.stdout.write(
                 f"Ödənişlər: {payment_stats['restored']} bərpa, "
@@ -130,6 +133,16 @@ class Command(BaseCommand):
                 f"{method_stats['skipped']} uyğun gəlmədi"
             )
             self.stdout.write(f"Yenilənən hesablama: {refreshed}")
+            if stat_stats.get('no_burst'):
+                self.stdout.write(self.style.WARNING(
+                    'Hesabat import dalğası tapılmadı. Başlama vaxtları dəyişdirilmədi.'
+                ))
+            else:
+                self.stdout.write(
+                    f"Hesabatlar: {stat_stats['restored']} başlama vaxtı bərpa, "
+                    f"{stat_stats['skipped']} uyğun gəlmədi, "
+                    f"{stat_stats['untouched']} sonrakı hesabat toxunulmadı"
+                )
 
             if options['dry_run']:
                 transaction.set_rollback(True)
@@ -298,6 +311,88 @@ class Command(BaseCommand):
         if updates:
             PaymentMethod.objects.bulk_update(updates, ['created_at'], batch_size=1000)
         return {'restored': len(updates), 'skipped': skipped}
+
+    def _restore_statistics(self, restaurant, payload):
+        """start_time auto_now_add olduğu üçün import hamısını eyni vaxta vurur.
+
+        Bitmə vaxtı importda qorunur və hesabatı dump sətri ilə tutuşdurur.
+        Açıq növbədə bitmə vaxtı boşdur; onu başlanğıc məbləğləri ayırır.
+        """
+        records = payload.get('models', {}).get('orders.statistics', [])
+        base_qs = Statistics.objects.filter(restaurant=restaurant)
+        cluster_pks = _import_cluster_pks(base_qs, 'start_time')
+        if cluster_pks is None:
+            return {
+                'restored': 0,
+                'skipped': 0,
+                'untouched': base_qs.count(),
+                'no_burst': True,
+            }
+
+        db_by_end = defaultdict(list)
+        untouched = 0
+        rows = base_qs.values_list(
+            'pk', 'end_time', 'initial_cash', 'initial_card', 'initial_other',
+        )
+        for pk, end_time, initial_cash, initial_card, initial_other in rows:
+            if pk not in cluster_pks:
+                untouched += 1
+                continue
+            db_by_end[end_time].append({
+                'pk': pk,
+                'initials': (
+                    str(initial_cash),
+                    str(initial_card),
+                    str(initial_other),
+                ),
+            })
+
+        updates = []
+        skipped = 0
+        used = set()
+        for record in records:
+            end_time = _parse_dt(record.get('end_time'))
+            start_time = _parse_dt(record.get('start_time'))
+            created_at = _parse_dt(record.get('created_at')) or start_time
+            if start_time is None:
+                skipped += 1
+                continue
+            candidates = [
+                row for row in db_by_end.get(end_time, [])
+                if row['pk'] not in used
+            ]
+            if end_time is None:
+                initials = (
+                    str(record.get('initial_cash')),
+                    str(record.get('initial_card')),
+                    str(record.get('initial_other')),
+                )
+                narrowed = [row for row in candidates if row['initials'] == initials]
+                if len(narrowed) == 1:
+                    candidates = narrowed
+                elif len(candidates) != 1:
+                    skipped += 1
+                    continue
+            elif len(candidates) != 1:
+                skipped += 1
+                continue
+            row = candidates[0]
+            used.add(row['pk'])
+            updates.append(Statistics(
+                pk=row['pk'],
+                start_time=start_time,
+                created_at=created_at,
+            ))
+
+        if updates:
+            Statistics.objects.bulk_update(
+                updates, ['start_time', 'created_at'], batch_size=500,
+            )
+        return {
+            'restored': len(updates),
+            'skipped': skipped,
+            'untouched': untouched,
+        }
 
     def _refresh_calculations(self, restaurant):
         count = 0
