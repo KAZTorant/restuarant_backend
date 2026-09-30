@@ -48,6 +48,13 @@ const OrderItems = {
   async refresh() {
     try {
       await this.fetchOrders();
+      // Empty table: the first meal creates the order, but nothing is selected yet,
+      // so the new order box stays collapsed until the header is clicked.
+      if (this.mainOrder && !this.selectedOrderId) {
+        this.showDropdown = this.mainOrder.pk;
+        this.selectedOrderId = this.mainOrder.pk;
+        EventBus.emit('selectedOrderId', this.mainOrder.pk);
+      }
       if (this.selectedOrderId) {
         await this.fetchOrderItems(this.selectedOrderId);
       }
