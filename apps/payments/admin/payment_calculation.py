@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 
 from django import forms
 from django.contrib import admin, messages
-from django.db.models import Q, Sum
+from django.db.models import Sum
 from django.forms import DateField, ModelForm, TimeField
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
@@ -13,11 +13,23 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from apps.payments.models import Payment, PaymentCalculation
-from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
 from apps.tenants.mixins import TenantAdminMixin
+from apps.tenants.models import Restaurant
+
+
+def locked_restaurant_for_user(user):
+    """Restoran təyin olunmuş admin yalnız öz restoranına bağlıdır."""
+    if user is not None and getattr(user, 'restaurant_id', None):
+        return user.restaurant
+    return None
 
 
 class PaymentCalculationForm(forms.Form):
+    restaurant = forms.ModelChoiceField(
+        label=_("Restoran"),
+        queryset=Restaurant.objects.none(),
+        required=True,
+    )
     start_date = forms.DateField(
         label=_("Başlanğıc tarixi"),
         widget=forms.DateInput(attrs={'type': 'date'}),
@@ -53,6 +65,46 @@ class PaymentCalculationForm(forms.Form):
         initial='23:59'
     )
 
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+        locked = locked_restaurant_for_user(user)
+        if locked is not None:
+            queryset = Restaurant.objects.filter(pk=locked.pk)
+        elif user is not None and user.is_superuser:
+            queryset = Restaurant.objects.filter(is_active=True).order_by('name')
+        else:
+            queryset = Restaurant.objects.none()
+
+        self.fields['restaurant'].queryset = queryset
+        if queryset.count() == 1:
+            only = queryset.first()
+            self.fields['restaurant'].empty_label = None
+            self.fields['restaurant'].initial = only.pk
+        else:
+            self.fields['restaurant'].empty_label = _('Restoran seçin')
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        if user is None:
+            return cleaned
+
+        locked = locked_restaurant_for_user(user)
+        if not user.is_superuser and locked is None:
+            raise forms.ValidationError(
+                _('Hesabınıza restoran təyin edilməyib. Ödəniş hesablaması mümkün deyil.')
+            )
+
+        restaurant = cleaned.get('restaurant')
+        if locked is not None and restaurant is not None and restaurant.pk != locked.pk:
+            self.add_error(
+                'restaurant',
+                _('Yalnız öz restoranınız üçün hesablama edə bilərsiniz.'),
+            )
+        return cleaned
+
     def clean_start_time(self):
         time_str = self.cleaned_data.get('start_time')
         if not time_str:
@@ -80,9 +132,67 @@ class PaymentCalculationForm(forms.Form):
             raise forms.ValidationError(_('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
 
 
+def create_payment_calculation(user, restaurant, start_date, end_date, start_time, end_time):
+    """Seçilmiş restoranın tarix/saat aralığındakı ödənişlərindən hesablama yaradır."""
+    start_datetime = datetime.combine(start_date, start_time)
+    end_datetime = datetime.combine(end_date, end_time)
+
+    if timezone.is_naive(start_datetime):
+        start_datetime = timezone.make_aware(start_datetime)
+    if timezone.is_naive(end_datetime):
+        end_datetime = timezone.make_aware(end_datetime)
+
+    payments = Payment.objects.filter(
+        paid_at__gte=start_datetime,
+        paid_at__lte=end_datetime,
+        table__room__restaurant=restaurant,
+    ).prefetch_related('payment_methods')
+
+    total_amount = payments.aggregate(total=Sum('final_price'))['total'] or 0
+    payment_count = payments.count()
+
+    cash_amount = 0
+    card_amount = 0
+    other_amount = 0
+
+    for payment in payments:
+        if payment.payment_methods.exists():
+            for method in payment.payment_methods.all():
+                if method.payment_type == 'cash':
+                    cash_amount += method.amount
+                elif method.payment_type == 'card':
+                    card_amount += method.amount
+                else:
+                    other_amount += method.amount
+        else:
+            if payment.payment_type == 'cash':
+                cash_amount += payment.paid_amount
+            elif payment.payment_type == 'card':
+                card_amount += payment.paid_amount
+            else:
+                other_amount += payment.paid_amount
+
+    calculation = PaymentCalculation.objects.create(
+        restaurant=restaurant,
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        total_amount=total_amount,
+        payment_count=payment_count,
+        cash_amount=cash_amount,
+        card_amount=card_amount,
+        other_amount=other_amount,
+        created_by=user,
+    )
+    calculation.payments.set(payments)
+    return calculation
+
+
 @admin.register(PaymentCalculation)
 class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = (
+        'restaurant',
         'id',
         'date_range_display',
         'time_range_display',
@@ -594,108 +704,58 @@ class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        locked = locked_restaurant_for_user(request.user)
+        if locked is not None:
+            return qs.filter(restaurant=locked)
+        if not request.user.is_superuser:
+            return qs.none()
+        return qs
+
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['calculate_url'] = reverse('admin:payments_paymentcalculation_calculate')
+        locked = locked_restaurant_for_user(request.user)
+        extra_context['restaurant_locked'] = locked is not None
+        extra_context['restaurant_name'] = locked.name if locked is not None else ''
         return super().changelist_view(request, extra_context)
 
     def calculate_payments_view(self, request):
+        locked = locked_restaurant_for_user(request.user)
         if request.method == 'POST':
-            form = PaymentCalculationForm(request.POST)
+            form = PaymentCalculationForm(request.POST, user=request.user)
             if form.is_valid():
-                start_date = form.cleaned_data['start_date']
-                end_date = form.cleaned_data['end_date']
-                start_time = form.cleaned_data['start_time']
-                end_time = form.cleaned_data['end_time']
-
-                # Combine date and time for filtering
-                start_datetime = datetime.combine(start_date, start_time)
-                end_datetime = datetime.combine(end_date, end_time)
-
-                # Make timezone aware
-                if timezone.is_naive(start_datetime):
-                    start_datetime = timezone.make_aware(start_datetime)
-                if timezone.is_naive(end_datetime):
-                    end_datetime = timezone.make_aware(end_datetime)
-
-                # Filter payments by datetime range
-                payments = filter_queryset_by_restaurant(
-                    Payment.objects.filter(
-                        paid_at__gte=start_datetime,
-                        paid_at__lte=end_datetime,
-                    ),
-                    get_user_restaurant(request.user),
-                    'table__room__restaurant',
-                )
-
-                # Calculate totals
-                total_amount = payments.aggregate(
-                    total=Sum('final_price')
-                )['total'] or 0
-
-                payment_count = payments.count()
-
-                # Calculate amounts by payment type
-                cash_amount = 0
-                card_amount = 0
-                other_amount = 0
-
-                for payment in payments:
-                    if payment.payment_methods.exists():
-                        # If payment has multiple payment methods
-                        for method in payment.payment_methods.all():
-                            if method.payment_type == 'cash':
-                                cash_amount += method.amount
-                            elif method.payment_type == 'card':
-                                card_amount += method.amount
-                            else:
-                                other_amount += method.amount
-                    else:
-                        # If payment has only one payment type
-                        if payment.payment_type == 'cash':
-                            cash_amount += payment.paid_amount
-                        elif payment.payment_type == 'card':
-                            card_amount += payment.paid_amount
-                        else:
-                            other_amount += payment.paid_amount
-
-                # Create calculation record
-                restaurant = getattr(request.user, 'restaurant', None)
-                if not restaurant and payments.exists():
-                    restaurant = payments.first().table.room.restaurant
-
-                calculation = PaymentCalculation.objects.create(
-                    start_date=start_date,
-                    end_date=end_date,
-                    start_time=start_time,
-                    end_time=end_time,
-                    total_amount=total_amount,
-                    payment_count=payment_count,
-                    cash_amount=cash_amount,
-                    card_amount=card_amount,
-                    other_amount=other_amount,
-                    created_by=request.user,
+                restaurant = form.cleaned_data['restaurant']
+                calculation = create_payment_calculation(
+                    user=request.user,
                     restaurant=restaurant,
+                    start_date=form.cleaned_data['start_date'],
+                    end_date=form.cleaned_data['end_date'],
+                    start_time=form.cleaned_data['start_time'],
+                    end_time=form.cleaned_data['end_time'],
                 )
-                
-                # Save the payments to the calculation
-                calculation.payments.set(payments)
 
                 messages.success(
                     request,
-                    _(f'Hesablama uğurla yaradıldı. Ümumi: {total_amount}₼, Sayı: {payment_count}')
+                    _(
+                        f'Hesablama uğurla yaradıldı ({restaurant.name}). '
+                        f'Ümumi: {calculation.total_amount}₼, Sayı: {calculation.payment_count}'
+                    )
                 )
 
                 return HttpResponseRedirect(
                     reverse('admin:payments_paymentcalculation_changelist')
                 )
         else:
-            form = PaymentCalculationForm()
+            form = PaymentCalculationForm(user=request.user)
 
         context = {
             'title': _('Ödəniş hesablaması'),
             'form': form,
             'opts': self.model._meta,
+            'restaurant_locked': locked is not None,
+            'restaurant_name': locked.name if locked is not None else '',
         }
 
         return render(request, 'admin/payments/payment_calculation_form.html', context)

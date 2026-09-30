@@ -24,8 +24,13 @@
         <div style="display: flex; align-items: start; gap: 10px;">
             <span style="font-size: 20px; color: #17a2b8;">ℹ️</span>
             <div style="color: #0c5460; font-size: 14px; line-height: 1.5;">
-                <strong>Qeyd:</strong> Bu hesablama <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> göstərir. 
-                Burada göstərilən nağd məbləğ yalnız həmin dövrdə edilmiş nağd ödənişlərin cəmidir.
+                <strong>Qeyd:</strong> Bu hesablama <strong>yalnız seçilmiş restoranın, seçilmiş tarix və saat aralığındakı ödənişlərini</strong> göstərir.
+                {% if restaurant_locked %}
+                Hesablama <strong>{{ restaurant_name }}</strong> restoranı üçün aparılır.
+                {% else %}
+                Hansı restoran üçün hesablama aparılacağını aşağıdan seçin.
+                {% endif %}
+                Burada göstərilən nağd məbləğ yalnız həmin restoranda, həmin dövrdə edilmiş nağd ödənişlərin cəmidir.
                 Əgər növbənin ümumi nağd kassasını (əvvəlki qalıq daxil) görmək istəyirsinizsə, 
                 <a href="{% url 'admin:orders_withdrawnlist_changelist' %}" style="color: #0c5460; text-decoration: underline; font-weight: bold;">Çıxarılmış Məbləğlər</a> bölməsinə baxın.
             </div>
@@ -34,8 +39,33 @@
 
     <form method="post" id="payment-calculation-form">
       {% csrf_token %}
+      {% if form.non_field_errors %}
+      <ul class="errorlist">
+        {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
       <fieldset class="module">
-        <h2>{% trans "Tarix və vaxt aralığı seçin" %}</h2>
+        <h2>{% trans "Restoran, tarix və vaxt aralığı seçin" %}</h2>
+
+        <div class="form-row">
+          <div>
+            <label for="{{ form.restaurant.id_for_label }}">{{ form.restaurant.label }}:</label>
+            {{ form.restaurant }}
+            {% if restaurant_locked %}
+            <p class="help">Yalnız sizin restoranınız üçün hesablama edilir.</p>
+            {% endif %}
+            {% if form.restaurant.errors %}
+            <ul class="errorlist">
+              {% for error in form.restaurant.errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
 
         <div class="form-row">
           <div style="float: left; margin-right: 20px">
@@ -115,12 +145,21 @@
   }
 
   .form-row input[type="date"],
-  .form-row input[type="time"] {
+  .form-row input[type="time"],
+  .form-row select {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
-    width: 200px;
+    width: 280px;
+    max-width: 100%;
+    background: #fff;
+  }
+
+  .form-row .help {
+    margin: 6px 0 0;
+    color: #666;
+    font-size: 12px;
   }
 
   .form-row input[type="date"]:focus,

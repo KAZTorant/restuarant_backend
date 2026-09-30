@@ -15,7 +15,6 @@ from rest_framework.views import APIView
 from apps.admin_api.permissions import IsAdminUser
 from apps.admin_api.registry import get_model_admin
 from apps.orders.models import Order, Statistics, Summary
-from apps.payments.models import Payment, PaymentCalculation
 from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
 
 
@@ -214,74 +213,34 @@ class PaymentCalculationCustomView(APIView):
         if action != 'calculate':
             return Response({'detail': 'Unknown action'}, status=status.HTTP_404_NOT_FOUND)
 
-        from apps.payments.admin.payment_calculation import PaymentCalculationForm
+        from apps.payments.admin.payment_calculation import (
+            PaymentCalculationForm,
+            create_payment_calculation,
+        )
 
-        form = PaymentCalculationForm(request.data)
+        form = PaymentCalculationForm(request.data, user=request.user)
         if not form.is_valid():
             return Response({'errors': form.errors}, status=400)
 
-        start_date = form.cleaned_data['start_date']
-        end_date = form.cleaned_data['end_date']
-        start_time = form.cleaned_data['start_time']
-        end_time = form.cleaned_data['end_time']
-
-        start_datetime = timezone.make_aware(datetime.combine(start_date, start_time))
-        end_datetime = timezone.make_aware(datetime.combine(end_date, end_time))
-
-        payments = filter_queryset_by_restaurant(
-            Payment.objects.filter(paid_at__gte=start_datetime, paid_at__lte=end_datetime),
-            get_user_restaurant(request.user),
-            'table__room__restaurant',
-        )
-
-        total_amount = payments.aggregate(total=Sum('final_price'))['total'] or 0
-        payment_count = payments.count()
-        cash_amount = card_amount = other_amount = 0
-
-        for payment in payments:
-            if payment.payment_methods.exists():
-                for method in payment.payment_methods.all():
-                    if method.payment_type == 'cash':
-                        cash_amount += method.amount
-                    elif method.payment_type == 'card':
-                        card_amount += method.amount
-                    else:
-                        other_amount += method.amount
-            else:
-                if payment.payment_type == 'cash':
-                    cash_amount += payment.paid_amount
-                elif payment.payment_type == 'card':
-                    card_amount += payment.paid_amount
-                else:
-                    other_amount += payment.paid_amount
-
-        restaurant = getattr(request.user, 'restaurant', None)
-        if not restaurant and payments.exists():
-            restaurant = payments.first().table.room.restaurant
-
-        calc = PaymentCalculation.objects.create(
+        restaurant = form.cleaned_data['restaurant']
+        calc = create_payment_calculation(
+            user=request.user,
             restaurant=restaurant,
-            start_date=start_date,
-            end_date=end_date,
-            start_time=start_time,
-            end_time=end_time,
-            total_amount=total_amount,
-            payment_count=payment_count,
-            cash_amount=cash_amount,
-            card_amount=card_amount,
-            other_amount=other_amount,
-            created_by=request.user,
+            start_date=form.cleaned_data['start_date'],
+            end_date=form.cleaned_data['end_date'],
+            start_time=form.cleaned_data['start_time'],
+            end_time=form.cleaned_data['end_time'],
         )
-        calc.payments.set(payments)
 
         return Response({
             'id': calc.id,
-            'total_amount': str(total_amount),
-            'payment_count': payments.count(),
-            'cash_amount': str(cash_amount),
-            'card_amount': str(card_amount),
-            'other_amount': str(other_amount),
-            'detail': 'Hesablama tamamlandı',
+            'restaurant': {'id': restaurant.pk, 'name': restaurant.name},
+            'total_amount': str(calc.total_amount),
+            'payment_count': calc.payment_count,
+            'cash_amount': str(calc.cash_amount),
+            'card_amount': str(calc.card_amount),
+            'other_amount': str(calc.other_amount),
+            'detail': f'Hesablama tamamlandı ({restaurant.name})',
         })
 
 

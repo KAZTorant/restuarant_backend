@@ -859,6 +859,8 @@ class PrinterService:
 
         lines.append("=" * width)
         lines.append("ÖDƏNİŞ HESABLAMASI".center(width))
+        if restaurant:
+            lines.append(str(restaurant.name).center(width))
         lines.append("=" * width)
 
         main_printer = PrinterService._get_main_printer(restaurant)

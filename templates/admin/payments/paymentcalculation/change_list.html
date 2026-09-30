@@ -9,7 +9,11 @@
       <div style="display: flex; align-items: start; gap: 10px;">
           <span style="font-size: 20px; color: #17a2b8;">ℹ️</span>
           <div style="color: #0c5460; font-size: 14px; line-height: 1.5;">
-              <strong>Qeyd:</strong> Bu siyahıda göstərilən nağd məbləğlər <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> əhatə edir. 
+              <strong>Qeyd:</strong> Hər restoran yalnız öz ödəniş hesablamalarını görür.
+              {% if restaurant_locked %}
+              Bu siyahı <strong>{{ restaurant_name }}</strong> restoranına aiddir.
+              {% endif %}
+              Burada göstərilən nağd məbləğlər <strong>yalnız seçilmiş tarix və saat aralığındakı ödənişləri</strong> əhatə edir. 
               Əvvəlki növbə qalıqları bu məbləğlərə daxil deyil.
               Növbələrin ümumi nağd kassasını görmək üçün 
               <a href="{% url 'admin:orders_withdrawnlist_changelist' %}" style="color: #0c5460; text-decoration: underline; font-weight: bold;">Çıxarılmış Məbləğlər</a> bölməsinə baxın.

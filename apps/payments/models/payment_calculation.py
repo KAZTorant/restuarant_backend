@@ -62,26 +62,31 @@ class PaymentCalculation(TenantModel, models.Model):
         return total_paid - self.total_amount
 
     def get_payments(self):
-        """Get all payments within this calculation's date/time range"""
-        # Return saved payments if they exist, otherwise calculate dynamically
-        if self.payments.exists():
-            return self.payments.all()
-        
-        # Fallback to dynamic calculation (for old records)
+        """Bu restoranın hesablama aralığındakı ödənişləri."""
         from apps.payments.models import Payment
-        
-        start_datetime = datetime.combine(self.start_date, self.start_time)
-        end_datetime = datetime.combine(self.end_date, self.end_time)
-        
-        if timezone.is_naive(start_datetime):
-            start_datetime = timezone.make_aware(start_datetime)
-        if timezone.is_naive(end_datetime):
-            end_datetime = timezone.make_aware(end_datetime)
-        
-        return Payment.objects.filter(
-            paid_at__gte=start_datetime,
-            paid_at__lte=end_datetime
-        ).prefetch_related('orders__order_items__meal', 'table', 'paid_by', 'payment_methods')
+
+        if self.payments.exists():
+            qs = self.payments.all()
+        else:
+            start_datetime = datetime.combine(self.start_date, self.start_time)
+            end_datetime = datetime.combine(self.end_date, self.end_time)
+
+            if timezone.is_naive(start_datetime):
+                start_datetime = timezone.make_aware(start_datetime)
+            if timezone.is_naive(end_datetime):
+                end_datetime = timezone.make_aware(end_datetime)
+
+            qs = Payment.objects.filter(
+                paid_at__gte=start_datetime,
+                paid_at__lte=end_datetime,
+            )
+
+        if self.restaurant_id:
+            qs = qs.filter(table__room__restaurant_id=self.restaurant_id)
+
+        return qs.prefetch_related(
+            'orders__order_items__meal', 'table', 'paid_by', 'payment_methods'
+        )
 
     def get_product_sales_summary(self):
         """Get summary of all products sold in payments during this period"""
