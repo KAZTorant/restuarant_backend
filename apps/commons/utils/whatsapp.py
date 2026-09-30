@@ -28,7 +28,15 @@ class WhatsAppNotifier:
             return {'X-API-Key': key}
         return {}
     
-    def _get_owner_phones(self):
+    def _normalize_phone(self, phone):
+        digits = ''.join(ch for ch in str(phone) if ch.isdigit())
+        if digits.startswith('0'):
+            digits = digits[1:]
+        if not digits.startswith('994') and len(digits) < 12:
+            digits = '994' + digits
+        return digits
+
+    def _get_owner_phones(self, restaurant=None):
         """
         Get active owner phone numbers from database.
         Falls back to settings.RESTAURANT_OWNER_PHONE if DB is empty.
@@ -40,16 +48,27 @@ class WhatsAppNotifier:
             # Import here to avoid circular dependency
             from apps.users.models import WhatsAppConfig
 
-            # Get active phones from DB
-            phones = list(
-                WhatsAppConfig.objects
-                .filter(is_active=True)
-                .values_list('phone', flat=True)
-                .order_by('created_at')
-            )
+            queryset = WhatsAppConfig.objects.filter(is_active=True)
+            if restaurant is not None:
+                queryset = queryset.filter(restaurant=restaurant)
+            raw_phones = list(queryset.values_list('phone', flat=True).order_by('created_at'))
+            phones = []
+            seen = set()
+            for phone in raw_phones:
+                normalized = self._normalize_phone(phone)
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                phones.append(normalized)
             
             if phones:
-                logger.info(f"Loaded {len(phones)} active WhatsApp phone(s) from database: {phones}")
+                logger.info(
+                    "WA recipients restaurant=%s count=%s phones=%s raw=%s",
+                    getattr(restaurant, 'pk', None),
+                    len(phones),
+                    phones,
+                    raw_phones,
+                )
                 return phones
             
             # Fallback to settings if DB is empty
@@ -62,7 +81,14 @@ class WhatsAppNotifier:
         # Fallback to settings
         owner_phone_raw = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
         if owner_phone_raw:
-            phones = [p.strip() for p in owner_phone_raw.split(',') if p.strip()]
+            phones = []
+            seen = set()
+            for phone in owner_phone_raw.split(','):
+                normalized = self._normalize_phone(phone.strip())
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                phones.append(normalized)
             if phones:
                 logger.info(f"Using WhatsApp phone(s) from settings: {phones}")
                 return phones
@@ -70,9 +96,9 @@ class WhatsAppNotifier:
         logger.warning("No WhatsApp owner phones configured in database or settings.")
         return []
     
-    def is_configured(self):
+    def is_configured(self, restaurant=None):
         """Check if WhatsApp service is configured and ready"""
-        if not self._get_owner_phones():
+        if not self._get_owner_phones(restaurant):
             logger.warning("Restaurant owner phone(s) not configured")
             return False
         
@@ -194,7 +220,7 @@ class WhatsAppNotifier:
             logger.error(f"WhatsApp send message request error. URL: {url}, Phone: {phone}, Error: {type(e).__name__}: {e}")
             return False
     
-    def notify_order_item_deleted(self, order_item_info):
+    def notify_order_item_deleted(self, order_item_info, restaurant=None):
         """
         Send notification to restaurant owner(s) when an order item is deleted
         If multiple owner phones configured, sends to all.
@@ -214,7 +240,7 @@ class WhatsAppNotifier:
                 - reason_display: Display text for reason
                 - comment: Additional comment
         """
-        owner_phones = self._get_owner_phones()
+        owner_phones = self._get_owner_phones(restaurant)
         if not owner_phones:
             logger.warning("Restaurant owner phone(s) not configured. Cannot send notification.")
             return False

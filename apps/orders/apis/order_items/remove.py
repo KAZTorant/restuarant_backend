@@ -200,8 +200,11 @@ class DeleteOrderItemAPIView(APIView):
         try:
             from django.utils import timezone
             whatsapp = get_whatsapp_notifier()
+            restaurant = None
+            if order.table_id and order.table.room_id:
+                restaurant = order.table.room.restaurant
             
-            if not whatsapp.is_configured():
+            if not whatsapp.is_configured(restaurant):
                 logger.warning(
                     "WA notify_skipped order=%s meal=%s reason=service_not_ready",
                     order.id,
@@ -233,7 +236,7 @@ class DeleteOrderItemAPIView(APIView):
                 'comment': comment or '',
             }
             
-            sent = whatsapp.notify_order_item_deleted(order_item_info)
+            sent = whatsapp.notify_order_item_deleted(order_item_info, restaurant)
             logger.info(
                 "WA notify_result order=%s meal=%s sent=%s",
                 order.id,
