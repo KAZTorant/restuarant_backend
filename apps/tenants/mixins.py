@@ -1,13 +1,49 @@
+from django.contrib.admin.filters import RelatedFieldListFilter
+from django.core.exceptions import FieldDoesNotExist
+
 from apps.tenants.admin_utils import (
     apply_tenant_to_form_data,
     enforce_tenant_on_instance,
     filter_queryset_by_restaurant,
     get_tenant_lookup,
     get_user_restaurant,
+    related_field_restaurant_lookup,
     scope_foreign_key_queryset,
     strip_field_from_fieldsets,
 )
 from apps.tenants.context import get_current_restaurant
+
+
+class RestaurantRelatedFieldListFilter(RelatedFieldListFilter):
+    """Changelist FK/M2M filtri yalnız cari restoranın qeydlərini göstərir."""
+
+    def field_choices(self, field, request, model_admin):
+        ordering = self.field_admin_ordering(field, request, model_admin)
+        restaurant = None
+        if hasattr(model_admin, '_admin_restaurant'):
+            restaurant = model_admin._admin_restaurant(request)
+        lookup = related_field_restaurant_lookup(field) if restaurant else None
+        if not lookup:
+            return field.get_choices(include_blank=False, ordering=ordering)
+        return field.get_choices(
+            include_blank=False,
+            limit_choices_to={lookup: restaurant},
+            ordering=ordering,
+        )
+
+
+def _filter_path_field(model, field_path):
+    current = model
+    field = None
+    for part in str(field_path).split('__'):
+        try:
+            field = current._meta.get_field(part)
+        except FieldDoesNotExist:
+            return None
+        remote = getattr(field, 'remote_field', None)
+        if remote is not None:
+            current = remote.model
+    return field
 
 
 class TenantQuerySetMixin:
@@ -98,7 +134,20 @@ class TenantAdminMixin:
             and 'restaurant' in filters
         ):
             filters = [f for f in filters if f != 'restaurant']
-        return filters
+        return self._scope_related_list_filters(request, filters)
+
+    def _scope_related_list_filters(self, request, filters):
+        if self._admin_restaurant(request) is None:
+            return filters
+        scoped = []
+        for item in filters:
+            if isinstance(item, str):
+                field = _filter_path_field(self.model, item)
+                if field is not None and related_field_restaurant_lookup(field):
+                    scoped.append((item, RestaurantRelatedFieldListFilter))
+                    continue
+            scoped.append(item)
+        return scoped
 
     def get_list_display(self, request):
         display = list(super().get_list_display(request))

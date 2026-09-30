@@ -178,3 +178,18 @@ def scope_foreign_key_queryset(queryset, field_name, restaurant):
     if lookup:
         return queryset.filter(**{lookup: restaurant})
     return queryset
+
+
+def related_field_restaurant_lookup(field):
+    """Related model üzərində restoran filtri. Yoxdursa None."""
+    remote = getattr(field, 'remote_field', None)
+    if remote is None:
+        return None
+    related = remote.model
+    if related._meta.model_name == 'restaurant':
+        return 'pk'
+    model_lookup = get_tenant_lookup(related)
+    if model_lookup:
+        return model_lookup
+    scoped = SCOPED_FOREIGN_KEYS.get(field.name)
+    return scoped or None
