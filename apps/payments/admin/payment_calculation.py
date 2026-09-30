@@ -132,25 +132,23 @@ class PaymentCalculationForm(forms.Form):
             raise forms.ValidationError(_('Yanlış saat formatı. SS:DD formatında daxil edin (məsələn: 14:30)'))
 
 
-def create_payment_calculation(user, restaurant, start_date, end_date, start_time, end_time):
-    """Seçilmiş restoranın tarix/saat aralığındakı ödənişlərindən hesablama yaradır."""
+def payments_for_range(restaurant, start_date, end_date, start_time, end_time):
     start_datetime = datetime.combine(start_date, start_time)
     end_datetime = datetime.combine(end_date, end_time)
-
     if timezone.is_naive(start_datetime):
         start_datetime = timezone.make_aware(start_datetime)
     if timezone.is_naive(end_datetime):
         end_datetime = timezone.make_aware(end_datetime)
 
-    payments = Payment.objects.filter(
+    return Payment.objects.filter(
         paid_at__gte=start_datetime,
         paid_at__lte=end_datetime,
         table__room__restaurant=restaurant,
     ).prefetch_related('payment_methods')
 
-    total_amount = payments.aggregate(total=Sum('final_price'))['total'] or 0
-    payment_count = payments.count()
 
+def summarize_payments(payments):
+    total_amount = payments.aggregate(total=Sum('final_price'))['total'] or 0
     cash_amount = 0
     card_amount = 0
     other_amount = 0
@@ -172,19 +170,58 @@ def create_payment_calculation(user, restaurant, start_date, end_date, start_tim
             else:
                 other_amount += payment.paid_amount
 
+    return {
+        'total_amount': total_amount,
+        'payment_count': payments.count(),
+        'cash_amount': cash_amount,
+        'card_amount': card_amount,
+        'other_amount': other_amount,
+    }
+
+
+def create_payment_calculation(user, restaurant, start_date, end_date, start_time, end_time):
+    """Seçilmiş restoranın tarix/saat aralığındakı ödənişlərindən hesablama yaradır."""
+    payments = payments_for_range(restaurant, start_date, end_date, start_time, end_time)
+    summary = summarize_payments(payments)
     calculation = PaymentCalculation.objects.create(
         restaurant=restaurant,
         start_date=start_date,
         end_date=end_date,
         start_time=start_time,
         end_time=end_time,
-        total_amount=total_amount,
-        payment_count=payment_count,
-        cash_amount=cash_amount,
-        card_amount=card_amount,
-        other_amount=other_amount,
+        total_amount=summary['total_amount'],
+        payment_count=summary['payment_count'],
+        cash_amount=summary['cash_amount'],
+        card_amount=summary['card_amount'],
+        other_amount=summary['other_amount'],
         created_by=user,
     )
+    calculation.payments.set(payments)
+    return calculation
+
+
+def recalculate_payment_calculation(calculation):
+    """Saxlanmış hesablamanı öz tarix aralığı və restoranı üzrə yenidən sayır."""
+    payments = payments_for_range(
+        calculation.restaurant,
+        calculation.start_date,
+        calculation.end_date,
+        calculation.start_time,
+        calculation.end_time,
+    )
+    summary = summarize_payments(payments)
+    calculation.total_amount = summary['total_amount']
+    calculation.payment_count = summary['payment_count']
+    calculation.cash_amount = summary['cash_amount']
+    calculation.card_amount = summary['card_amount']
+    calculation.other_amount = summary['other_amount']
+    calculation.save(update_fields=[
+        'total_amount',
+        'payment_count',
+        'cash_amount',
+        'card_amount',
+        'other_amount',
+    ])
     calculation.payments.set(payments)
     return calculation
 

@@ -144,6 +144,42 @@ def _parse_value(field, value):
     return value
 
 
+def _auto_timestamp_values(model, create_data):
+    """auto_now / auto_now_add sahələri create() zamanı indi-yə yazılır.
+
+    Dump-dakı orijinal vaxtı sonra update ilə bərpa etmək üçün ayırırıq.
+    """
+    preserved = {}
+    for field in model._meta.fields:
+        if not (getattr(field, 'auto_now', False) or getattr(field, 'auto_now_add', False)):
+            continue
+        if field.attname in create_data:
+            value = create_data[field.attname]
+        elif field.name in create_data:
+            value = create_data[field.name]
+        else:
+            continue
+        if value is not None:
+            preserved[field.attname] = value
+    return preserved
+
+
+def _restore_auto_timestamps(model, objects):
+    if not objects:
+        return
+    fields = sorted({
+        name
+        for obj in objects
+        for name in getattr(obj, '_preserved_auto_fields', ())
+    })
+    if not fields:
+        return
+    model.objects.bulk_update(objects, fields, batch_size=500)
+    for obj in objects:
+        if hasattr(obj, '_preserved_auto_fields'):
+            del obj._preserved_auto_fields
+
+
 def _normalize_payload_duplicates(payload):
     """Importdan əvvəl eyni kateqoriyada təkrarlanan yemək adlarını düzəldir."""
     meals = payload.get('models', {}).get('meals.meal', [])
@@ -188,6 +224,7 @@ def import_restaurant_data(restaurant, payload):
         label = _model_label(model)
         records = payload.get('models', {}).get(label, [])
 
+        stamped_objects = []
         for record in records:
             old_pk = record.pop('_pk')
             create_data = {}
@@ -231,10 +268,18 @@ def import_restaurant_data(restaurant, payload):
             if skip:
                 continue
 
+            preserved = _auto_timestamp_values(model, create_data)
             obj = model.objects.create(**create_data)
+            if preserved:
+                for field_name, value in preserved.items():
+                    setattr(obj, field_name, value)
+                obj._preserved_auto_fields = tuple(preserved)
+                stamped_objects.append(obj)
             pk_field = HISTORY_PK_FIELD.get(history_key, 'pk')
             new_pk = getattr(obj, pk_field)
             id_map[f'{label}:{old_pk}'] = new_pk
+
+        _restore_auto_timestamps(model, stamped_objects)
 
     _dedupe_meal_names(restaurant)
     _remap_deletion_log_ids(id_map)
