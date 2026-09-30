@@ -26,6 +26,10 @@ EXPORT_ORDER = [
     ('users', 'User'),
     ('printers', 'Printer'),
     ('printers', 'PreparationPlace'),
+    ('inventory', 'Category'),
+    ('inventory', 'Supplier'),
+    ('inventory', 'InventoryItem'),
+    ('inventory', 'InventoryRecord'),
     ('meals', 'MealGroup'),
     ('meals', 'MealCategory'),
     ('meals', 'Meal'),
@@ -49,6 +53,9 @@ EXPORT_ORDER = [
     ('inventory_connector', 'MealInventoryMapping'),
     ('printers', 'Receipt'),
     ('orders', 'OrderItemDeletionLog'),
+    ('orders', 'HistoricalOrder'),
+    ('orders', 'HistoricalOrderItem'),
+    ('orders', 'HistoricalStatistics'),
 ]
 
 M2M_FIELDS = {
@@ -60,6 +67,12 @@ M2M_FIELDS = {
     'payments.PaymentCalculation': ['payments'],
     'printers.Receipt': ['orders'],
     'inventory_connector.MealInventoryConnector': ['inventory_items'],
+}
+
+HISTORY_PK_FIELD = {
+    'orders.HistoricalOrder': 'history_id',
+    'orders.HistoricalOrderItem': 'history_id',
+    'orders.HistoricalStatistics': 'history_id',
 }
 
 
@@ -131,18 +144,44 @@ def _parse_value(field, value):
     return value
 
 
+def _normalize_payload_duplicates(payload):
+    """Importdan əvvəl eyni kateqoriyada təkrarlanan yemək adlarını düzəldir."""
+    meals = payload.get('models', {}).get('meals.meal', [])
+    seen = {}
+    for record in meals:
+        name = (record.get('name') or '').strip()
+        category_id = record.get('category')
+        key = (category_id, name.lower())
+        count = seen.get(key, 0) + 1
+        seen[key] = count
+        if count > 1:
+            record['name'] = f'{name} ({count})'
+
+
 @transaction.atomic
 def import_restaurant_data(restaurant, payload):
     """Import exported JSON data into a restaurant tenant."""
     if payload.get('version') != 1:
         raise ValueError('Dəstəklənməyən export versiyası.')
 
+    _normalize_payload_duplicates(payload)
     id_map = {}
 
     def remap(label, old_pk):
         if old_pk is None:
             return None
         return id_map.get(f'{label}:{old_pk}')
+
+    def fallback_user_pk():
+        cached = id_map.get('_fallback_user_pk')
+        if cached:
+            return cached
+        user_model = apps.get_model('users', 'User')
+        fallback = user_model.objects.filter(restaurant=restaurant).order_by('pk').first()
+        if fallback:
+            id_map['_fallback_user_pk'] = fallback.pk
+            return fallback.pk
+        return None
 
     for app_label, model_name in EXPORT_ORDER:
         model = apps.get_model(app_label, model_name)
@@ -161,7 +200,14 @@ def import_restaurant_data(restaurant, payload):
                     continue
                 if field.is_relation and not field.many_to_many:
                     related_label = _model_label(field.related_model)
-                    create_data[field.name] = remap(related_label, record[field.name])
+                    fk_value = remap(related_label, record[field.name])
+                    if (
+                        fk_value is None
+                        and record.get(field.name) is not None
+                        and field.related_model._meta.label_lower == 'users.user'
+                    ):
+                        fk_value = fallback_user_pk()
+                    create_data[field.attname] = fk_value
                 elif field.name == 'restaurant':
                     create_data[field.name] = restaurant
                 else:
@@ -170,9 +216,27 @@ def import_restaurant_data(restaurant, payload):
             if hasattr(model, 'restaurant_id') and 'restaurant' not in create_data:
                 create_data['restaurant'] = restaurant
 
-            obj = model.objects.create(**create_data)
-            id_map[f'{label}:{old_pk}'] = obj.pk
+            history_key = f'{app_label}.{model_name}'
+            if history_key in HISTORY_PK_FIELD:
+                create_data[HISTORY_PK_FIELD[history_key]] = old_pk
 
+            skip = False
+            for field in model._meta.fields:
+                if field.primary_key or field.many_to_many:
+                    continue
+                if field.is_relation and not field.null and create_data.get(field.attname) is None:
+                    if field.name in record and record[field.name] is not None:
+                        skip = True
+                        break
+            if skip:
+                continue
+
+            obj = model.objects.create(**create_data)
+            pk_field = HISTORY_PK_FIELD.get(history_key, 'pk')
+            new_pk = getattr(obj, pk_field)
+            id_map[f'{label}:{old_pk}'] = new_pk
+
+    _dedupe_meal_names(restaurant)
     _remap_deletion_log_ids(id_map)
 
     for label, m2m_entries in payload.get('m2m', {}).items():
@@ -193,6 +257,24 @@ def import_restaurant_data(restaurant, payload):
             )
 
     return id_map
+
+
+def _dedupe_meal_names(restaurant):
+    """Importdan sonra eyni kateqoriyada təkrarlanan yemək adlarını düzəldir."""
+    from apps.meals.models import Meal
+
+    meals = Meal.objects.filter(
+        category__group__restaurant=restaurant,
+    ).order_by('category_id', 'name', 'pk')
+
+    seen = {}
+    for meal in meals:
+        key = (meal.category_id, meal.name.lower())
+        count = seen.get(key, 0) + 1
+        seen[key] = count
+        if count > 1:
+            meal.name = f'{meal.name} ({count})'
+            meal.save(update_fields=['name'])
 
 
 def _remap_deletion_log_ids(id_map):

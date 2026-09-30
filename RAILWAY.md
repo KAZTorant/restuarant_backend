@@ -32,7 +32,10 @@ Deploy əvvəl avtomatik işləyir:
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py ensure_superuser
+python manage.py ensure_qonaq_baku
 ```
+
+`ensure_qonaq_baku` **Qonaq-Baku** restoranını (`slug: qonaq-baku`) və `data/qonaq_baku.json.gz` faylındakı məlumatları yükləyir. Restoran artıq menyu ilə mövcuddursa, import təkrarlanmır.
 
 Admin panel `/panel/` ünvanında adi HTML/JS/CSS ilə işləyir (`admin-frontend/` qovluğu).
 
