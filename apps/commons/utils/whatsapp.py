@@ -16,14 +16,17 @@ class WhatsAppNotifier:
     """
     
     def __init__(self):
-        self.service_url = getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3000')
-        self.timeout = 10  # seconds
-        
-        # Get owner phones from database (preferred) or fallback to settings
-        self.owner_phones = self._get_owner_phones()
-        
-        # Backward compatibility: keep single phone as primary
-        self.owner_phone = self.owner_phones[0] if self.owner_phones else None
+        self.service_url = getattr(
+            settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3001'
+        ).rstrip('/')
+        self.timeout = 20
+        self.health_timeout = 5
+
+    def _headers(self):
+        key = getattr(settings, 'WHATSAPP_API_KEY', '') or ''
+        if key:
+            return {'X-API-Key': key}
+        return {}
     
     def _get_owner_phones(self):
         """
@@ -69,14 +72,14 @@ class WhatsAppNotifier:
     
     def is_configured(self):
         """Check if WhatsApp service is configured and ready"""
-        if not self.owner_phones:
+        if not self._get_owner_phones():
             logger.warning("Restaurant owner phone(s) not configured")
             return False
         
         url = f"{self.service_url}/health"
         try:
             logger.info(f"Checking WhatsApp service health at: {url}")
-            response = requests.get(url, timeout=self.timeout)
+            response = requests.get(url, timeout=self.health_timeout)
             
             if response.status_code == 200:
                 data = response.json()
@@ -92,7 +95,7 @@ class WhatsAppNotifier:
                 )
                 return False
         except requests.exceptions.Timeout as e:
-            logger.error(f"WhatsApp service timeout (>{self.timeout}s). URL: {url}, Error: {e}")
+            logger.error(f"WhatsApp service timeout (>{self.health_timeout}s). URL: {url}, Error: {e}")
             return False
         except requests.exceptions.ConnectionError as e:
             logger.error(f"WhatsApp service connection failed. URL: {url}, Error: {e}")
@@ -106,7 +109,7 @@ class WhatsAppNotifier:
         url = f"{self.service_url}/health"
         try:
             logger.info(f"Getting WhatsApp service status from: {url}")
-            response = requests.get(url, timeout=self.timeout)
+            response = requests.get(url, headers=self._headers(), timeout=self.health_timeout)
             
             if response.status_code == 200:
                 data = response.json()
@@ -125,7 +128,7 @@ class WhatsAppNotifier:
                 )
                 return {'ready': False, 'error': error_msg}
         except requests.exceptions.Timeout as e:
-            error_msg = f"Timeout after {self.timeout}s"
+            error_msg = f"Timeout after {self.health_timeout}s"
             logger.error(f"WhatsApp service timeout. URL: {url}, Error: {e}")
             return {'ready': False, 'error': error_msg}
         except requests.exceptions.ConnectionError as e:
@@ -153,7 +156,7 @@ class WhatsAppNotifier:
         
         try:
             logger.info(f"Sending WhatsApp message to {phone} via {url}")
-            response = requests.post(url, json=payload, timeout=self.timeout)
+            response = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             
             if response.status_code == 200:
                 data = response.json()
@@ -211,7 +214,8 @@ class WhatsAppNotifier:
                 - reason_display: Display text for reason
                 - comment: Additional comment
         """
-        if not self.owner_phones:
+        owner_phones = self._get_owner_phones()
+        if not owner_phones:
             logger.warning("Restaurant owner phone(s) not configured. Cannot send notification.")
             return False
         
@@ -232,7 +236,7 @@ class WhatsAppNotifier:
         
         # Send to all configured owner phones
         success_count = 0
-        for owner_phone in self.owner_phones:
+        for owner_phone in owner_phones:
             payload['owner_phone'] = owner_phone
             
             try:
@@ -244,7 +248,7 @@ class WhatsAppNotifier:
                     f"  Meal: {payload['meal_name']}\n"
                     f"  Quantity: {payload['quantity']}"
                 )
-                response = requests.post(url, json=payload, timeout=self.timeout)
+                response = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -298,10 +302,10 @@ class WhatsAppNotifier:
         
         # Return True if at least one notification was sent successfully
         if success_count > 0:
-            logger.info(f"Order deletion notification sent to {success_count}/{len(self.owner_phones)} owner(s)")
+            logger.info(f"Order deletion notification sent to {success_count}/{len(owner_phones)} owner(s)")
             return True
         else:
-            logger.error(f"Failed to send order deletion notification to all {len(self.owner_phones)} owner(s)")
+            logger.error(f"Failed to send order deletion notification to all {len(owner_phones)} owner(s)")
             return False
 
 

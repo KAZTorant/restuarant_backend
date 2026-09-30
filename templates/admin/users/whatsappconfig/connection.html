@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="max-width: 720px;">
+    <p>
+        Buradakı QR <strong>restoran nömrəsi</strong> üçündür.
+        Mesajlar bu nömrədən gedir.
+        Alıcılar (müdir/sahib) isə
+        <a href="{% url 'admin:users_whatsappconfig_changelist' %}">WhatsApp konfiqurasiyası</a>
+        siyahısındakı aktiv nömrələrdir.
+    </p>
+
+    {% if unreachable %}
+        <p style="color:#ba2121;"><strong>Problem:</strong> {{ error }}</p>
+        <p>
+            Cloud-da Django servisi WhatsApp-ı özü işə salmır.
+            Ayrı Node servisi işləməlidir və Django-nun
+            <code>WHATSAPP_SERVICE_URL</code> dəyişəni həmin servisə baxmalıdır.
+            Sessiya diski silinməsin deyə volume <code>/data</code> mount olunmalıdır.
+        </p>
+    {% elif ready %}
+        <p style="color:#0b6e4f;">
+            <strong>Qoşulub.</strong>
+            {% if connected_number %}Nömrə: {{ connected_number }}.{% endif %}
+            Hazırlanmış (təsdiqlənmiş) sifariş məhsulu silinəndə aktiv müdir nömrələrinə mesaj gedəcək.
+        </p>
+    {% elif qr_available %}
+        <p>WhatsApp → Ayarlar → Əlaqəli cihazlar → Cihazı əlaqələndir. Restoran nömrəsi ilə skan edin.</p>
+        <img src="{% url 'admin:whatsapp_qr' %}?t={% now 'U' %}" alt="WhatsApp QR" width="320" height="320">
+        <p>QR bir neçə saniyədən bir yenilənir.</p>
+        <script>setTimeout(function () { location.reload(); }, 8000);</script>
+    {% else %}
+        <p>WhatsApp başlayır. QR bir azdan görünəcək.</p>
+        {% if error %}<p>{{ error }}</p>{% endif %}
+        {% if status_message %}<p>{{ status_message }}</p>{% endif %}
+        <script>setTimeout(function () { location.reload(); }, 5000);</script>
+    {% endif %}
+
+    <p><a href="{% url 'admin:users_whatsappconfig_changelist' %}">← Nömrə siyahısına qayıt</a></p>
+</div>
+{% endblock %}

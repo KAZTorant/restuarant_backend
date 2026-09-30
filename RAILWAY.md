@@ -17,7 +17,8 @@
 | `ALLOWED_HOSTS` | Xeyr | Default: `*` |
 | `CSRF_TRUSTED_ORIGINS` | Tövsiyə | `https://<your-domain>.up.railway.app` |
 | `CUSTOM_DOMAINS` | Xeyr | Əlavə domainlər (default: `kazza.qr-menu.cc`) |
-| `WHATSAPP_SERVICE_URL` | Xeyr | WhatsApp servis URL-i |
+| `WHATSAPP_SERVICE_URL` | Xeyr | WhatsApp Node servisinin URL-i (private domain) |
+| `WHATSAPP_API_KEY` | Tövsiyə | Django və WhatsApp servisində eyni gizli açar |
 | `PRINTER_URL` | Xeyr | Print gateway URL-i |
 
 Tam siyahı üçün `.env.example` faylına baxın.
@@ -77,5 +78,26 @@ Superuser artıq varsa, command onu toxunmur.
 ## 6. Qeydlər
 
 - `pycups` cloud serverdə CUPS printer discovery üçün işləmir; network printer discovery işləyir.
-- WhatsApp servisi (`whatsapp_service/`) ayrıca deploy edilməlidir.
+- WhatsApp servisi (`whatsapp_service/`) ayrıca deploy edilməlidir. Chromium + QR sessiyası Django konteynerində işləmir; lokal `localhost` URL-i cloud-da boşdur.
+
+## 7. WhatsApp (QR login)
+
+Eyni repodan ikinci Railway servisi:
+
+1. **New Service** → eyni GitHub reposu.
+2. **Settings → Root Directory** = `whatsapp_service` (öz `Dockerfile` və `railway.toml` istifadə olunur).
+3. **Volume** əlavə edin, mount path: `/data`. Sessiya burda qalır; volume olmasa hər restart-da QR yenidən lazımdır.
+4. WhatsApp servisində dəyişənlər:
+   - `WHATSAPP_SESSION_PATH=/data/session`
+   - `CHROME_PATH=/usr/bin/chromium`
+   - `WHATSAPP_API_KEY` — uzun təsadüfi string
+5. RAM ən azı **1 GB** (Chromium üçün). 512 MB-da brauzer düşür.
+6. Django servisində:
+   - `WHATSAPP_SERVICE_URL=http://${{WhatsApp.RAILWAY_PRIVATE_DOMAIN}}:${{WhatsApp.PORT}}`
+     (servis adı dashboard-dakı adla eyni olsun)
+   - `WHATSAPP_API_KEY` — WhatsApp servisindəki ilə eyni
+7. Admin → **WhatsApp Konfiqurasiyaları** → **Restoran nömrəsini qoş**. QR çıxanda restoran telefonundan Linked Devices ilə skan edin.
+8. Həmin siyahıya müdir/sahib nömrələrini `994...` formatında yazın və aktiv saxlayın.
+
+Axın: restoran nömrəsi QR ilə login olur (göndərən). Hazırlanmış sifariş məhsulu silinəndə mesaj həmin nömrədən siyahıdakı müdir nömrələrinə gedir.
 - Print gateway (`print_gateway/`) restoran şəbəkəsində ayrıca işləməlidir.

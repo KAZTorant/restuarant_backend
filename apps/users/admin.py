@@ -1,10 +1,14 @@
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+
+import requests
 
 from apps.tenants.admin_utils import strip_field_from_fieldsets
 from apps.tenants.mixins import TenantAdminMixin
@@ -54,6 +58,82 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     search_fields = ('phone', 'name')
     ordering = ('-is_active', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
+    change_list_template = 'admin/users/whatsappconfig/change_list.html'
+
+    def get_urls(self):
+        custom = [
+            path(
+                'connection/',
+                self.admin_site.admin_view(self.connection_view),
+                name='whatsapp_connection',
+            ),
+            path(
+                'connection/qr.png',
+                self.admin_site.admin_view(self.qr_image_view),
+                name='whatsapp_qr',
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def _service_headers(self):
+        key = getattr(settings, 'WHATSAPP_API_KEY', '') or ''
+        if key:
+            return {'X-API-Key': key}
+        return {}
+
+    def _service_base(self):
+        return getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3001').rstrip('/')
+
+    def connection_view(self, request):
+        base = self._service_base()
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Restoran WhatsApp qoşulması',
+            'opts': self.model._meta,
+            'service_url': base,
+            'ready': False,
+            'qr_available': False,
+            'connected_number': '',
+            'status_message': '',
+            'error': '',
+            'unreachable': False,
+        }
+        try:
+            response = requests.get(
+                f'{base}/status',
+                headers=self._service_headers(),
+                timeout=8,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                context['ready'] = bool(data.get('ready'))
+                context['qr_available'] = bool(data.get('qr_available'))
+                context['connected_number'] = data.get('connected_number') or ''
+                context['status_message'] = data.get('message') or ''
+                context['error'] = data.get('last_error') or ''
+            else:
+                context['error'] = f'Servis cavabı: {response.status_code}'
+        except requests.RequestException as exc:
+            context['unreachable'] = True
+            context['error'] = (
+                'WhatsApp servisinə qoşulmaq olmadı. '
+                f'WHATSAPP_SERVICE_URL={base}. {exc}'
+            )
+        return render(request, 'admin/users/whatsappconfig/connection.html', context)
+
+    def qr_image_view(self, request):
+        base = self._service_base()
+        try:
+            response = requests.get(
+                f'{base}/qr.png',
+                headers=self._service_headers(),
+                timeout=8,
+            )
+        except requests.RequestException:
+            return HttpResponse(status=502)
+        if response.status_code != 200:
+            return HttpResponse(status=response.status_code)
+        return HttpResponse(response.content, content_type='image/png')
 
     def _staff_can_manage(self, request):
         user = request.user
