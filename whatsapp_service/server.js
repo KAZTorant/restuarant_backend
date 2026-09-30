@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
@@ -21,6 +22,38 @@ let lastError = null;
 let connectedNumber = null;
 
 fs.mkdirSync(SESSION_PATH, { recursive: true });
+
+function clearStaleBrowserLocks(dir) {
+    const lockNames = new Set([
+        'SingletonLock',
+        'SingletonCookie',
+        'SingletonSocket',
+        'DevToolsActivePort',
+    ]);
+    const stack = [dir];
+    while (stack.length) {
+        const current = stack.pop();
+        let entries = [];
+        try {
+            entries = fs.readdirSync(current, { withFileTypes: true });
+        } catch (err) {
+            continue;
+        }
+        for (const entry of entries) {
+            const full = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+                stack.push(full);
+            } else if (lockNames.has(entry.name)) {
+                try {
+                    fs.rmSync(full, { force: true });
+                    console.log('Removed stale browser lock:', full);
+                } catch (err) {
+                    console.error('Could not remove lock', full, err.message);
+                }
+            }
+        }
+    }
+}
 
 function requireKey(req, res, next) {
     if (!API_KEY) {
@@ -45,6 +78,7 @@ function initializeWhatsApp() {
     const puppeteer = {
         headless: true,
         args: [
+            '--headless=new',
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
@@ -52,6 +86,7 @@ function initializeWhatsApp() {
             '--no-first-run',
             '--no-zygote',
             '--disable-gpu',
+            '--disable-extensions',
         ],
     };
     if (CHROME_PATH) {
@@ -102,6 +137,7 @@ function initializeWhatsApp() {
         connectedNumber = null;
         lastError = `disconnected: ${reason}`;
         setTimeout(() => {
+            clearStaleBrowserLocks(SESSION_PATH);
             client.initialize().catch((err) => {
                 lastError = err.message;
                 console.error('Reconnect failed:', err);
@@ -109,6 +145,7 @@ function initializeWhatsApp() {
         }, 5000);
     });
 
+    clearStaleBrowserLocks(SESSION_PATH);
     client.initialize().catch((err) => {
         lastError = err.message;
         console.error('WhatsApp initialize failed:', err);
