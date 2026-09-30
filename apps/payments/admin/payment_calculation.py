@@ -734,6 +734,11 @@ class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
                 name='payments_paymentcalculation_calculate'
             ),
             path(
+                'reset/',
+                self.admin_site.admin_view(self.reset_calculations_view),
+                name='payments_paymentcalculation_reset'
+            ),
+            path(
                 '<int:calculation_id>/print/',
                 self.admin_site.admin_view(self.print_calculation_view),
                 name='payments_paymentcalculation_print'
@@ -750,12 +755,31 @@ class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
             return qs.none()
         return qs
 
+    def _reset_target_restaurant(self, request, restaurant_id=None):
+        """Sıfırlama yalnız bir restorana aid hesablamaları əhatə edir."""
+        locked = locked_restaurant_for_user(request.user)
+        if locked is not None:
+            return locked
+        if request.user.is_superuser and restaurant_id:
+            return Restaurant.objects.filter(pk=restaurant_id).first()
+        return None
+
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['calculate_url'] = reverse('admin:payments_paymentcalculation_calculate')
         locked = locked_restaurant_for_user(request.user)
         extra_context['restaurant_locked'] = locked is not None
         extra_context['restaurant_name'] = locked.name if locked is not None else ''
+
+        restaurant = self._reset_target_restaurant(
+            request,
+            restaurant_id=request.GET.get('restaurant__id__exact'),
+        )
+        extra_context['can_reset_calculations'] = (
+            restaurant is not None and self.has_delete_permission(request)
+        )
+        extra_context['reset_restaurant_id'] = restaurant.pk if restaurant is not None else ''
+        extra_context['reset_restaurant_name'] = restaurant.name if restaurant is not None else ''
         return super().changelist_view(request, extra_context)
 
     def calculate_payments_view(self, request):
@@ -796,6 +820,47 @@ class PaymentCalculationAdmin(TenantAdminMixin, admin.ModelAdmin):
         }
 
         return render(request, 'admin/payments/payment_calculation_form.html', context)
+
+    def reset_calculations_view(self, request):
+        """Restorana aid bütün ödəniş hesablamalarını silir. Ödənişlərin özü qalır."""
+        changelist_url = reverse('admin:payments_paymentcalculation_changelist')
+        if request.method != 'POST':
+            return HttpResponseRedirect(changelist_url)
+
+        if not self.has_delete_permission(request):
+            messages.error(
+                request,
+                _('Ödəniş hesablamalarını sıfırlamaq icazəniz yoxdur.'),
+            )
+            return HttpResponseRedirect(changelist_url)
+
+        restaurant = self._reset_target_restaurant(
+            request,
+            restaurant_id=request.POST.get('restaurant'),
+        )
+        if restaurant is None:
+            messages.error(
+                request,
+                _('Sıfırlamaq üçün restoran müəyyən deyil.'),
+            )
+            return HttpResponseRedirect(changelist_url)
+
+        calculations = PaymentCalculation.objects.filter(restaurant=restaurant)
+        count = calculations.count()
+        if count:
+            calculations.delete()
+            messages.success(
+                request,
+                _('%(restaurant)s restoranına aid %(count)s ödəniş hesablaması sıfırlandı.')
+                % {'restaurant': restaurant.name, 'count': count},
+            )
+        else:
+            messages.info(
+                request,
+                _('%(restaurant)s restoranında sıfırlanacaq ödəniş hesablaması yoxdur.')
+                % {'restaurant': restaurant.name},
+            )
+        return HttpResponseRedirect(changelist_url)
 
     def has_add_permission(self, request):
         return False  # Don't allow manual addition, only through calculation
