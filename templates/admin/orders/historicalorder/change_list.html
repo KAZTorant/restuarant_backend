@@ -4,8 +4,53 @@
 {% block extrastyle %}
     {{ block.super }}
     <style>
-        .archive-view-toggle { margin-right: .75rem; }
-        .archive-view-toggle .btn { white-space: nowrap; }
+        .archive-page-actions {
+            gap: .5rem;
+            flex-wrap: nowrap;
+        }
+        .archive-page-actions .btn-success {
+            float: none !important;
+            white-space: nowrap;
+        }
+        .archive-view-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin: 0;
+            padding: 3px;
+            background: #eef2f6;
+            border-radius: 8px;
+        }
+        .archive-view-toggle .btn {
+            border: 0;
+            border-radius: 6px !important;
+            background: transparent;
+            color: #334155;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: none;
+            padding: .375rem .85rem;
+        }
+        .archive-view-toggle .btn:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .archive-view-toggle .btn-primary,
+        .archive-view-toggle .btn-primary:hover {
+            background: #1f4b99;
+            color: #fff;
+        }
+        .archive-event-count {
+            display: inline-block;
+            padding: .2rem .55rem;
+            border-radius: 999px;
+            background-color: #1d4ed8 !important;
+            color: #fff !important;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+            border: 0;
+        }
         .archive-group-row { cursor: pointer; }
         .archive-group-row:hover td { background-color: #eef5fb; }
         .archive-group-row.is-open td { background-color: #e7f1fb; }
@@ -40,12 +85,12 @@
 {% endblock %}
 
 {% block page_actions %}
-    <div class="col-12 col-md-auto d-flex align-items-center justify-content-end page-actions flex-wrap">
-        <div class="btn-group archive-view-toggle" role="group" aria-label="Arxiv görünüşü">
-            <a href="{{ archive_date_url }}" class="btn {% if archive_view == 'grouped' %}btn-outline-primary{% else %}btn-primary{% endif %}">
+    <div class="col-12 col-md-auto d-flex align-items-center justify-content-end page-actions archive-page-actions">
+        <div class="archive-view-toggle" role="group" aria-label="Arxiv görünüşü">
+            <a href="{{ archive_date_url }}" class="btn {% if archive_view != 'grouped' %}btn-primary{% endif %}">
                 Tarix üzrə göstər
             </a>
-            <a href="{{ archive_grouped_url }}" class="btn {% if archive_view == 'grouped' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            <a href="{{ archive_grouped_url }}" class="btn {% if archive_view == 'grouped' %}btn-primary{% endif %}">
                 ID-lər üzrə qruplaşdır
             </a>
         </div>
@@ -87,7 +132,7 @@
                             </td>
                             <td>{{ group.latest.waitress|default:"—" }}</td>
                             <td>{{ group.latest.total_price }}</td>
-                            <td><span class="badge badge-secondary">{{ group.event_count }} hadisə</span></td>
+                            <td><span class="archive-event-count">{{ group.event_count }} hadisə</span></td>
                             <td>{{ group.latest.history_date }}</td>
                             <td class="text-muted">Açmaq üçün basın</td>
                         </tr>
