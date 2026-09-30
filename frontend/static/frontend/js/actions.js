@@ -146,7 +146,26 @@ const ActionsPanel = {
       activeInput: 'cash',
     };
 
+    const readDiscount = () => {
+      const amt = document.getElementById('discount-amt');
+      const comment = document.getElementById('discount-comment');
+      if (amt) state.discountAmount = parseFloat(amt.value) || 0;
+      if (comment) state.discountComment = comment.value;
+    };
+
+    const escAttr = (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+
+    const paymentTypes = [
+      { key: 'cash', label: 'Nağd', fill: 'Tam nağd' },
+      { key: 'card', label: 'Kart', fill: 'Tam kart' },
+      { key: 'other', label: 'Digər', fill: 'Tam digər' },
+    ];
+
     const render = () => {
+      readDiscount();
       const total = this.totalPrice;
       const discount = state.discountAmount || 0;
       const finalAmount = Math.max(0, total - discount);
@@ -156,7 +175,7 @@ const ActionsPanel = {
       const remaining = paid - finalAmount;
 
       overlay.innerHTML = `
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog--payment">
           <h3 class="modal-title">Ödəniş</h3>
           <div class="payment-summary">
             <div class="payment-summary-item">
@@ -165,42 +184,42 @@ const ActionsPanel = {
             </div>
             <div class="payment-summary-item">
               <div class="label">Son məbləğ</div>
-              <div class="value">₼ ${finalAmount.toFixed(2)}</div>
+              <div class="value" id="pay-final">₼ ${finalAmount.toFixed(2)}</div>
             </div>
             <div class="payment-summary-item">
               <div class="label">Ödənilən</div>
-              <div class="value">₼ ${paid.toFixed(2)}</div>
+              <div class="value" id="pay-paid">₼ ${paid.toFixed(2)}</div>
             </div>
             <div class="payment-summary-item">
               <div class="label">Qalıq</div>
-              <div class="value" style="color:${remaining >= 0 ? 'var(--primary-dark)' : 'var(--danger)'}">
+              <div class="value" id="pay-remaining" style="color:${remaining >= 0 ? 'var(--primary-dark)' : 'var(--danger)'}">
                 ₼ ${remaining.toFixed(2)}
               </div>
             </div>
           </div>
-          <div class="payment-labels-row">
-            <span class="payment-label">Nağd</span>
-            <span class="payment-label">Kart</span>
-            <span class="payment-label">Digər</span>
-          </div>
-          <div class="payment-inputs-row">
-            <input class="${state.activeInput === 'cash' ? 'active' : ''}" readonly
-                   value="${state.cash ? '₼' + state.cash : ''}" data-type="cash">
-            <input class="${state.activeInput === 'card' ? 'active' : ''}" readonly
-                   value="${state.card ? '₼' + state.card : ''}" data-type="card">
-            <input class="${state.activeInput === 'other' ? 'active' : ''}" readonly
-                   value="${state.other ? '₼' + state.other : ''}" data-type="other">
+          <div class="payment-methods">
+            ${paymentTypes.map((type) => `
+              <div class="payment-method ${state.activeInput === type.key ? 'is-active' : ''}">
+                <span class="payment-label">${type.label}</span>
+                <div class="payment-field">
+                  <span class="payment-currency">₼</span>
+                  <input class="payment-amount" readonly inputmode="decimal"
+                         placeholder="0.00" value="${escAttr(state[type.key])}" data-type="${type.key}">
+                </div>
+                <button type="button" class="payment-fill-btn" data-fill="${type.key}">${type.fill}</button>
+              </div>
+            `).join('')}
           </div>
           <div class="numpad-buttons" id="pay-numpad">
             ${[1,2,3,4,5,6,7,8,9,'.',0,'←'].map((n) =>
-              `<button data-key="${n}">${n}</button>`).join('')}
+              `<button type="button" data-key="${n}">${n}</button>`).join('')}
           </div>
           <div class="modal-form">
             <label>Endirim (₼)
-              <input type="text" id="discount-amt" value="${discount || ''}" placeholder="0.00">
+              <input type="text" id="discount-amt" inputmode="decimal" value="${discount || ''}" placeholder="0.00">
             </label>
             <label>Endirim səbəbi
-              <input type="text" id="discount-comment" placeholder="Qeyd yazın...">
+              <input type="text" id="discount-comment" value="${escAttr(state.discountComment)}" placeholder="Qeyd yazın...">
             </label>
           </div>
           <div class="modal-buttons">
@@ -213,11 +232,41 @@ const ActionsPanel = {
         inp.addEventListener('click', () => { state.activeInput = inp.dataset.type; render(); });
       });
 
+      overlay.querySelectorAll('[data-fill]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          readDiscount();
+          const amount = Math.max(0, this.totalPrice - (state.discountAmount || 0));
+          state.cash = '';
+          state.card = '';
+          state.other = '';
+          state[btn.dataset.fill] = amount.toFixed(2);
+          state.activeInput = btn.dataset.fill;
+          render();
+        });
+      });
+
+      overlay.querySelector('#discount-amt').addEventListener('input', () => {
+        const discountNow = parseFloat(document.getElementById('discount-amt').value) || 0;
+        const finalNow = Math.max(0, this.totalPrice - discountNow);
+        const paidNow = (parseFloat(state.cash) || 0)
+          + (parseFloat(state.card) || 0)
+          + (parseFloat(state.other) || 0);
+        const remainingNow = paidNow - finalNow;
+        document.getElementById('pay-final').textContent = `₼ ${finalNow.toFixed(2)}`;
+        const remEl = document.getElementById('pay-remaining');
+        remEl.textContent = `₼ ${remainingNow.toFixed(2)}`;
+        remEl.style.color = remainingNow >= 0 ? 'var(--primary-dark)' : 'var(--danger)';
+      });
+
       overlay.querySelector('#pay-numpad').addEventListener('click', (e) => {
-        const key = e.target.dataset.key;
+        const key = e.target.closest('button')?.dataset.key;
         if (!key) return;
         const field = state.activeInput;
-        state[field] = key === '←' ? state[field].slice(0, -1) : (state[field] || '') + key;
+        let next = state[field] || '';
+        if (key === '←') next = next.slice(0, -1);
+        else if (key === '.' && next.includes('.')) return;
+        else next += key;
+        state[field] = next;
         render();
       });
 
