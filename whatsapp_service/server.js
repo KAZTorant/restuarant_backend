@@ -20,6 +20,8 @@ let isReady = false;
 let qrCode = null;
 let lastError = null;
 let connectedNumber = null;
+let recovering = false;
+let recoveryCount = 0;
 
 fs.mkdirSync(SESSION_PATH, { recursive: true });
 
@@ -74,9 +76,73 @@ function formatPhone(phone) {
     return formatted;
 }
 
+function sessionDir() {
+    return path.join(SESSION_PATH, 'session');
+}
+
+function shouldResetSession(err) {
+    const message = err && err.message ? err.message : String(err || '');
+    return /timed out|Execution context was destroyed|auth timeout|Target closed|Session closed|ProtocolError/i.test(message);
+}
+
+async function destroyClient() {
+    if (!client) {
+        return;
+    }
+    const current = client;
+    client = null;
+    try {
+        await current.destroy();
+    } catch (err) {
+        console.error('Could not destroy WhatsApp client:', err.message);
+    }
+}
+
+async function resetSession() {
+    await destroyClient();
+    clearStaleBrowserLocks(SESSION_PATH);
+    fs.rmSync(sessionDir(), { recursive: true, force: true });
+    console.log('Cleared WhatsApp session. A new QR will be generated.');
+}
+
+function scheduleRecovery(err) {
+    const message = err && err.message ? err.message : String(err || 'unknown error');
+    lastError = message;
+    isReady = false;
+    qrCode = null;
+    connectedNumber = null;
+    console.error('WhatsApp recovery:', message);
+    if (recovering) {
+        return;
+    }
+    if (recoveryCount >= 3) {
+        console.error('Stopped WhatsApp recovery after repeated failures');
+        return;
+    }
+    recoveryCount += 1;
+    recovering = true;
+    setTimeout(async () => {
+        try {
+            if (shouldResetSession(err)) {
+                await resetSession();
+            } else {
+                await destroyClient();
+                clearStaleBrowserLocks(SESSION_PATH);
+            }
+            recovering = false;
+            initializeWhatsApp();
+        } catch (recoveryErr) {
+            recovering = false;
+            lastError = recoveryErr.message;
+            console.error('WhatsApp recovery failed:', recoveryErr);
+        }
+    }, 3000);
+}
+
 function initializeWhatsApp() {
     const puppeteer = {
         headless: true,
+        protocolTimeout: 90000,
         args: [
             '--headless=new',
             '--no-sandbox',
@@ -84,9 +150,11 @@ function initializeWhatsApp() {
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
-            '--no-zygote',
             '--disable-gpu',
             '--disable-extensions',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
         ],
     };
     if (CHROME_PATH) {
@@ -95,6 +163,7 @@ function initializeWhatsApp() {
 
     client = new Client({
         authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
+        authTimeoutMs: 90000,
         puppeteer,
     });
 
@@ -105,6 +174,7 @@ function initializeWhatsApp() {
         isReady = false;
         connectedNumber = null;
         lastError = null;
+        recoveryCount = 0;
     });
 
     client.on('ready', async () => {
@@ -136,21 +206,25 @@ function initializeWhatsApp() {
         isReady = false;
         connectedNumber = null;
         lastError = `disconnected: ${reason}`;
-        setTimeout(() => {
-            clearStaleBrowserLocks(SESSION_PATH);
-            client.initialize().catch((err) => {
-                lastError = err.message;
-                console.error('Reconnect failed:', err);
-            });
-        }, 5000);
+        scheduleRecovery(new Error(`disconnected: ${reason}`));
     });
 
     clearStaleBrowserLocks(SESSION_PATH);
     client.initialize().catch((err) => {
-        lastError = err.message;
         console.error('WhatsApp initialize failed:', err);
+        scheduleRecovery(err);
     });
 }
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    scheduleRecovery(reason instanceof Error ? reason : new Error(String(reason)));
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    scheduleRecovery(err);
+});
 
 app.get('/health', (req, res) => {
     res.json({

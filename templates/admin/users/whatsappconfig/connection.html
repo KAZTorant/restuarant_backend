@@ -30,9 +30,13 @@
         <p>QR bir neçə saniyədən bir yenilənir.</p>
         <script>setTimeout(function () { location.reload(); }, 8000);</script>
     {% else %}
-        <p>WhatsApp başlayır. QR bir azdan görünəcək.</p>
-        {% if error %}<p>{{ error }}</p>{% endif %}
-        {% if status_message %}<p>{{ status_message }}</p>{% endif %}
+        {% if error %}
+            <p style="color:#ba2121;"><strong>WhatsApp başlamadı.</strong> {{ error }}</p>
+            <p>Yarımçıq sessiya silinir və yeni QR çıxarılır. Səhifə özü yenilənir.</p>
+        {% else %}
+            <p>WhatsApp başlayır. QR bir azdan görünəcək.</p>
+            {% if status_message %}<p>{{ status_message }}</p>{% endif %}
+        {% endif %}
         <script>setTimeout(function () { location.reload(); }, 5000);</script>
     {% endif %}
 
