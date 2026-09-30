@@ -47,13 +47,43 @@ admin.site.register(User, CustomUserAdmin)
 @admin.register(WhatsAppConfig)
 class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     """
-    Admin interface for managing WhatsApp notification recipient phone numbers
+    WhatsApp notification recipients. Restaurant staff can manage their own restaurant.
     """
     list_display = ('phone', 'name', 'is_active', 'created_at', 'updated_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('phone', 'name')
     ordering = ('-is_active', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
+
+    def _staff_can_manage(self, request):
+        user = request.user
+        if not user.is_active or not user.is_staff:
+            return False
+        if user.is_superuser:
+            return True
+        return bool(getattr(user, 'restaurant_id', None))
+
+    def has_module_permission(self, request):
+        return self._staff_can_manage(request) or super().has_module_permission(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._staff_can_manage(request) or super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        return self._staff_can_manage(request) or super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._staff_can_manage(request) or super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._staff_can_manage(request) or super().has_delete_permission(request, obj)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        user = request.user
+        if user.is_active and user.is_staff and not user.is_superuser and not getattr(user, 'restaurant_id', None):
+            return qs.none()
+        return qs
 
 
 # admin.py
