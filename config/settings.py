@@ -282,6 +282,7 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
     'X-PIN',
+    'X-Restaurant-Slug',
 ]
 
 

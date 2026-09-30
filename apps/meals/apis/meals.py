@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.generics import ListAPIView
+
+from apps.tenants.cache import tenant_cache_page
 
 from apps.meals.models import Meal
 from apps.meals.models import MealCategory
@@ -22,7 +22,7 @@ class MealCategoryAPIView(ListAPIView):
     def get_queryset(self):
         return filter_by_restaurant(MealCategory.objects.all())
 
-    @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
+    @method_decorator(tenant_cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -34,7 +34,7 @@ class MealGroupAPIView(ListAPIView):
     def get_queryset(self):
         return filter_by_restaurant(MealGroup.objects.all())
 
-    @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
+    @method_decorator(tenant_cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -51,7 +51,7 @@ class MealAPIView(ListAPIView):
         type=openapi.TYPE_INTEGER
     )
 
-    @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
+    @method_decorator(tenant_cache_page(settings.CACHE_TIME_IN_SECONDS))
     @swagger_auto_schema(manual_parameters=[meal_category_id_param])
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)

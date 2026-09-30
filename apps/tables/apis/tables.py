@@ -5,8 +5,8 @@ from rest_framework.views import APIView
 
 from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 
+from apps.tenants.cache import tenant_cache_page
 from apps.tenants.utils import filter_by_restaurant
 from apps.tables.models import Room, Table
 
@@ -33,7 +33,7 @@ class RoomAPIView(ListAPIView):
         qs = Room.objects.filter(is_active=True)
         return filter_by_restaurant(qs)
 
-    @method_decorator(cache_page(settings.CACHE_TIME_IN_SECONDS))
+    @method_decorator(tenant_cache_page(settings.CACHE_TIME_IN_SECONDS))
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 

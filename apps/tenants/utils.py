@@ -5,7 +5,7 @@ def filter_by_restaurant(queryset, restaurant=None):
     """Filter queryset by restaurant using the model's restaurant field or common paths."""
     restaurant = restaurant or get_current_restaurant()
     if restaurant is None:
-        return queryset
+        return queryset.none()
 
     model = queryset.model
     if hasattr(model, 'restaurant_id'):
