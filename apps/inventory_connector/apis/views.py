@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -8,6 +11,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.inventory_connector.apis.serializers import InventoryItemNameSerializer, InventoryItemSerializer
+from apps.inventory_connector.whatsapp_intake import build_reply
+
+logger = logging.getLogger(__name__)
 
 
 class InventoryItemAddOrUpdateView(APIView):
@@ -115,6 +121,32 @@ class InventoryItemListView(APIView):
         items = InventoryItem.objects.all().order_by('name')
         serializer = InventoryItemNameSerializer(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-        items = InventoryItem.objects.all().order_by('name')
-        serializer = InventoryItemNameSerializer(items, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class WhatsAppInventoryIntakeView(APIView):
+    """Stock lines sent to the restaurant WhatsApp number."""
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        expected = getattr(settings, 'WHATSAPP_API_KEY', '') or ''
+        provided = request.headers.get('X-API-Key', '')
+        if not expected or provided != expected:
+            logger.warning('WA intake_rejected')
+            return Response({'ok': False, 'reply': 'Anbar girişi rədd edildi.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        text = request.data.get('text') or ''
+        source = request.data.get('source') or 'text'
+        sender = request.data.get('from') or ''
+        logger.info('WA intake_start source=%s from=%s chars=%s', source, sender, len(text))
+        try:
+            ok, reply, added = build_reply(text, source)
+        except Exception:
+            logger.exception('WA intake_error')
+            return Response(
+                {'ok': False, 'reply': 'Anbar yazılmadı. Bir az sonra yenidən göndərin.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        logger.info('WA intake_ok added=%s', len(added))
+        return Response({'ok': ok, 'reply': reply, 'added': added})

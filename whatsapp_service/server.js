@@ -1,5 +1,8 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
+const { execFile } = require('child_process');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
@@ -11,6 +14,7 @@ const PORT = process.env.PORT || process.env.WHATSAPP_SERVICE_PORT || 3001;
 const SESSION_PATH = process.env.WHATSAPP_SESSION_PATH || './whatsapp-session';
 const API_KEY = process.env.WHATSAPP_API_KEY || '';
 const CHROME_PATH = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || '';
+const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
 
 app.use(cors());
 app.use(express.json());
@@ -158,6 +162,127 @@ function scheduleRecovery(err) {
     }, 3000);
 }
 
+function runTesseract(file, lang) {
+    return new Promise((resolve, reject) => {
+        execFile(
+            'tesseract',
+            [file, 'stdout', '-l', lang, '--psm', '6'],
+            { timeout: 25000, maxBuffer: 2 * 1024 * 1024 },
+            (err, stdout) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(stdout || '');
+            },
+        );
+    });
+}
+
+async function readImageText(buffer) {
+    const file = path.join(os.tmpdir(), `wa-${crypto.randomBytes(8).toString('hex')}.png`);
+    fs.writeFileSync(file, buffer);
+    try {
+        try {
+            return await runTesseract(file, 'aze+eng');
+        } catch (err) {
+            logEvent('ocr_lang_fallback', { error: err.message });
+            return await runTesseract(file, 'eng');
+        }
+    } finally {
+        fs.unlink(file, () => {});
+    }
+}
+
+async function sendIntake(text, source, sender) {
+    if (!BACKEND_URL) {
+        throw new Error('BACKEND_URL is empty');
+    }
+    const response = await fetch(`${BACKEND_URL}/api/inventory/whatsapp-intake/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY,
+        },
+        body: JSON.stringify({ text, source, from: sender }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok && !payload.reply) {
+        throw new Error(`intake ${response.status}`);
+    }
+    return payload.reply || 'Anbar yazılmadı.';
+}
+
+async function handleIncoming(msg) {
+    if (!msg || msg.fromMe) {
+        return;
+    }
+    const from = String(msg.from || '');
+    if (from === 'status@broadcast' || from.endsWith('@g.us')) {
+        return;
+    }
+    const skipTypes = new Set([
+        'e2e_notification',
+        'notification_template',
+        'gp2',
+        'protocol',
+        'ciphertext',
+        'revoked',
+        'call_log',
+    ]);
+    if (skipTypes.has(msg.type)) {
+        return;
+    }
+
+    let text = (msg.body || '').trim();
+    let source = 'text';
+    const isImage = msg.type === 'image' || (msg.hasMedia && String(msg.mimetype || '').startsWith('image/'));
+    if (isImage || (msg.hasMedia && !text)) {
+        try {
+            const media = await msg.downloadMedia();
+            if (media && String(media.mimetype || '').startsWith('image/') && media.data) {
+                const recognized = (await readImageText(Buffer.from(media.data, 'base64'))).trim();
+                source = 'ocr';
+                text = [text, recognized].filter(Boolean).join('\n');
+                logEvent('ocr_ok', { from, chars: recognized.length });
+            }
+        } catch (err) {
+            logEvent('ocr_error', { from, error: err.message });
+            try {
+                await msg.reply('Şəkil oxunmadı. Mətni bu formatda göndərin:\nUn 10 kq');
+            } catch (replyErr) {
+                logEvent('inbound_reply_error', { error: replyErr.message });
+            }
+            return;
+        }
+    }
+
+    if (!text) {
+        if (source === 'ocr') {
+            try {
+                await msg.reply('Şəkildən mətn oxunmadı. Mətni bu formatda göndərin:\nUn 10 kq');
+            } catch (replyErr) {
+                logEvent('inbound_reply_error', { error: replyErr.message });
+            }
+        }
+        return;
+    }
+
+    logEvent('inbound', { from, source, chars: text.length });
+    try {
+        const reply = await sendIntake(text, source, from);
+        await msg.reply(reply);
+        logEvent('inbound_replied', { from, source });
+    } catch (err) {
+        logEvent('inbound_error', { from, error: err.message });
+        try {
+            await msg.reply('Anbar yazılmadı. Bir az sonra yenidən göndərin.');
+        } catch (replyErr) {
+            logEvent('inbound_reply_error', { error: replyErr.message });
+        }
+    }
+}
+
 function initializeWhatsApp() {
     const puppeteer = {
         headless: true,
@@ -231,6 +356,12 @@ function initializeWhatsApp() {
         isReady = false;
         authenticating = false;
         lastError = String(msg);
+    });
+
+    client.on('message', (msg) => {
+        handleIncoming(msg).catch((err) => {
+            logEvent('inbound_unhandled', { error: err.message });
+        });
     });
 
     client.on('disconnected', (reason) => {
