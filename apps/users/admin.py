@@ -72,6 +72,11 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 self.admin_site.admin_view(self.qr_image_view),
                 name='whatsapp_qr',
             ),
+            path(
+                'connection/logout/',
+                self.admin_site.admin_view(self.logout_view),
+                name='whatsapp_logout',
+            ),
         ]
         return custom + super().get_urls()
 
@@ -136,6 +141,28 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         if response.status_code != 200:
             return HttpResponse(status=response.status_code)
         return HttpResponse(response.content, content_type='image/png')
+
+    def logout_view(self, request):
+        if request.method != 'POST':
+            return redirect('admin:whatsapp_connection')
+        base = self._service_base()
+        try:
+            response = requests.post(
+                f'{base}/logout',
+                headers=self._service_headers(),
+                timeout=30,
+            )
+            if response.status_code == 200:
+                self.message_user(request, 'WhatsApp sessiyası silindi. Yeni QR bir azdan çıxacaq.')
+            else:
+                self.message_user(
+                    request,
+                    f'Sessiya silinmədi. Servis cavabı: {response.status_code}',
+                    level=messages.ERROR,
+                )
+        except requests.RequestException as exc:
+            self.message_user(request, f'Sessiya silinmədi: {exc}', level=messages.ERROR)
+        return redirect('admin:whatsapp_connection')
 
     def _staff_can_manage(self, request):
         user = request.user

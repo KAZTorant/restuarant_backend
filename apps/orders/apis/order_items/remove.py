@@ -1,5 +1,6 @@
 # apps/orders/api/remove_refactored.py
 
+import logging
 from decimal import Decimal
 from django.db.models import Sum
 from django.db import models
@@ -16,6 +17,8 @@ from apps.orders.serializers import DeleteOrderItemV2Serializer
 from apps.tables.models import Table
 from apps.users.permissions import IsAdmin
 from apps.commons.utils.whatsapp import get_whatsapp_notifier
+
+logger = logging.getLogger(__name__)
 
 
 class DeleteOrderItemAPIView(APIView):
@@ -115,16 +118,26 @@ class DeleteOrderItemAPIView(APIView):
                 order, order_item, reason, comment, waitress_name, user
             )
         else:
-            # full delete with comment
             order_item.delete(reason=reason, deleted_by=user, comment=comment)
-        
-        # Send WhatsApp notification to owner
+
+        logger.info(
+            "WA delete_confirmed order=%s table=%s meal=%s reason=%s",
+            order.id,
+            order.table.number if order.table else None,
+            order_item.meal.name,
+            reason,
+        )
         DeleteOrderItemAPIView._send_whatsapp_notification(
             order, order_item, reason, comment, user
         )
 
     @staticmethod
     def _handle_unconfirmed(order_item):
+        logger.info(
+            "WA delete_unconfirmed order_item=%s meal=%s skipped_notification=1",
+            order_item.id,
+            order_item.meal.name,
+        )
         order_item.delete()
 
     @staticmethod
@@ -189,10 +202,12 @@ class DeleteOrderItemAPIView(APIView):
             whatsapp = get_whatsapp_notifier()
             
             if not whatsapp.is_configured():
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning("WhatsApp service not ready. Skipping notification.")
-                return  # Skip silently if not configured
+                logger.warning(
+                    "WA notify_skipped order=%s meal=%s reason=service_not_ready",
+                    order.id,
+                    order_item.meal.name,
+                )
+                return
             
             # Map reason codes to display text
             reason_display_map = {
@@ -218,10 +233,13 @@ class DeleteOrderItemAPIView(APIView):
                 'comment': comment or '',
             }
             
-            whatsapp.notify_order_item_deleted(order_item_info)
+            sent = whatsapp.notify_order_item_deleted(order_item_info)
+            logger.info(
+                "WA notify_result order=%s meal=%s sent=%s",
+                order.id,
+                order_item.meal.name,
+                sent,
+            )
             
         except Exception as e:
-            # Log error but don't fail the delete operation
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send WhatsApp notification: {e}")
+            logger.error("WA notify_error order=%s error=%s", order.id, e)

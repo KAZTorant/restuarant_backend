@@ -22,10 +22,18 @@
         <p style="color:#0b6e4f;">
             <strong>Qoşulub.</strong>
             {% if connected_number %}Nömrə: {{ connected_number }}.{% endif %}
-            Hazırlanmış (təsdiqlənmiş) sifariş məhsulu silinəndə aktiv müdir nömrələrinə mesaj gedəcək.
+            Hazırlanmış sifariş məhsulu silinəndə aktiv müdir nömrələrinə mesaj gedəcək.
         </p>
+        <form method="post" action="{% url 'admin:whatsapp_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="button" style="background:#ba2121;">Sessiyanı sil</button>
+        </form>
     {% elif authenticating %}
-        <p style="color:#0b6e4f;"><strong>Skan qəbul olundu.</strong> Qoşulma bitənə qədər yeni QR skan etməyin.</p>
+        <p style="color:#0b6e4f;"><strong>Skan qəbul olundu.</strong> Qoşulma bitənə qədər yeni QR skan etməyin. Mesaj bu mərhələdə hələ getmir.</p>
+        <form method="post" action="{% url 'admin:whatsapp_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="button" style="background:#ba2121;">Sessiyanı sil</button>
+        </form>
         <script>setTimeout(function () { location.reload(); }, 3000);</script>
     {% elif qr_available %}
         <p>WhatsApp → Ayarlar → Əlaqəli cihazlar → Cihazı əlaqələndir. Ekrandakı kodu restoran nömrəsi ilə skan edin.</p>

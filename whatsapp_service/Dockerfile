@@ -2,6 +2,7 @@ FROM node:20-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         chromium \
+        git \
         ca-certificates \
         fonts-liberation \
         libasound2 \
@@ -27,7 +28,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true \
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --ignore-scripts
 
 COPY server.js ./
 

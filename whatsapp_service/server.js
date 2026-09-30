@@ -23,6 +23,23 @@ let connectedNumber = null;
 let recovering = false;
 let recoveryCount = 0;
 let authenticating = false;
+let manualLogout = false;
+
+function logEvent(event, details) {
+    const extra = details ? ` ${JSON.stringify(details)}` : '';
+    console.log(`WA ${event}${extra}`);
+}
+
+function displayNumber(raw) {
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (!digits) {
+        return null;
+    }
+    if (digits.startsWith('994') && digits.length === 12) {
+        return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10)}`;
+    }
+    return `+${digits}`;
+}
 
 fs.mkdirSync(SESSION_PATH, { recursive: true });
 
@@ -103,7 +120,7 @@ async function resetSession() {
     await destroyClient();
     clearStaleBrowserLocks(SESSION_PATH);
     fs.rmSync(sessionDir(), { recursive: true, force: true });
-    console.log('Cleared WhatsApp session. A new QR will be generated.');
+    logEvent('session_cleared');
 }
 
 function scheduleRecovery(err) {
@@ -113,7 +130,7 @@ function scheduleRecovery(err) {
     authenticating = false;
     qrCode = null;
     connectedNumber = null;
-    console.error('WhatsApp recovery:', message);
+    logEvent('recovery', { error: message, attempt: recoveryCount + 1 });
     if (recovering) {
         return;
     }
@@ -170,7 +187,7 @@ function initializeWhatsApp() {
     });
 
     client.on('qr', (qr) => {
-        console.log('QR CODE RECEIVED — scan with the restaurant WhatsApp (Linked Devices):');
+        logEvent('qr', { chars: qr.length });
         qrcode.generate(qr, { small: true });
         qrCode = qr;
         isReady = false;
@@ -192,11 +209,18 @@ function initializeWhatsApp() {
         } catch (err) {
             connectedNumber = null;
         }
-        console.log('WhatsApp client is ready.', connectedNumber || '');
+        logEvent('ready', {
+            number: displayNumber(connectedNumber),
+            digits: connectedNumber || null,
+        });
+    });
+
+    client.on('loading_screen', (percent, message) => {
+        logEvent('loading', { percent, message });
     });
 
     client.on('authenticated', () => {
-        console.log('WhatsApp authenticated.');
+        logEvent('authenticated');
         authenticating = true;
         qrCode = null;
         lastError = null;
@@ -210,9 +234,14 @@ function initializeWhatsApp() {
     });
 
     client.on('disconnected', (reason) => {
-        console.log('WhatsApp disconnected:', reason);
+        logEvent('disconnected', { reason });
         isReady = false;
+        authenticating = false;
         connectedNumber = null;
+        if (manualLogout) {
+            logEvent('logout_disconnect_ignored');
+            return;
+        }
         lastError = `disconnected: ${reason}`;
         scheduleRecovery(new Error(`disconnected: ${reason}`));
     });
@@ -283,6 +312,7 @@ app.post('/send-message', requireKey, async (req, res) => {
         });
     }
     if (!isReady) {
+        logEvent('send_rejected', { to: phone, ready: isReady, authenticating });
         return res.status(503).json({
             success: false,
             error: 'WhatsApp is not ready. Please scan QR code first.',
@@ -291,8 +321,9 @@ app.post('/send-message', requireKey, async (req, res) => {
     }
     try {
         const chatId = `${formatPhone(phone)}@c.us`;
+        logEvent('send_start', { to: formatPhone(phone) });
         await client.sendMessage(chatId, message);
-        console.log(`Message sent to ${phone}`);
+        logEvent('send_ok', { to: formatPhone(phone) });
         return res.json({ success: true, message: 'Message sent successfully', to: phone });
     } catch (error) {
         console.error('Error sending message:', error);
@@ -327,6 +358,13 @@ app.post('/notify-order-deletion', requireKey, async (req, res) => {
         });
     }
     if (!isReady) {
+        logEvent('notify_rejected', {
+            to: owner_phone,
+            order_id,
+            meal_name,
+            ready: isReady,
+            authenticating,
+        });
         return res.status(503).json({
             success: false,
             error: 'WhatsApp is not ready. Please scan QR code first.',
@@ -351,8 +389,15 @@ app.post('/notify-order-deletion', requireKey, async (req, res) => {
         }
 
         const chatId = `${formatPhone(owner_phone)}@c.us`;
+        logEvent('notify_start', {
+            to: formatPhone(owner_phone),
+            from: displayNumber(connectedNumber),
+            order_id,
+            meal_name,
+            table_number,
+        });
         await client.sendMessage(chatId, message);
-        console.log(`Order deletion notification sent to ${owner_phone}`);
+        logEvent('notify_ok', { to: formatPhone(owner_phone), order_id, meal_name });
         return res.json({
             success: true,
             message: 'Notification sent successfully',
@@ -369,16 +414,29 @@ app.post('/notify-order-deletion', requireKey, async (req, res) => {
 });
 
 app.post('/logout', requireKey, async (req, res) => {
+    logEvent('logout_requested', { number: displayNumber(connectedNumber) });
+    manualLogout = true;
     try {
         if (client) {
-            await client.logout();
+            await client.logout().catch((err) => {
+                logEvent('logout_client_error', { error: err.message });
+            });
+            await destroyClient();
         }
+        clearStaleBrowserLocks(SESSION_PATH);
+        fs.rmSync(sessionDir(), { recursive: true, force: true });
         isReady = false;
+        authenticating = false;
         connectedNumber = null;
         qrCode = null;
+        lastError = null;
+        logEvent('logout_ok');
+        manualLogout = false;
+        initializeWhatsApp();
         return res.json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
-        console.error('Error logging out:', error);
+        manualLogout = false;
+        logEvent('logout_failed', { error: error.message });
         return res.status(500).json({
             success: false,
             error: 'Failed to logout',
@@ -388,11 +446,7 @@ app.post('/logout', requireKey, async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('='.repeat(60));
-    console.log(`WhatsApp service listening on 0.0.0.0:${PORT}`);
-    console.log(`Session path: ${SESSION_PATH}`);
-    console.log(`Chrome: ${CHROME_PATH || 'puppeteer default'}`);
-    console.log('='.repeat(60));
+    logEvent('listening', { port: PORT, session: SESSION_PATH, chrome: CHROME_PATH || 'default' });
     initializeWhatsApp();
 });
 
