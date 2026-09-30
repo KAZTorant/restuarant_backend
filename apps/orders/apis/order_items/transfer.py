@@ -19,6 +19,7 @@ class TransferOrderItemSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1)
     target_table_id = serializers.IntegerField()
     transfer_comment = serializers.CharField(allow_blank=True, required=False)
+    confirmed = serializers.BooleanField(required=False, default=True)
 
     def validate_quantity(self, value):
         if value < 1:
@@ -31,10 +32,10 @@ class TransferOrderItemsAPIView(APIView):
 
     @swagger_auto_schema(
         operation_description=(
-            "Transfer a given number of confirmed order‐items (qty always = 1 each) "
+            "Transfer a given number of order items (qty always = 1 each) "
             "of a specified meal from one order on the source table (URL) to the "
             "main unpaid order of another table (body). Creates the target main order "
-            "if it doesn’t exist."
+            "if it doesn’t exist. Pass confirmed=false to move items that are still waiting."
         ),
         request_body=TransferOrderItemSerializer,
         responses={
@@ -57,6 +58,7 @@ class TransferOrderItemsAPIView(APIView):
         order_item_id = serializer.validated_data.get(
             "order_item_id", 0
         )
+        confirmed = serializer.validated_data.get("confirmed", True)
         # 2. Fetch source table/order, target table, and meal
         try:
             src_table = Table.objects.get(pk=table_id)
@@ -72,25 +74,22 @@ class TransferOrderItemsAPIView(APIView):
         # 3. Get or create the target table's main unpaid order
         tgt_order = self._get_or_create_main_order(request, tgt_table)
 
-        # 4. Select exactly `qty` confirmed items of that meal
+        # 4. Select exactly `qty` items of that meal in the requested state
+        item_filter = dict(
+            order=src_order,
+            meal=meal,
+            confirmed=confirmed,
+        )
         if order_item_id:
             qty = 1
-            items_qs = OrderItem.objects.filter(
-                order=src_order,
-                meal=meal,
-                confirmed=True,
-                id=order_item_id,
-            ).order_by('id')[:qty]
-        else:
-            items_qs = OrderItem.objects.filter(
-                order=src_order,
-                meal=meal,
-                confirmed=True
-            ).order_by('id')[:qty]
+            item_filter["id"] = order_item_id
+        items_qs = OrderItem.objects.filter(
+            **item_filter
+        ).order_by('id')[:qty]
 
         if items_qs.count() < qty:
             return Response(
-                {"error": "Not enough confirmed items available for transfer."},
+                {"error": "Not enough items available for transfer."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

@@ -320,6 +320,15 @@
   color: var(--info);
 }
 
+.item-actions .action-chip--transfer {
+  background: var(--warning-soft);
+  color: #92400e;
+}
+
+html[data-theme="dark"] .item-actions .action-chip--transfer {
+  color: #fde68a;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

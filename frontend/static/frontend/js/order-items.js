@@ -147,6 +147,7 @@ const OrderItems = {
           <td>
             <strong>${item.meal.name}</strong>
             ${item.comment ? `<br><small style="color:var(--text-muted)">${item.comment}</small>` : ''}
+            ${item.transfer_comment ? `<br><small style="color:var(--text-muted)">Köçürmə: ${item.transfer_comment}</small>` : ''}
           </td>
           <td>
             <div class="item-actions">
@@ -159,8 +160,11 @@ const OrderItems = {
           <td><strong>₼${(item.meal.price * item.quantity).toFixed(2)}</strong></td>
           <td>${statusBadge}</td>
           <td>
-            ${!item.confirmed ? `<button class="action-chip" data-action="comment" data-item-index="${index}">Qeyd</button>` : ''}
-            ${this.isAdmin() && item.confirmed ? `<button class="action-chip" data-action="return" data-item-index="${index}">Qaytar</button>` : ''}
+            <div class="item-actions">
+              ${!item.confirmed ? `<button class="action-chip" data-action="comment" data-item-index="${index}">Qeyd</button>` : ''}
+              ${this.isAdmin() ? `<button class="action-chip action-chip--transfer" data-action="transfer" data-item-index="${index}">Köçür</button>` : ''}
+              ${this.isAdmin() && item.confirmed ? `<button class="action-chip" data-action="return" data-item-index="${index}">Qaytar</button>` : ''}
+            </div>
           </td>
         </tr>`;
     }).join('');
@@ -231,6 +235,9 @@ const OrderItems = {
     });
     container.querySelectorAll('[data-action="return"]').forEach((btn) => {
       btn.addEventListener('click', () => { const item = findItem(btn); if (item) this.showReturnModal(item); });
+    });
+    container.querySelectorAll('[data-action="transfer"]').forEach((btn) => {
+      btn.addEventListener('click', () => { const item = findItem(btn); if (item) this.showTransferItemModal(item); });
     });
   },
 
@@ -323,6 +330,110 @@ const OrderItems = {
         EventBus.emit('orderItemAdded');
       } catch (e) {
         KazzaUI.error(KazzaUI.parseError(e));
+      } finally {
+        KazzaUI.hideLoading();
+      }
+    };
+  },
+
+  async showTransferItemModal(item) {
+    KazzaUI.showLoading('Zallar yüklənir...');
+    let rooms;
+    try {
+      rooms = await KazzaAPI.fetchRooms();
+    } catch (e) {
+      KazzaUI.error(KazzaUI.parseError(e));
+      KazzaUI.hideLoading();
+      return;
+    }
+    KazzaUI.hideLoading();
+
+    const app = document.getElementById('order-app');
+    const currentHallId = app ? String(app.dataset.hallId) : '';
+    const tableNumberEl = document.getElementById('table-number');
+    const sourceTableLabel = tableNumberEl ? tableNumberEl.textContent.trim() : '';
+    const maxQty = Math.max(1, item.quantity || 1);
+    const canPickQty = !item.order_item_id && maxQty > 1;
+
+    const overlay = document.getElementById('popup-overlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+      <div class="modal-dialog">
+        <h3 class="modal-title">Məhsulu köçür</h3>
+        <p style="color:var(--text-muted);margin-bottom:16px;font-size:0.875rem">${item.meal.name}</p>
+        <div class="modal-form">
+          <label>Zal
+            <select id="item-transfer-hall">${rooms.map((r) => `<option value="${r.id}" ${String(r.id) === currentHallId ? 'selected' : ''}>${r.name}</option>`).join('')}</select>
+          </label>
+          <label>Masa <select id="item-transfer-table"></select></label>
+          ${canPickQty ? `<label>Say <input type="number" id="item-transfer-qty" min="1" max="${maxQty}" value="1"></label>` : ''}
+          <label>Qeyd
+            <input type="text" id="item-transfer-comment" placeholder="Məs: masa ${sourceTableLabel}" value="${sourceTableLabel ? `Masa ${sourceTableLabel}` : ''}">
+          </label>
+        </div>
+        <div class="modal-buttons">
+          <button class="cancel-btn" id="item-t-cancel">Ləğv et</button>
+          <button class="confirm-btn" id="item-t-confirm">Köçür</button>
+        </div>
+      </div>`;
+
+    const loadTables = async () => {
+      const hallId = parseInt(document.getElementById('item-transfer-hall').value, 10);
+      const select = document.getElementById('item-transfer-table');
+      const confirmBtn = document.getElementById('item-t-confirm');
+      try {
+        const tables = await KazzaAPI.fetchTablesByHallId(hallId);
+        const options = tables.filter((t) => t.id !== this.tableId);
+        if (options.length === 0) {
+          select.innerHTML = '<option value="">Başqa masa yoxdur</option>';
+          confirmBtn.disabled = true;
+          return;
+        }
+        confirmBtn.disabled = false;
+        select.innerHTML = options.map(
+          (t) => `<option value="${t.id}">Masa ${t.number}</option>`
+        ).join('');
+      } catch (e) {
+        KazzaUI.error(KazzaUI.parseError(e, 'Masalar yüklənə bilmədi.'));
+      }
+    };
+
+    document.getElementById('item-transfer-hall').addEventListener('change', loadTables);
+    await loadTables();
+
+    overlay.querySelector('#item-t-cancel').onclick = () => {
+      overlay.classList.add('hidden');
+      overlay.innerHTML = '';
+    };
+    overlay.querySelector('#item-t-confirm').onclick = async () => {
+      const targetId = parseInt(document.getElementById('item-transfer-table').value, 10);
+      if (!targetId || targetId === this.tableId) {
+        KazzaUI.warning('Başqa masa seçin.');
+        return;
+      }
+      const qtyInput = document.getElementById('item-transfer-qty');
+      let quantity = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+      if (!quantity || quantity < 1) quantity = 1;
+      if (quantity > maxQty) quantity = maxQty;
+      const comment = document.getElementById('item-transfer-comment').value.trim();
+
+      KazzaUI.showLoading('Məhsul köçürülür...');
+      try {
+        await KazzaAPI.transferOrderItems(this.tableId, {
+          order_id: item.orderId,
+          order_item_id: item.order_item_id || 0,
+          meal_id: item.meal.id,
+          quantity,
+          target_table_id: targetId,
+          transfer_comment: comment,
+          confirmed: !!item.confirmed,
+        });
+        overlay.classList.add('hidden');
+        overlay.innerHTML = '';
+        KazzaUI.success(`${item.meal.name} başqa masaya köçürüldü`);
+        EventBus.emit('orderItemAdded');
+      } catch (e) {
+        KazzaUI.error(KazzaUI.parseError(e, 'Məhsul köçürülə bilmədi.'));
       } finally {
         KazzaUI.hideLoading();
       }
