@@ -86,12 +86,12 @@
 .action-btn--secondary:hover { background: var(--border); }
 
 .action-btn--danger {
-  background: #fef2f2;
+  background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
 }
 
-.action-btn--danger:hover { background: #fee2e2; }
+.action-btn--danger:hover { filter: brightness(0.96); }
 
 .toggle-header-btn {
   position: absolute;
@@ -163,9 +163,9 @@
 .action-button--success:hover { background: var(--primary-dark); }
 
 .action-button--danger {
-  background: #fef2f2;
+  background: var(--danger-soft);
   color: var(--danger);
-  border-color: #fecaca;
+  border-color: var(--danger-border);
 }
 
 /* ── Mobile tabs ── */
@@ -308,7 +308,7 @@
 
 .item-actions button:active { transform: scale(0.9); }
 .item-actions .plus { background: var(--primary-light); color: var(--primary-dark); }
-.item-actions .minus { background: #fef2f2; color: var(--danger); }
+.item-actions .minus { background: var(--danger-soft); color: var(--danger); }
 
 .item-actions .comment-btn,
 .item-actions .action-chip {
@@ -316,7 +316,7 @@
   padding: 4px 10px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: #eff6ff;
+  background: var(--info-soft);
   color: var(--info);
 }
 
@@ -331,8 +331,12 @@
 }
 
 .status-badge--waiting {
-  background: #fffbeb;
+  background: var(--warning-soft);
   color: #92400e;
+}
+
+html[data-theme="dark"] .status-badge--waiting {
+  color: #fde68a;
 }
 
 .status-badge--confirmed {
@@ -395,7 +399,7 @@
 .search-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
-  background: white;
+  background: var(--surface);
 }
 
 .menu-items-grid {
@@ -442,7 +446,7 @@
 
 .menu-item-extra-badge {
   display: inline-block;
-  background: #eff6ff;
+  background: var(--info-soft);
   color: var(--accent);
   font-size: 0.7rem;
   font-weight: 700;

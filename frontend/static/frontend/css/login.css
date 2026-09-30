@@ -86,7 +86,7 @@
 }
 
 .login-form-card {
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--surface);
   backdrop-filter: blur(20px);
   border-radius: var(--radius-xl);
   padding: 36px;
@@ -142,7 +142,7 @@
   height: 16px;
   border-radius: 50%;
   border: 2px solid var(--border);
-  background: white;
+  background: var(--surface);
   transition: all 0.2s ease;
 }
 
@@ -189,12 +189,12 @@
 }
 
 .keypad .clear {
-  background: #fef2f2;
+  background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
 }
 
-.keypad .clear:active { background: #fee2e2; }
+.keypad .clear:active { filter: brightness(0.96); }
 
 .keypad .enter {
   background: var(--primary);

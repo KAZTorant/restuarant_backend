@@ -5,6 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Kazza{% endblock %}</title>
+    <script>
+      try {
+        if (localStorage.getItem('kazza-theme') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="{% static 'frontend/css/base.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -20,6 +27,7 @@
 
     <div id="toast-container" class="toast-container"></div>
 
+    <script src="{% static 'frontend/js/theme.js' %}"></script>
     <script src="{% static 'frontend/js/ui.js' %}"></script>
     {% block extra_js %}{% endblock %}
     <script src="{% static 'frontend/js/disable-zoom.js' %}"></script>

@@ -30,6 +30,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    {% include 'frontend/includes/theme_toggle.html' %}
                     <a href="{% url 'frontend:floor_plan' slug=restaurant_slug hall_id=hall_id %}" class="action-btn action-btn--secondary">
                         ← Masalar
                     </a>

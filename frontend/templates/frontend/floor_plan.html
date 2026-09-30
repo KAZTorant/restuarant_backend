@@ -23,7 +23,10 @@
                 <span class="user-name">{{ full_name }}</span>
             </div>
         </div>
-        <a href="{% url 'frontend:logout' slug=restaurant_slug %}" class="logout-button">Çıxış</a>
+        <div class="header-end">
+            {% include 'frontend/includes/theme_toggle.html' %}
+            <a href="{% url 'frontend:logout' slug=restaurant_slug %}" class="logout-button">Çıxış</a>
+        </div>
     </header>
 
     <main class="floor-content">
