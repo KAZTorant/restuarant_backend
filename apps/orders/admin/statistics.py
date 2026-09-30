@@ -78,6 +78,15 @@ class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
     list_filter = ('title', 'date', 'waitress_info', 'is_closed', 'started_by')
     exclude = ('orders',)
     change_list_template = 'admin/statistics_change_list.html'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        restaurant_id = getattr(request.user, 'restaurant_id', None)
+        if restaurant_id:
+            return qs.filter(restaurant_id=restaurant_id)
+        if not request.user.is_superuser:
+            return qs.none()
+        return qs
     readonly_fields = [
         'title', 'total', 'date', 'waitress_info', 'is_z_checked',
         'started_by', 'start_time',
@@ -214,7 +223,9 @@ class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
 
     # === Z-check endpoints ===
     def z_check(self, obj):
-        Statistics.objects.delete_orders_for_statistics_day(obj.date)
+        Statistics.objects.delete_orders_for_statistics_day(
+            obj.date, restaurant=obj.restaurant,
+        )
         try:
             PrinterService().send_to_printer(data=obj.print_check)
         except Exception:
@@ -266,7 +277,7 @@ class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
                 )
                 withdrawn_notes = request.POST.get(
                     'withdrawn_notes', '-') or '-'
-                Statistics.objects.calculate_till_now()
+                Statistics.objects.calculate_till_now(request.user)
                 Statistics.objects.end_shift(
                     obj,
                     request.user,
@@ -309,10 +320,14 @@ class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
     def current_shift_info(self, request):
         Statistics.objects.calculate_till_now(request.user)
 
-        shift = Statistics.objects.filter(
+        shift_qs = Statistics.objects.filter(
             started_by=request.user,
-            is_closed=False
-        ).first()
+            is_closed=False,
+        )
+        restaurant_id = getattr(request.user, 'restaurant_id', None)
+        if restaurant_id:
+            shift_qs = shift_qs.filter(restaurant_id=restaurant_id)
+        shift = shift_qs.first()
         if not shift:
             raise Http404()
 

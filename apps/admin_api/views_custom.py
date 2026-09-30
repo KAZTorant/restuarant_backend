@@ -67,7 +67,11 @@ class StatisticsCustomView(APIView):
 
     def _current_shift_info(self, request):
         Statistics.objects.calculate_till_now(request.user)
-        shift = Statistics.objects.filter(started_by=request.user, is_closed=False).first()
+        shift_qs = Statistics.objects.filter(started_by=request.user, is_closed=False)
+        restaurant_id = getattr(request.user, 'restaurant_id', None)
+        if restaurant_id:
+            shift_qs = shift_qs.filter(restaurant_id=restaurant_id)
+        shift = shift_qs.first()
         if not shift:
             raise Http404()
         return {
@@ -142,7 +146,7 @@ class StatisticsCustomView(APIView):
             raise Http404()
         withdrawn = Decimal(request.data.get('withdrawn_amount', '0') or '0')
         withdrawn_notes = request.data.get('withdrawn_notes', '-') or '-'
-        Statistics.objects.calculate_till_now()
+        Statistics.objects.calculate_till_now(request.user)
         Statistics.objects.end_shift(shift, request.user, withdrawn, withdrawn_notes)
         shift.refresh_from_db()
         return {

@@ -170,7 +170,7 @@ class StatisticsManager(models.Manager):
         # shift.orders.update(is_deleted=True)
         return shift
 
-    def delete_orders_for_statistics_day(self, date):
+    def delete_orders_for_statistics_day(self, date, restaurant=None):
         self.calculate_daily(date)
         start = timezone.make_aware(timezone.datetime.combine(
             date, timezone.datetime.min.time()))
@@ -178,6 +178,9 @@ class StatisticsManager(models.Manager):
             date, timezone.datetime.max.time()))
         orders = Order.objects.filter(
             created_at__range=(start, end), is_paid=True)
+        restaurant = restaurant or get_current_restaurant()
+        if restaurant is not None:
+            orders = orders.filter(table__room__restaurant=restaurant)
         count = orders.count()
         for o in orders:
             o.is_deleted = True
@@ -190,25 +193,30 @@ class StatisticsManager(models.Manager):
         Update the existing 'till_now' Statistics record with fresh
         cumulative totals and payment‐type breakdowns; do nothing if none exists.
         """
-        # 1) Find the existing till_now stat
-        stat = self.filter(
+        # 1) Find the existing till_now stat for this user's restaurant
+        stat_qs = self.filter(
             title='till_now',
             is_z_checked=False,
             is_closed=False,
-            started_by=user
-        ).first()
-        # logging.error(f"TOTAL: TILL NOW, {user} {stat}")
+            started_by=user,
+        )
+        restaurant = getattr(user, 'restaurant', None) if user is not None else None
+        if restaurant is not None:
+            stat_qs = stat_qs.filter(restaurant=restaurant)
+        stat = stat_qs.first()
         if not stat:
             return None
-        # logging.error("Found existing 'till_now' statistics record.")
 
-        # 2) All paid orders
+        # 2) Yalnız bu növbənin restoranındakı ödənilmiş sifarişlər
         orders = Order.objects.filter(is_paid=True)
-        # logging.error(f"Fetched {orders.count()} paid orders.")
+        if stat.restaurant_id:
+            orders = orders.filter(table__room__restaurant_id=stat.restaurant_id)
 
-        # 3) All payments linked to those orders
-        all_payments = Payment.objects.filter(orders__in=orders)
-        payments = all_payments.distinct()
+        # 3) Ödənişlər də eyni restorana bağlı olsun
+        payments = Payment.objects.filter(orders__in=orders)
+        if stat.restaurant_id:
+            payments = payments.filter(table__room__restaurant_id=stat.restaurant_id)
+        payments = payments.distinct()
         # logging.error(
         #     f"Filtered payments linked to paid orders: {payments.count()} found.")
 
