@@ -104,6 +104,13 @@ class Command(BaseCommand):
         tables = _table_keys(payload)
         with transaction.atomic():
             payment_map, payment_stats = self._restore_payments(restaurant, payload, tables)
+            if payment_stats.get('no_burst'):
+                self.stdout.write(self.style.WARNING(
+                    'Import dalğası tapılmadı. Ödəniş tarixləri artıq səpələnib, dəyişiklik edilmədi.'
+                ))
+                if options['dry_run']:
+                    transaction.set_rollback(True)
+                return
             order_stats = self._restore_orders(restaurant, payload, tables)
             method_stats = self._restore_payment_methods(payload, payment_map)
             refreshed = self._refresh_calculations(restaurant)
@@ -137,6 +144,13 @@ class Command(BaseCommand):
 
         base_qs = Payment.objects.filter(table__room__restaurant=restaurant)
         cluster_pks = _import_cluster_pks(base_qs, 'paid_at')
+        if cluster_pks is None:
+            return {}, {
+                'restored': 0,
+                'skipped': 0,
+                'untouched': base_qs.count(),
+                'no_burst': True,
+            }
         db_grouped = defaultdict(list)
         untouched = 0
         rows = base_qs.order_by('pk').values_list(
@@ -189,6 +203,8 @@ class Command(BaseCommand):
 
         base_qs = Order.objects.all_orders().filter(table__room__restaurant=restaurant)
         cluster_pks = _import_cluster_pks(base_qs, 'created_at')
+        if cluster_pks is None:
+            return {'restored': 0, 'skipped': 0, 'untouched': base_qs.count()}
         db_grouped = defaultdict(list)
         untouched = 0
         rows = base_qs.order_by('pk').values_list(
