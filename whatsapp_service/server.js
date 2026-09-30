@@ -22,6 +22,7 @@ let lastError = null;
 let connectedNumber = null;
 let recovering = false;
 let recoveryCount = 0;
+let authenticating = false;
 
 fs.mkdirSync(SESSION_PATH, { recursive: true });
 
@@ -109,6 +110,7 @@ function scheduleRecovery(err) {
     const message = err && err.message ? err.message : String(err || 'unknown error');
     lastError = message;
     isReady = false;
+    authenticating = false;
     qrCode = null;
     connectedNumber = null;
     console.error('WhatsApp recovery:', message);
@@ -172,6 +174,7 @@ function initializeWhatsApp() {
         qrcode.generate(qr, { small: true });
         qrCode = qr;
         isReady = false;
+        authenticating = false;
         connectedNumber = null;
         lastError = null;
         recoveryCount = 0;
@@ -179,6 +182,7 @@ function initializeWhatsApp() {
 
     client.on('ready', async () => {
         isReady = true;
+        authenticating = false;
         qrCode = null;
         lastError = null;
         try {
@@ -193,11 +197,15 @@ function initializeWhatsApp() {
 
     client.on('authenticated', () => {
         console.log('WhatsApp authenticated.');
+        authenticating = true;
+        qrCode = null;
+        lastError = null;
     });
 
     client.on('auth_failure', (msg) => {
         console.error('Authentication failed:', msg);
         isReady = false;
+        authenticating = false;
         lastError = String(msg);
     });
 
@@ -237,6 +245,7 @@ app.get('/health', (req, res) => {
 app.get('/status', requireKey, (req, res) => {
     res.json({
         ready: isReady,
+        authenticating: authenticating,
         qr_available: Boolean(qrCode),
         connected_number: connectedNumber,
         last_error: lastError,

@@ -24,11 +24,15 @@
             {% if connected_number %}Nömrə: {{ connected_number }}.{% endif %}
             Hazırlanmış (təsdiqlənmiş) sifariş məhsulu silinəndə aktiv müdir nömrələrinə mesaj gedəcək.
         </p>
+    {% elif authenticating %}
+        <p style="color:#0b6e4f;"><strong>Skan qəbul olundu.</strong> Qoşulma bitənə qədər yeni QR skan etməyin.</p>
+        <script>setTimeout(function () { location.reload(); }, 3000);</script>
     {% elif qr_available %}
-        <p>WhatsApp → Ayarlar → Əlaqəli cihazlar → Cihazı əlaqələndir. Restoran nömrəsi ilə skan edin.</p>
+        <p>WhatsApp → Ayarlar → Əlaqəli cihazlar → Cihazı əlaqələndir. Ekrandakı kodu restoran nömrəsi ilə skan edin.</p>
         <img src="{% url 'admin:whatsapp_qr' %}?t={% now 'U' %}" alt="WhatsApp QR" width="320" height="320">
-        <p>QR bir neçə saniyədən bir yenilənir.</p>
-        <script>setTimeout(function () { location.reload(); }, 8000);</script>
+        <p>Bu kod təxminən 20 saniyə etibarlıdır. Vaxtı bitəndə WhatsApp özü yenisini verir. Köhnə kodu saxlamaq olmur, telefon onu qəbul etmir.</p>
+        <p>Bir qoşulma = bir restoran nömrəsi. Müdir nömrələri buradan login olmur, onlar yalnız mesaj alır.</p>
+        <script>setTimeout(function () { location.reload(); }, 5000);</script>
     {% else %}
         {% if error %}
             <p style="color:#ba2121;"><strong>WhatsApp başlamadı.</strong> {{ error }}</p>

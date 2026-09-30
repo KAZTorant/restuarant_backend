@@ -92,6 +92,7 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
             'opts': self.model._meta,
             'service_url': base,
             'ready': False,
+            'authenticating': False,
             'qr_available': False,
             'connected_number': '',
             'status_message': '',
@@ -107,6 +108,7 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
             if response.status_code == 200:
                 data = response.json()
                 context['ready'] = bool(data.get('ready'))
+                context['authenticating'] = bool(data.get('authenticating'))
                 context['qr_available'] = bool(data.get('qr_available'))
                 context['connected_number'] = data.get('connected_number') or ''
                 context['status_message'] = data.get('message') or ''
