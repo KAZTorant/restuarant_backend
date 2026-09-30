@@ -1,0 +1,186 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list jazzmin %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .archive-view-toggle { margin-right: .75rem; }
+        .archive-view-toggle .btn { white-space: nowrap; }
+        .archive-group-row { cursor: pointer; }
+        .archive-group-row:hover td { background-color: #eef5fb; }
+        .archive-group-row.is-open td { background-color: #e7f1fb; }
+        .archive-group-row:focus { outline: 2px solid #80bdff; outline-offset: -2px; }
+        .archive-chevron {
+            display: inline-block;
+            width: 1rem;
+            color: #6c757d;
+            transition: transform .15s ease;
+        }
+        .archive-group-row.is-open .archive-chevron { transform: rotate(90deg); }
+        .archive-id { font-weight: 700; color: #007bff; }
+        .archive-detail td {
+            background: #f8fafc !important;
+            box-shadow: inset 3px 0 0 #007bff;
+        }
+        .archive-timeline { list-style: none; margin: 0; padding: .35rem .25rem .35rem .5rem; }
+        .archive-event { padding: .55rem 0; border-top: 1px dashed #d5dde6; }
+        .archive-event:first-child { border-top: 0; }
+        .archive-event-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .45rem .7rem;
+            align-items: center;
+            font-weight: 600;
+        }
+        .archive-event-index { color: #6c757d; min-width: 1.6rem; }
+        .archive-event-reason { font-weight: 400; margin-top: .2rem; }
+        .archive-event-reason ul { margin: .2rem 0 0; padding-left: 1.15rem; }
+        .archive-event-reason li { margin: .1rem 0; }
+    </style>
+{% endblock %}
+
+{% block page_actions %}
+    <div class="col-12 col-md-auto d-flex align-items-center justify-content-end page-actions flex-wrap">
+        <div class="btn-group archive-view-toggle" role="group" aria-label="Arxiv görünüşü">
+            <a href="{{ archive_date_url }}" class="btn {% if archive_view == 'grouped' %}btn-outline-primary{% else %}btn-primary{% endif %}">
+                Tarix üzrə göstər
+            </a>
+            <a href="{{ archive_grouped_url }}" class="btn {% if archive_view == 'grouped' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                ID-lər üzrə qruplaşdır
+            </a>
+        </div>
+        {% change_list_object_tools %}
+    </div>
+{% endblock %}
+
+{% block result_list %}
+    {% if archive_view == 'grouped' %}
+        <div class="card">
+            <div class="card-body table-responsive p-0">
+                {% if order_groups %}
+                <table id="result_list" class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            {% for header in group_headers %}
+                            <th scope="col">
+                                <div class="text"><span>{{ header|capfirst }}</span></div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    {% for group in order_groups %}
+                    <tbody>
+                        <tr class="archive-group-row" tabindex="0" role="button"
+                            aria-expanded="false" aria-controls="archive-group-{{ group.id }}"
+                            data-group="archive-group-{{ group.id }}">
+                            <td>
+                                <i class="fas fa-chevron-right archive-chevron" aria-hidden="true"></i>
+                                <span class="archive-id">{{ group.id }}</span>
+                            </td>
+                            <td>{{ group.latest.table|default:"—" }}</td>
+                            <td>
+                                {% if group.latest.is_paid %}
+                                    <img src="{% static 'admin/img/icon-yes.svg' %}" alt="Bəli">
+                                {% else %}
+                                    <img src="{% static 'admin/img/icon-no.svg' %}" alt="Xeyr">
+                                {% endif %}
+                            </td>
+                            <td>{{ group.latest.waitress|default:"—" }}</td>
+                            <td>{{ group.latest.total_price }}</td>
+                            <td><span class="badge badge-secondary">{{ group.event_count }} hadisə</span></td>
+                            <td>{{ group.latest.history_date }}</td>
+                            <td class="text-muted">Açmaq üçün basın</td>
+                        </tr>
+                        <tr class="archive-detail d-none" id="archive-group-{{ group.id }}">
+                            <td colspan="{{ group_colspan }}">
+                                <ol class="archive-timeline">
+                                    {% for event in group.events %}
+                                    <li class="archive-event">
+                                        <div class="archive-event-head">
+                                            <span class="archive-event-index">{{ forloop.counter }}.</span>
+                                            <time datetime="{{ event.record.history_date|date:'c' }}">{{ event.record.history_date }}</time>
+                                            {% if event.record.history_type == '+' %}
+                                                <span class="badge badge-success">{{ event.type_label }}</span>
+                                                <span>Masanın yaradılma vaxtı</span>
+                                            {% elif event.record.history_type == '-' %}
+                                                <span class="badge badge-danger">{{ event.type_label }}</span>
+                                            {% else %}
+                                                <span class="badge badge-info">{{ event.type_label }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="archive-event-reason">{{ event.reason }}</div>
+                                    </li>
+                                    {% endfor %}
+                                </ol>
+                            </td>
+                        </tr>
+                    </tbody>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p class="p-3 mb-0 text-muted">Heç bir sifariş tapılmadı.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        {{ block.super }}
+    {% endif %}
+{% endblock %}
+
+{% block pagination %}
+    {% if archive_view == 'grouped' %}
+        <div class="col-5">
+            <div class="dataTables_info" role="status" aria-live="polite">
+                {{ group_result_count }} sifariş
+            </div>
+        </div>
+        <div class="col-7">
+            {% if group_page_links %}
+            <ul class="pagination pagination-sm m-0 float-right">
+                <li class="page-item previous {% if not group_has_previous %}disabled{% endif %}">
+                    <a class="page-link" href="{% if group_has_previous %}{{ group_prev_url }}{% else %}#{% endif %}">«</a>
+                </li>
+                {% for link in group_page_links %}
+                    {% if link.ellipsis %}
+                    <li class="page-item"><span class="page-link">…</span></li>
+                    {% elif link.current %}
+                    <li class="page-item active"><a class="page-link" href="javascript:void(0);">{{ link.number }}</a></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ link.url }}">{{ link.number }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item next {% if not group_has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{% if group_has_next %}{{ group_next_url }}{% else %}#{% endif %}">»</a>
+                </li>
+            </ul>
+            {% endif %}
+        </div>
+    {% else %}
+        {{ block.super }}
+    {% endif %}
+{% endblock %}
+
+{% block extrajs %}
+    {{ block.super }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function toggleGroup(row) {
+                var detail = document.getElementById(row.getAttribute('data-group'));
+                if (!detail) return;
+                var open = detail.classList.contains('d-none');
+                detail.classList.toggle('d-none', !open);
+                row.classList.toggle('is-open', open);
+                row.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            document.querySelectorAll('.archive-group-row').forEach(function (row) {
+                row.addEventListener('click', function () { toggleGroup(row); });
+                row.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggleGroup(row);
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

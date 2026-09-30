@@ -1,13 +1,20 @@
 from datetime import datetime, timedelta
 
 from django.contrib import admin
+from django.contrib.admin.templatetags.admin_list import result_headers
 from django.contrib.admin.views.main import ChangeList
-from django.utils.html import format_html
+from django.core.paginator import EmptyPage, Paginator
+from django.db.models import Count, Max
 from django.utils.safestring import mark_safe
 from simple_history.utils import get_history_model_for_model
 
 from apps.orders.models import Order, OrderItem
 from apps.tenants.mixins import TenantAdminMixin
+
+ARCHIVE_VIEW_PARAM = 'archive_view'
+GROUP_PAGE_PARAM = 'gp'
+ARCHIVE_VIEW_DATE = 'date'
+ARCHIVE_VIEW_GROUPED = 'grouped'
 
 # Retrieve the generated history models
 HistoricalOrder = get_history_model_for_model(Order)
@@ -22,6 +29,12 @@ HistoricalOrderItem._meta.verbose_name_plural = 'Arxiv (Sifariş məhsulu) 🎞�
 
 class SingleItemChangeList(ChangeList):
     """Show one history record per page."""
+
+    def get_filters_params(self, params=None):
+        lookup_params = super().get_filters_params(params)
+        lookup_params.pop(ARCHIVE_VIEW_PARAM, None)
+        lookup_params.pop(GROUP_PAGE_PARAM, None)
+        return lookup_params
 
     def get_results(self, request, *args, **kwargs):
         super().get_results(request, *args, **kwargs)
@@ -42,9 +55,149 @@ class HistoricalOrderAdmin(TenantAdminMixin, admin.ModelAdmin):
     ]
     list_filter = ['id', 'waitress', 'table']
     list_per_page = 20
+    change_list_template = 'admin/orders/historicalorder/change_list.html'
 
     def get_changelist(self, request, **kwargs):
         return SingleItemChangeList
+
+    def changelist_view(self, request, extra_context=None):
+        view = request.GET.get(ARCHIVE_VIEW_PARAM, ARCHIVE_VIEW_DATE)
+        if view not in (ARCHIVE_VIEW_DATE, ARCHIVE_VIEW_GROUPED):
+            view = ARCHIVE_VIEW_DATE
+        extra_context = extra_context or {}
+        extra_context.update({
+            'archive_view': view,
+            'archive_date_url': self._archive_view_url(request, ARCHIVE_VIEW_DATE),
+            'archive_grouped_url': self._archive_view_url(request, ARCHIVE_VIEW_GROUPED),
+        })
+        response = super().changelist_view(request, extra_context=extra_context)
+        if (
+            view == ARCHIVE_VIEW_GROUPED
+            and getattr(response, 'context_data', None)
+            and response.context_data.get('cl') is not None
+        ):
+            response.context_data.update(
+                self._build_grouped_context(
+                    request, response.context_data['cl']
+                )
+            )
+        return response
+
+    def _archive_view_url(self, request, view):
+        params = request.GET.copy()
+        params[ARCHIVE_VIEW_PARAM] = view
+        params.pop('p', None)
+        params.pop(GROUP_PAGE_PARAM, None)
+        return '?' + params.urlencode()
+
+    def _group_page_url(self, request, page_number):
+        params = request.GET.copy()
+        params[ARCHIVE_VIEW_PARAM] = ARCHIVE_VIEW_GROUPED
+        params.pop('p', None)
+        if page_number <= 1:
+            params.pop(GROUP_PAGE_PARAM, None)
+        else:
+            params[GROUP_PAGE_PARAM] = str(page_number)
+        return '?' + params.urlencode()
+
+    def _group_headers(self, cl):
+        headers = []
+        for header in result_headers(cl):
+            class_attrib = str(header.get('class_attrib') or '')
+            if 'action-checkbox' in class_attrib:
+                continue
+            headers.append(header['text'])
+        return headers
+
+    def _build_grouped_context(self, request, cl):
+        queryset = cl.queryset
+        headers = self._group_headers(cl)
+        annotated = (
+            queryset.order_by()
+            .values('id')
+            .annotate(latest=Max('history_date'), event_count=Count('history_id'))
+            .order_by('-latest', '-id')
+        )
+        paginator = Paginator(annotated, self.list_per_page)
+        try:
+            page_number = int(request.GET.get(GROUP_PAGE_PARAM, 1))
+        except (TypeError, ValueError):
+            page_number = 1
+        if page_number < 1:
+            page_number = 1
+        if paginator.count == 0:
+            return {
+                'order_groups': [],
+                'group_result_count': 0,
+                'group_page_links': [],
+                'group_has_previous': False,
+                'group_has_next': False,
+                'group_prev_url': '',
+                'group_next_url': '',
+                'group_headers': headers,
+                'group_colspan': len(headers),
+            }
+        try:
+            page = paginator.page(page_number)
+        except EmptyPage:
+            page = paginator.page(paginator.num_pages)
+
+        ids = [row['id'] for row in page.object_list]
+        records = queryset.filter(id__in=ids).order_by('history_date', 'history_id')
+        events_by_id = {}
+        for record in records:
+            events_by_id.setdefault(record.id, []).append({
+                'record': record,
+                'reason': self.get_history_reason(record),
+                'type_label': record.get_history_type_display(),
+            })
+
+        groups = []
+        for row in page.object_list:
+            events = events_by_id.get(row['id'], [])
+            if not events:
+                continue
+            groups.append({
+                'id': row['id'],
+                'latest': events[-1]['record'],
+                'event_count': len(events),
+                'events': events,
+            })
+
+        links = []
+        for item in paginator.get_elided_page_range(page.number):
+            if isinstance(item, int):
+                links.append({
+                    'number': item,
+                    'url': self._group_page_url(request, item),
+                    'current': item == page.number,
+                    'ellipsis': False,
+                })
+            else:
+                links.append({
+                    'ellipsis': True,
+                    'number': '',
+                    'url': '',
+                    'current': False,
+                })
+
+        return {
+            'order_groups': groups,
+            'group_result_count': paginator.count,
+            'group_page_links': links,
+            'group_has_previous': page.has_previous(),
+            'group_has_next': page.has_next(),
+            'group_prev_url': (
+                self._group_page_url(request, page.previous_page_number())
+                if page.has_previous() else ''
+            ),
+            'group_next_url': (
+                self._group_page_url(request, page.next_page_number())
+                if page.has_next() else ''
+            ),
+            'group_headers': headers,
+            'group_colspan': len(headers),
+        }
 
     def get_history_reason(self, obj):
         # Creation or deletion
