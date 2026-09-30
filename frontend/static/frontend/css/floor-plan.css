@@ -245,7 +245,10 @@
 .halls {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 0 88px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -254,8 +257,8 @@
 
 .hall-pill {
   padding: 10px 20px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: #d5dee8;
+  border: 1px solid #c3ceda;
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition);
@@ -263,15 +266,20 @@
   flex-shrink: 0;
 }
 
+html[data-theme="dark"] .hall-pill {
+  background: #334155;
+  border-color: #475569;
+}
+
 .hall-pill:hover {
   border-color: var(--primary);
 }
 
 .hall-pill.active {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: #059669;
+  border-color: #047857;
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
 .hall-pill-name {
@@ -290,13 +298,15 @@
 }
 
 .refresh-indicator {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
   color: var(--text-muted);
-  margin-left: auto;
-  padding-right: 8px;
 }
 
 .refresh-dot {
