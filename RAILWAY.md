@@ -29,9 +29,14 @@ Build zamanı yalnız `requirements.txt` install olunur (Node.js / npm lazım de
 Deploy əvvəl avtomatik işləyir:
 
 ```bash
+python manage.py ensure_superuser
+```
+
+Migration və static fayllar lazım olanda əl ilə:
+
+```bash
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
-python manage.py ensure_superuser
 ```
 
 Restoran məlumatlarını (məs. **Qonaq-Baku**) bir dəfəlik import etmək üçün deploy-dan sonra əl ilə:

@@ -87,6 +87,10 @@
   gap: 16px;
 }
 
+.tables-grid--quiet .table-card {
+  animation: none;
+}
+
 .table-card {
   border-radius: var(--radius-lg);
   padding: 20px 16px;
