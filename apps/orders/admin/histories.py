@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.templatetags.admin_list import result_headers
 from django.contrib.admin.views.main import ChangeList
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, Max
+from django.http import HttpResponseNotAllowed
+from django.shortcuts import redirect
+from django.urls import path
 from django.utils.safestring import mark_safe
 from simple_history.utils import get_history_model_for_model
 
@@ -60,6 +64,38 @@ class HistoricalOrderAdmin(TenantAdminMixin, admin.ModelAdmin):
     def get_changelist(self, request, **kwargs):
         return SingleItemChangeList
 
+    def get_urls(self):
+        custom = [
+            path(
+                'reset/',
+                self.admin_site.admin_view(self.reset_archive_view),
+                name='orders_historicalorder_reset',
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def reset_archive_view(self, request):
+        """Delete every archive row visible on this page. Live orders stay."""
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+        if not self.has_delete_permission(request):
+            raise PermissionDenied
+
+        orders = self.get_queryset(request)
+        order_ids = orders.order_by().values('id').distinct()
+        items = HistoricalOrderItem.objects.filter(order_id__in=order_ids)
+        order_count = orders.count()
+        item_count = items.count()
+        items.delete()
+        orders.delete()
+
+        messages.success(
+            request,
+            f'Arxiv sıfırlandı. {order_count} sifariş tarixçəsi və '
+            f'{item_count} məhsul tarixçəsi silindi.',
+        )
+        return redirect('admin:orders_historicalorder_changelist')
+
     def changelist_view(self, request, extra_context=None):
         view = request.GET.get(ARCHIVE_VIEW_PARAM, ARCHIVE_VIEW_DATE)
         if view not in (ARCHIVE_VIEW_DATE, ARCHIVE_VIEW_GROUPED):
@@ -69,6 +105,7 @@ class HistoricalOrderAdmin(TenantAdminMixin, admin.ModelAdmin):
             'archive_view': view,
             'archive_date_url': self._archive_view_url(request, ARCHIVE_VIEW_DATE),
             'archive_grouped_url': self._archive_view_url(request, ARCHIVE_VIEW_GROUPED),
+            'has_archive_reset_permission': self.has_delete_permission(request),
         })
         response = super().changelist_view(request, extra_context=extra_context)
         if (

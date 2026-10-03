@@ -8,9 +8,16 @@
             gap: .5rem;
             flex-wrap: nowrap;
         }
-        .archive-page-actions .btn-success {
+        .archive-page-actions .btn-success,
+        .archive-page-actions .btn-danger {
             float: none !important;
             white-space: nowrap;
+        }
+        .archive-reset-form {
+            margin: 0;
+        }
+        body.model-historicalorder a.btn-success.float-right {
+            display: none !important;
         }
         .archive-view-toggle {
             display: inline-flex;
@@ -84,6 +91,9 @@
     </style>
 {% endblock %}
 
+{% block object-tools %}{% endblock %}
+{% block object-tools-items %}{% endblock %}
+
 {% block page_actions %}
     <div class="col-12 col-md-auto d-flex align-items-center justify-content-end page-actions archive-page-actions">
         <div class="archive-view-toggle" role="group" aria-label="Arxiv görünüşü">
@@ -94,7 +104,19 @@
                 ID-lər üzrə qruplaşdır
             </a>
         </div>
-        {% change_list_object_tools %}
+        {% if has_add_permission %}
+            {% url opts|admin_urlname:'add' as add_url %}
+            <a href="{% add_preserved_filters add_url is_popup to_field %}" class="btn btn-success">
+                <i class="fa fa-plus-circle"></i> &nbsp; {% blocktrans with opts.verbose_name as name %}Add {{ name }}{% endblocktrans %}
+            </a>
+        {% endif %}
+        {% if has_archive_reset_permission %}
+            <form method="post" action="{% url 'admin:orders_historicalorder_reset' %}" class="archive-reset-form"
+                  onsubmit="return confirm('Bütün arxiv sətirləri silinəcək. Aktiv sifarişlər, ödəniş və hesabat qalacaq. Davam edilsin?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Arxivi sıfırla</button>
+            </form>
+        {% endif %}
     </div>
 {% endblock %}
 
