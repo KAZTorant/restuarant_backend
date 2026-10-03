@@ -211,14 +211,6 @@ class DeleteOrderItemAPIView(APIView):
             if order.table_id and order.table.room_id:
                 restaurant = order.table.room.restaurant
             
-            if not whatsapp.is_configured(restaurant):
-                logger.warning(
-                    "WA notify_skipped order=%s meal=%s reason=service_not_ready",
-                    order.id,
-                    order_item.meal.name,
-                )
-                return
-            
             # Map reason codes to display text
             reason_display_map = {
                 OrderItemDeletionLog.REASON_RETURN: 'Geri qaytarma',

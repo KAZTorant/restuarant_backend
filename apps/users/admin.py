@@ -12,7 +12,9 @@ import requests
 
 from apps.tenants.admin_utils import strip_field_from_fieldsets
 from apps.tenants.mixins import TenantAdminMixin
-from apps.users.models import ShiftHandover, User, WhatsAppConfig
+from apps.tenants.models import Restaurant
+from apps.users.models import ShiftHandover, User, WhatsAppConfig, WhatsAppMessage, WhatsAppSession
+from apps.users.models.whatsapp_session import touch_whatsapp_session
 
 
 class CustomUserAdmin(TenantAdminMixin, UserAdmin):
@@ -89,13 +91,52 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     def _service_base(self):
         return getattr(settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3001').rstrip('/')
 
+    def _format_phone(self, digits):
+        raw = ''.join(ch for ch in str(digits or '') if ch.isdigit())
+        if raw.startswith('994') and len(raw) == 12:
+            return f'+{raw[:3]} {raw[3:5]} {raw[5:8]} {raw[8:10]} {raw[10:]}'
+        return f'+{raw}' if raw else ''
+
+    def _connection_restaurant(self, request):
+        user = request.user
+        if user.is_superuser:
+            slug = (request.POST.get('restaurant') or request.GET.get('restaurant') or '').strip()
+            if slug:
+                return Restaurant.objects.filter(slug=slug, is_active=True).first()
+            current = getattr(request, 'restaurant', None)
+            if current is not None and current.is_active and not getattr(request.user, 'restaurant_id', None):
+                return current
+            return None
+        if getattr(user, 'restaurant_id', None):
+            return user.restaurant
+        return None
+
+    def _connection_redirect(self, request, restaurant):
+        url = reverse('admin:whatsapp_connection')
+        if request.user.is_superuser and restaurant is not None:
+            url = f'{url}?restaurant={restaurant.slug}'
+        return redirect(url)
+
     def connection_view(self, request):
+        restaurant = self._connection_restaurant(request)
         base = self._service_base()
         context = {
             **self.admin_site.each_context(request),
-            'title': 'Restoran WhatsApp qoşulması',
+            'title': (
+                f'{restaurant.name} — WhatsApp qoşulması'
+                if restaurant is not None
+                else 'Restoran WhatsApp qoşulması'
+            ),
             'opts': self.model._meta,
             'service_url': base,
+            'restaurant': restaurant,
+            'restaurant_slug': restaurant.slug if restaurant else '',
+            'restaurants': (
+                list(Restaurant.objects.filter(is_active=True).order_by('name'))
+                if request.user.is_superuser
+                else []
+            ),
+            'show_picker': request.user.is_superuser,
             'ready': False,
             'authenticating': False,
             'qr_available': False,
@@ -104,9 +145,14 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
             'error': '',
             'unreachable': False,
         }
+        if restaurant is None:
+            if not request.user.is_superuser:
+                context['error'] = 'Bu istifadəçinin restoranı yoxdur.'
+            return render(request, 'admin/users/whatsappconfig/connection.html', context)
         try:
             response = requests.get(
                 f'{base}/status',
+                params={'restaurant': restaurant.slug, 'start': '1'},
                 headers=self._service_headers(),
                 timeout=8,
             )
@@ -115,9 +161,14 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 context['ready'] = bool(data.get('ready'))
                 context['authenticating'] = bool(data.get('authenticating'))
                 context['qr_available'] = bool(data.get('qr_available'))
-                context['connected_number'] = data.get('connected_number') or ''
+                context['connected_number'] = (
+                    data.get('connected_number_display')
+                    or self._format_phone(data.get('connected_number'))
+                )
                 context['status_message'] = data.get('message') or ''
                 context['error'] = data.get('last_error') or ''
+                if context['ready'] and data.get('connected_number'):
+                    touch_whatsapp_session(restaurant, phone=data.get('connected_number'))
             else:
                 context['error'] = f'Servis cavabı: {response.status_code}'
         except requests.RequestException as exc:
@@ -129,10 +180,14 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return render(request, 'admin/users/whatsappconfig/connection.html', context)
 
     def qr_image_view(self, request):
+        restaurant = self._connection_restaurant(request)
+        if restaurant is None:
+            return HttpResponse(status=400)
         base = self._service_base()
         try:
             response = requests.get(
                 f'{base}/qr.png',
+                params={'restaurant': restaurant.slug},
                 headers=self._service_headers(),
                 timeout=8,
             )
@@ -143,17 +198,26 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return HttpResponse(response.content, content_type='image/png')
 
     def logout_view(self, request):
+        restaurant = self._connection_restaurant(request)
         if request.method != 'POST':
-            return redirect('admin:whatsapp_connection')
+            return self._connection_redirect(request, restaurant)
+        if restaurant is None:
+            self.message_user(request, 'Restoran seçilməyib.', level=messages.ERROR)
+            return self._connection_redirect(request, None)
         base = self._service_base()
         try:
             response = requests.post(
                 f'{base}/logout',
+                json={'restaurant': restaurant.slug},
                 headers=self._service_headers(),
                 timeout=30,
             )
             if response.status_code == 200:
-                self.message_user(request, 'WhatsApp sessiyası silindi. Yeni QR bir azdan çıxacaq.')
+                touch_whatsapp_session(restaurant, logout=True)
+                self.message_user(
+                    request,
+                    f'{restaurant.name} WhatsApp sessiyası silindi. Yeni QR bir azdan çıxacaq.',
+                )
             else:
                 self.message_user(
                     request,
@@ -162,7 +226,15 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 )
         except requests.RequestException as exc:
             self.message_user(request, f'Sessiya silinmədi: {exc}', level=messages.ERROR)
-        return redirect('admin:whatsapp_connection')
+        return self._connection_redirect(request, restaurant)
+
+    def changelist_view(self, request, extra_context=None):
+        extra = dict(extra_context or {})
+        if not request.user.is_superuser and getattr(request.user, 'restaurant_id', None):
+            session = WhatsAppSession.objects.filter(restaurant=request.user.restaurant).first()
+            extra['linked_checked'] = True
+            extra['linked_whatsapp'] = self._format_phone(session.phone) if session and session.phone else ''
+        return super().changelist_view(request, extra)
 
     def _staff_can_manage(self, request):
         user = request.user
@@ -193,6 +265,74 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         if user.is_active and user.is_staff and not user.is_superuser and not getattr(user, 'restaurant_id', None):
             return qs.none()
         return qs
+
+
+class _WhatsAppReadOnlyAdmin(TenantAdminMixin, admin.ModelAdmin):
+    def _staff_can_manage(self, request):
+        user = request.user
+        if not user.is_active or not user.is_staff:
+            return False
+        if user.is_superuser:
+            return True
+        return bool(getattr(user, 'restaurant_id', None))
+
+    def has_module_permission(self, request):
+        return self._staff_can_manage(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._staff_can_manage(request)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
+@admin.register(WhatsAppMessage)
+class WhatsAppMessageAdmin(_WhatsAppReadOnlyAdmin):
+    list_display = (
+        'recipient_phone',
+        'recipient_name',
+        'status',
+        'kind',
+        'from_number',
+        'sent_at',
+        'delivered_at',
+        'read_at',
+        'created_at',
+    )
+    list_filter = ('status', 'kind', 'created_at')
+    search_fields = ('recipient_phone', 'recipient_name', 'from_number', 'body', 'wa_message_id')
+    ordering = ('-created_at',)
+    readonly_fields = (
+        'restaurant',
+        'recipient_phone',
+        'recipient_name',
+        'from_number',
+        'body',
+        'kind',
+        'status',
+        'last_ack',
+        'wa_message_id',
+        'order_id',
+        'error',
+        'sent_at',
+        'delivered_at',
+        'read_at',
+        'created_at',
+        'updated_at',
+    )
+
+
+@admin.register(WhatsAppSession)
+class WhatsAppSessionAdmin(_WhatsAppReadOnlyAdmin):
+    list_display = ('phone', 'connected_at', 'updated_at')
+    readonly_fields = ('restaurant', 'phone', 'connected_at', 'updated_at')
+    ordering = ('-updated_at',)
 
 
 # admin.py

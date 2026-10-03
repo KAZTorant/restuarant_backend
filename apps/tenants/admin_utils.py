@@ -8,6 +8,8 @@ TENANT_LOOKUPS = {
     'user': 'restaurant',
     'shifthandover': 'restaurant',
     'whatsappconfig': 'restaurant',
+    'whatsappmessage': 'restaurant',
+    'whatsappsession': 'restaurant',
     'room': 'restaurant',
     'table': 'room__restaurant',
     'mealgroup': 'restaurant',

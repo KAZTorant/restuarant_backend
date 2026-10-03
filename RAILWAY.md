@@ -91,13 +91,14 @@ Eyni repodan ikinci Railway servisi:
    - `WHATSAPP_SESSION_PATH=/data/session`
    - `CHROME_PATH=/usr/bin/chromium`
    - `WHATSAPP_API_KEY` — uzun təsadüfi string
-5. RAM ən azı **1 GB** (Chromium üçün). 512 MB-da brauzer düşür.
+5. RAM ən azı **1 GB** bir qoşulmuş restoran üçün (Chromium). Hər əlavə qoşulmuş restoran öz brauzerini açır. 512 MB-da brauzer düşür.
 6. Django servisində:
    - `WHATSAPP_SERVICE_URL=http://${{WhatsApp.RAILWAY_PRIVATE_DOMAIN}}:${{WhatsApp.PORT}}`
      (servis adı dashboard-dakı adla eyni olsun)
    - `WHATSAPP_API_KEY` — WhatsApp servisindəki ilə eyni
-7. Admin → **WhatsApp Konfiqurasiyaları** → **Restoran nömrəsini qoş**. QR çıxanda restoran telefonundan Linked Devices ilə skan edin.
+7. Admin → **WhatsApp Konfiqurasiyaları** → **Restoran nömrəsini qoş**. Sessiya restoran slug-una görə ayrılır (`session-<slug>`). QR çıxanda həmin restoranın telefonundan Linked Devices ilə skan edin. Başqa restoranın nömrəsi bu səhifədə görünmür.
 8. Həmin siyahıya müdir/sahib nömrələrini `994...` formatında yazın və aktiv saxlayın.
+9. Göndərilən mesajlar **WhatsApp mesajları** siyahısında qalır (alıcı, göndərən, çatdı, oxundu).
 
-Axın: restoran nömrəsi QR ilə login olur (göndərən). Hazırlanmış sifariş məhsulu silinəndə mesaj həmin nömrədən siyahıdakı müdir nömrələrinə gedir.
+Axın: hər restoran öz nömrəsi ilə QR login olur (göndərən). Hazırlanmış sifariş məhsulu silinəndə mesaj həmin restoranın nömrəsindən yalnız onun müdir nömrələrinə gedir. Mövcud `session` qovluğu Qonaq-Baku-ya aiddir və deploy onu köçürmür, silmir.
 - Print gateway (`print_gateway/`) restoran şəbəkəsində ayrıca işləməlidir.

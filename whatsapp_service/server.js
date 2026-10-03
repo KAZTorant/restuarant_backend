@@ -15,19 +15,14 @@ const SESSION_PATH = process.env.WHATSAPP_SESSION_PATH || './whatsapp-session';
 const API_KEY = process.env.WHATSAPP_API_KEY || '';
 const CHROME_PATH = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || '';
 const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+const LEGACY_RESTAURANT = process.env.WHATSAPP_LEGACY_RESTAURANT === undefined
+    ? 'qonaq-baku'
+    : String(process.env.WHATSAPP_LEGACY_RESTAURANT || '').trim();
 
 app.use(cors());
 app.use(express.json());
 
-let client;
-let isReady = false;
-let qrCode = null;
-let lastError = null;
-let connectedNumber = null;
-let recovering = false;
-let recoveryCount = 0;
-let authenticating = false;
-let manualLogout = false;
+const sessions = new Map();
 
 function logEvent(event, details) {
     const extra = details ? ` ${JSON.stringify(details)}` : '';
@@ -45,7 +40,71 @@ function displayNumber(raw) {
     return `+${digits}`;
 }
 
+function normalizeSlug(value) {
+    const slug = String(value || '').trim().toLowerCase();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
+        return null;
+    }
+    return slug;
+}
+
+function blankState() {
+    return {
+        client: null,
+        isReady: false,
+        qrCode: null,
+        lastError: null,
+        connectedNumber: null,
+        recovering: false,
+        recoveryCount: 0,
+        authenticating: false,
+        manualLogout: false,
+        starting: false,
+        generation: 0,
+        outbound: new Map(),
+    };
+}
+
+function getState(slug) {
+    if (!sessions.has(slug)) {
+        sessions.set(slug, blankState());
+    }
+    return sessions.get(slug);
+}
+
 fs.mkdirSync(SESSION_PATH, { recursive: true });
+
+function legacySessionDir() {
+    return path.join(SESSION_PATH, 'session');
+}
+
+function namedSessionDir(slug) {
+    return path.join(SESSION_PATH, `session-${slug}`);
+}
+
+function usesLegacyStore(slug) {
+    if (slug !== LEGACY_RESTAURANT) {
+        return false;
+    }
+    if (fs.existsSync(namedSessionDir(slug))) {
+        return false;
+    }
+    return fs.existsSync(legacySessionDir());
+}
+
+function sessionDir(slug) {
+    if (usesLegacyStore(slug)) {
+        return legacySessionDir();
+    }
+    return namedSessionDir(slug);
+}
+
+function createAuth(slug) {
+    if (usesLegacyStore(slug)) {
+        return new LocalAuth({ dataPath: SESSION_PATH });
+    }
+    return new LocalAuth({ clientId: slug, dataPath: SESSION_PATH });
+}
 
 function clearStaleBrowserLocks(dir) {
     const lockNames = new Set([
@@ -79,6 +138,23 @@ function clearStaleBrowserLocks(dir) {
     }
 }
 
+function savedSlugs() {
+    let entries = [];
+    try {
+        entries = fs.readdirSync(SESSION_PATH, { withFileTypes: true });
+    } catch (err) {
+        return [];
+    }
+    const slugs = entries
+        .filter((entry) => entry.isDirectory() && entry.name.startsWith('session-'))
+        .map((entry) => entry.name.slice('session-'.length))
+        .filter((slug) => normalizeSlug(slug) === slug);
+    if (usesLegacyStore(LEGACY_RESTAURANT) && !slugs.includes(LEGACY_RESTAURANT)) {
+        slugs.push(LEGACY_RESTAURANT);
+    }
+    return slugs;
+}
+
 function requireKey(req, res, next) {
     if (!API_KEY) {
         return next();
@@ -90,6 +166,10 @@ function requireKey(req, res, next) {
     return next();
 }
 
+function restaurantFrom(req) {
+    return normalizeSlug((req.body && req.body.restaurant) || req.query.restaurant);
+}
+
 function formatPhone(phone) {
     let formatted = String(phone).replace(/\D/g, '');
     if (!formatted.startsWith('994') && formatted.length < 12) {
@@ -98,8 +178,10 @@ function formatPhone(phone) {
     return formatted;
 }
 
-function sessionDir() {
-    return path.join(SESSION_PATH, 'session');
+function phoneFromWid(wid) {
+    const raw = String(wid || '').split('@')[0];
+    const digits = raw.replace(/\D/g, '');
+    return digits || null;
 }
 
 function shouldResetSession(err) {
@@ -107,12 +189,12 @@ function shouldResetSession(err) {
     return /timed out|Execution context was destroyed|auth timeout|Target closed|Session closed|ProtocolError/i.test(message);
 }
 
-async function destroyClient() {
-    if (!client) {
+async function destroyClient(state) {
+    if (!state.client) {
         return;
     }
-    const current = client;
-    client = null;
+    const current = state.client;
+    state.client = null;
     try {
         await current.destroy();
     } catch (err) {
@@ -120,43 +202,50 @@ async function destroyClient() {
     }
 }
 
-async function resetSession() {
-    await destroyClient();
-    clearStaleBrowserLocks(SESSION_PATH);
-    fs.rmSync(sessionDir(), { recursive: true, force: true });
-    logEvent('session_cleared');
+async function resetSession(slug, state) {
+    await destroyClient(state);
+    const dir = sessionDir(slug);
+    clearStaleBrowserLocks(dir);
+    if (usesLegacyStore(slug)) {
+        logEvent('legacy_session_kept', { restaurant: slug });
+        return;
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+    logEvent('session_cleared', { restaurant: slug });
 }
 
-function scheduleRecovery(err) {
+function scheduleRecovery(slug, state, err) {
     const message = err && err.message ? err.message : String(err || 'unknown error');
-    lastError = message;
-    isReady = false;
-    authenticating = false;
-    qrCode = null;
-    connectedNumber = null;
-    logEvent('recovery', { error: message, attempt: recoveryCount + 1 });
-    if (recovering) {
+    state.lastError = message;
+    state.isReady = false;
+    state.authenticating = false;
+    state.qrCode = null;
+    state.connectedNumber = null;
+    logEvent('recovery', { restaurant: slug, error: message, attempt: state.recoveryCount + 1 });
+    if (state.recovering) {
         return;
     }
-    if (recoveryCount >= 3) {
-        console.error('Stopped WhatsApp recovery after repeated failures');
+    if (state.recoveryCount >= 3) {
+        console.error('Stopped WhatsApp recovery after repeated failures', slug);
         return;
     }
-    recoveryCount += 1;
-    recovering = true;
+    state.recoveryCount += 1;
+    state.recovering = true;
     setTimeout(async () => {
         try {
             if (shouldResetSession(err)) {
-                await resetSession();
+                await resetSession(slug, state);
             } else {
-                await destroyClient();
-                clearStaleBrowserLocks(SESSION_PATH);
+                await destroyClient(state);
+                clearStaleBrowserLocks(sessionDir(slug));
             }
-            recovering = false;
-            initializeWhatsApp();
+            state.recovering = false;
+            state.starting = false;
+            initializeWhatsApp(slug);
         } catch (recoveryErr) {
-            recovering = false;
-            lastError = recoveryErr.message;
+            state.recovering = false;
+            state.starting = false;
+            state.lastError = recoveryErr.message;
             console.error('WhatsApp recovery failed:', recoveryErr);
         }
     }, 3000);
@@ -194,7 +283,33 @@ async function readImageText(buffer) {
     }
 }
 
-async function sendIntake(text, source, sender) {
+async function reportBackend(payload) {
+    if (!BACKEND_URL) {
+        return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/users/whatsapp-delivery/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': API_KEY,
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+        });
+        if (!response.ok) {
+            logEvent('delivery_report_failed', { status: response.status, restaurant: payload.restaurant });
+        }
+    } catch (err) {
+        logEvent('delivery_report_error', { restaurant: payload.restaurant, error: err.message });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function sendIntake(text, source, sender, slug) {
     if (!BACKEND_URL) {
         throw new Error('BACKEND_URL is empty');
     }
@@ -204,7 +319,7 @@ async function sendIntake(text, source, sender) {
             'Content-Type': 'application/json',
             'X-API-Key': API_KEY,
         },
-        body: JSON.stringify({ text, source, from: sender }),
+        body: JSON.stringify({ text, source, from: sender, restaurant: slug }),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok && !payload.reply) {
@@ -213,7 +328,14 @@ async function sendIntake(text, source, sender) {
     return payload.reply || 'Anbar yazılmadı.';
 }
 
-async function handleIncoming(msg) {
+function rememberOutbound(state, waId, meta) {
+    if (!waId) {
+        return;
+    }
+    state.outbound.set(waId, meta);
+}
+
+async function handleIncoming(slug, state, msg) {
     if (!msg || msg.fromMe) {
         return;
     }
@@ -244,10 +366,10 @@ async function handleIncoming(msg) {
                 const recognized = (await readImageText(Buffer.from(media.data, 'base64'))).trim();
                 source = 'ocr';
                 text = [text, recognized].filter(Boolean).join('\n');
-                logEvent('ocr_ok', { from, chars: recognized.length });
+                logEvent('ocr_ok', { restaurant: slug, from, chars: recognized.length });
             }
         } catch (err) {
-            logEvent('ocr_error', { from, error: err.message });
+            logEvent('ocr_error', { restaurant: slug, from, error: err.message });
             try {
                 await msg.reply('Şəkil oxunmadı. Mətni bu formatda göndərin:\nUn 10 kq');
             } catch (replyErr) {
@@ -268,13 +390,25 @@ async function handleIncoming(msg) {
         return;
     }
 
-    logEvent('inbound', { from, source, chars: text.length });
+    logEvent('inbound', { restaurant: slug, from, source, chars: text.length });
     try {
-        const reply = await sendIntake(text, source, from);
-        await msg.reply(reply);
-        logEvent('inbound_replied', { from, source });
+        const reply = await sendIntake(text, source, from, slug);
+        const replied = await msg.reply(reply);
+        const waId = replied && replied.id ? replied.id._serialized : '';
+        rememberOutbound(state, waId, { kind: 'intake_reply' });
+        await reportBackend({
+            event: 'message',
+            restaurant: slug,
+            wa_message_id: waId,
+            ack: replied && typeof replied.ack === 'number' ? replied.ack : 1,
+            recipient_phone: phoneFromWid(from),
+            from_number: state.connectedNumber,
+            body: reply,
+            kind: 'intake_reply',
+        });
+        logEvent('inbound_replied', { restaurant: slug, from, source });
     } catch (err) {
-        logEvent('inbound_error', { from, error: err.message });
+        logEvent('inbound_error', { restaurant: slug, from, error: err.message });
         try {
             await msg.reply('Anbar yazılmadı. Bir az sonra yenidən göndərin.');
         } catch (replyErr) {
@@ -283,7 +417,13 @@ async function handleIncoming(msg) {
     }
 }
 
-function initializeWhatsApp() {
+function initializeWhatsApp(slug) {
+    const state = getState(slug);
+    if (state.client || state.starting) {
+        return state;
+    }
+    state.starting = true;
+
     const puppeteer = {
         headless: true,
         protocolTimeout: 90000,
@@ -305,129 +445,264 @@ function initializeWhatsApp() {
         puppeteer.executablePath = CHROME_PATH;
     }
 
-    client = new Client({
-        authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
-        authTimeoutMs: 90000,
-        puppeteer,
-    });
+    let client;
+    try {
+        client = new Client({
+            authStrategy: createAuth(slug),
+            authTimeoutMs: 90000,
+            puppeteer,
+        });
+    } catch (err) {
+        state.starting = false;
+        scheduleRecovery(slug, state, err);
+        return state;
+    }
+
+    state.generation += 1;
+    const generation = state.generation;
+    state.manualLogout = false;
+    state.client = client;
+    state.starting = false;
 
     client.on('qr', (qr) => {
-        logEvent('qr', { chars: qr.length });
+        logEvent('qr', { restaurant: slug, chars: qr.length });
         qrcode.generate(qr, { small: true });
-        qrCode = qr;
-        isReady = false;
-        authenticating = false;
-        connectedNumber = null;
-        lastError = null;
-        recoveryCount = 0;
+        state.qrCode = qr;
+        state.isReady = false;
+        state.authenticating = false;
+        state.connectedNumber = null;
+        state.lastError = null;
+        state.recoveryCount = 0;
+        state.manualLogout = false;
     });
 
     client.on('ready', async () => {
-        isReady = true;
-        authenticating = false;
-        qrCode = null;
-        lastError = null;
+        state.isReady = true;
+        state.authenticating = false;
+        state.qrCode = null;
+        state.lastError = null;
+        state.manualLogout = false;
         try {
-            connectedNumber = client.info && client.info.wid
+            state.connectedNumber = client.info && client.info.wid
                 ? client.info.wid.user
                 : null;
         } catch (err) {
-            connectedNumber = null;
+            state.connectedNumber = null;
         }
         logEvent('ready', {
-            number: displayNumber(connectedNumber),
-            digits: connectedNumber || null,
+            restaurant: slug,
+            number: displayNumber(state.connectedNumber),
+            digits: state.connectedNumber || null,
+        });
+        await reportBackend({
+            event: 'session',
+            restaurant: slug,
+            from_number: state.connectedNumber,
+            logout: false,
         });
     });
 
     client.on('loading_screen', (percent, message) => {
-        logEvent('loading', { percent, message });
+        logEvent('loading', { restaurant: slug, percent, message });
     });
 
     client.on('authenticated', () => {
-        logEvent('authenticated');
-        authenticating = true;
-        qrCode = null;
-        lastError = null;
+        logEvent('authenticated', { restaurant: slug });
+        state.authenticating = true;
+        state.qrCode = null;
+        state.lastError = null;
     });
 
     client.on('auth_failure', (msg) => {
-        console.error('Authentication failed:', msg);
-        isReady = false;
-        authenticating = false;
-        lastError = String(msg);
+        console.error('Authentication failed:', slug, msg);
+        state.isReady = false;
+        state.authenticating = false;
+        state.lastError = String(msg);
     });
 
     client.on('message', (msg) => {
-        handleIncoming(msg).catch((err) => {
-            logEvent('inbound_unhandled', { error: err.message });
+        handleIncoming(slug, state, msg).catch((err) => {
+            logEvent('inbound_unhandled', { restaurant: slug, error: err.message });
+        });
+    });
+
+    client.on('message_ack', (msg, ack) => {
+        if (!msg || !msg.fromMe) {
+            return;
+        }
+        const waId = msg.id && msg.id._serialized;
+        const known = waId ? state.outbound.get(waId) : null;
+        reportBackend({
+            event: 'message',
+            restaurant: slug,
+            django_message_id: known && known.django_message_id,
+            wa_message_id: waId || '',
+            ack,
+            recipient_phone: phoneFromWid(msg.to),
+            from_number: state.connectedNumber,
+            kind: (known && known.kind) || '',
+            order_id: known && known.order_id,
+        }).catch((err) => {
+            logEvent('ack_report_error', { restaurant: slug, error: err.message });
         });
     });
 
     client.on('disconnected', (reason) => {
-        logEvent('disconnected', { reason });
-        isReady = false;
-        authenticating = false;
-        connectedNumber = null;
-        if (manualLogout) {
-            logEvent('logout_disconnect_ignored');
+        if (state.generation !== generation) {
+            logEvent('logout_disconnect_ignored', { restaurant: slug, reason });
             return;
         }
-        lastError = `disconnected: ${reason}`;
-        scheduleRecovery(new Error(`disconnected: ${reason}`));
+        logEvent('disconnected', { restaurant: slug, reason });
+        state.isReady = false;
+        state.authenticating = false;
+        state.connectedNumber = null;
+        if (state.manualLogout) {
+            logEvent('logout_disconnect_ignored', { restaurant: slug });
+            return;
+        }
+        state.lastError = `disconnected: ${reason}`;
+        scheduleRecovery(slug, state, new Error(`disconnected: ${reason}`));
     });
 
-    clearStaleBrowserLocks(SESSION_PATH);
+    clearStaleBrowserLocks(sessionDir(slug));
     client.initialize().catch((err) => {
-        console.error('WhatsApp initialize failed:', err);
-        scheduleRecovery(err);
+        console.error('WhatsApp initialize failed:', slug, err);
+        scheduleRecovery(slug, state, err);
     });
+    return state;
+}
+
+function ensureSession(slug, { start = false } = {}) {
+    const state = getState(slug);
+    const saved = fs.existsSync(sessionDir(slug));
+    const canStart = (start || saved)
+        && !state.client
+        && !state.starting
+        && !state.recovering
+        && state.recoveryCount < 3;
+    if (canStart) {
+        initializeWhatsApp(slug);
+    }
+    return state;
+}
+
+function statusPayload(slug, state) {
+    return {
+        restaurant: slug,
+        ready: state.isReady,
+        authenticating: state.authenticating,
+        qr_available: Boolean(state.qrCode),
+        connected_number: state.connectedNumber,
+        connected_number_display: displayNumber(state.connectedNumber),
+        last_error: state.lastError,
+        message: state.isReady
+            ? 'WhatsApp is connected and ready'
+            : state.qrCode
+                ? 'Please scan the QR code to authenticate'
+                : state.lastError
+                    ? 'WhatsApp failed to start'
+                    : 'WhatsApp is initializing...',
+    };
+}
+
+async function sendOnSession(slug, phone, message, extra = {}) {
+    const state = ensureSession(slug, { start: false });
+    if (!state.isReady || !state.client) {
+        logEvent('send_rejected', { restaurant: slug, to: phone, ready: state.isReady });
+        return {
+            ok: false,
+            status: 503,
+            body: {
+                success: false,
+                error: 'WhatsApp is not ready. Please scan QR code first.',
+                qr_available: Boolean(state.qrCode),
+                restaurant: slug,
+            },
+        };
+    }
+    const formatted = formatPhone(phone);
+    const chatId = `${formatted}@c.us`;
+    logEvent('send_start', { restaurant: slug, to: formatted, from: displayNumber(state.connectedNumber) });
+    const sent = await state.client.sendMessage(chatId, message);
+    const waId = sent && sent.id ? sent.id._serialized : '';
+    const ack = sent && typeof sent.ack === 'number' ? sent.ack : 1;
+    rememberOutbound(state, waId, {
+        django_message_id: extra.django_message_id || null,
+        kind: extra.kind || 'text',
+        order_id: extra.order_id || null,
+    });
+    await reportBackend({
+        event: 'message',
+        restaurant: slug,
+        django_message_id: extra.django_message_id || null,
+        wa_message_id: waId,
+        ack,
+        recipient_phone: formatted,
+        from_number: state.connectedNumber,
+        body: message,
+        kind: extra.kind || 'text',
+        order_id: extra.order_id || null,
+    });
+    logEvent('send_ok', { restaurant: slug, to: formatted, wa_message_id: waId, ack });
+    return {
+        ok: true,
+        status: 200,
+        body: {
+            success: true,
+            message: 'Message sent successfully',
+            to: formatted,
+            restaurant: slug,
+            wa_message_id: waId,
+            ack,
+            from_number: state.connectedNumber,
+            body: message,
+        },
+    };
 }
 
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled rejection:', reason);
-    scheduleRecovery(reason instanceof Error ? reason : new Error(String(reason)));
 });
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
-    scheduleRecovery(err);
 });
 
 app.get('/health', (req, res) => {
+    const ready = [...sessions.values()].filter((state) => state.isReady).length;
     res.json({
         status: 'running',
-        whatsapp_ready: isReady,
+        whatsapp_ready: ready > 0,
+        sessions_ready: ready,
         timestamp: new Date().toISOString(),
     });
 });
 
 app.get('/status', requireKey, (req, res) => {
-    res.json({
-        ready: isReady,
-        authenticating: authenticating,
-        qr_available: Boolean(qrCode),
-        connected_number: connectedNumber,
-        last_error: lastError,
-        message: isReady
-            ? 'WhatsApp is connected and ready'
-            : qrCode
-                ? 'Please scan the QR code to authenticate'
-                : lastError
-                    ? 'WhatsApp failed to start'
-                    : 'WhatsApp is initializing...',
-    });
+    const slug = restaurantFrom(req);
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
+    const start = req.query.start === '1' || req.query.start === 'true';
+    const state = ensureSession(slug, { start });
+    return res.json(statusPayload(slug, state));
 });
 
 app.get('/qr.png', requireKey, async (req, res) => {
-    if (isReady || !qrCode) {
+    const slug = restaurantFrom(req);
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
+    const state = ensureSession(slug, { start: true });
+    if (state.isReady || !state.qrCode) {
         return res.status(404).json({
             success: false,
-            message: isReady ? 'already authenticated' : 'qr not ready',
+            restaurant: slug,
+            message: state.isReady ? 'already authenticated' : 'qr not ready',
         });
     }
     try {
-        const buffer = await QRCode.toBuffer(qrCode, { width: 320, margin: 2 });
+        const buffer = await QRCode.toBuffer(state.qrCode, { width: 320, margin: 2 });
         res.type('png').send(buffer);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -435,38 +710,37 @@ app.get('/qr.png', requireKey, async (req, res) => {
 });
 
 app.post('/send-message', requireKey, async (req, res) => {
-    const { phone, message } = req.body || {};
+    const slug = restaurantFrom(req);
+    const { phone, message, django_message_id, kind, order_id } = req.body || {};
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
     if (!phone || !message) {
         return res.status(400).json({
             success: false,
             error: 'Phone number and message are required',
         });
     }
-    if (!isReady) {
-        logEvent('send_rejected', { to: phone, ready: isReady, authenticating });
-        return res.status(503).json({
-            success: false,
-            error: 'WhatsApp is not ready. Please scan QR code first.',
-            qr_available: Boolean(qrCode),
-        });
-    }
     try {
-        const chatId = `${formatPhone(phone)}@c.us`;
-        logEvent('send_start', { to: formatPhone(phone) });
-        await client.sendMessage(chatId, message);
-        logEvent('send_ok', { to: formatPhone(phone) });
-        return res.json({ success: true, message: 'Message sent successfully', to: phone });
+        const result = await sendOnSession(slug, phone, message, {
+            django_message_id,
+            kind: kind || 'text',
+            order_id,
+        });
+        return res.status(result.status).json(result.body);
     } catch (error) {
         console.error('Error sending message:', error);
         return res.status(500).json({
             success: false,
             error: 'Failed to send message',
             details: error.message,
+            restaurant: slug,
         });
     }
 });
 
 app.post('/notify-order-deletion', requireKey, async (req, res) => {
+    const slug = restaurantFrom(req);
     const {
         owner_phone,
         admin_name,
@@ -480,110 +754,115 @@ app.post('/notify-order-deletion', requireKey, async (req, res) => {
         price,
         reason_display,
         comment,
+        restaurant_name,
+        django_message_id,
     } = req.body || {};
 
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
     if (!owner_phone) {
         return res.status(400).json({
             success: false,
             error: 'Owner phone number is required',
         });
     }
-    if (!isReady) {
-        logEvent('notify_rejected', {
-            to: owner_phone,
-            order_id,
-            meal_name,
-            ready: isReady,
-            authenticating,
-        });
-        return res.status(503).json({
-            success: false,
-            error: 'WhatsApp is not ready. Please scan QR code first.',
-            qr_available: Boolean(qrCode),
-        });
+
+    let message = '🚨 *SİFARİŞ MƏHSUL SİLİNDİ*\n\n';
+    message += `🏪 *Restoran:* ${restaurant_name || slug}\n`;
+    message += `👤 *Admin:* ${admin_name || 'N/A'}\n`;
+    message += `🏠 *Zal:* ${room_name || 'N/A'}\n`;
+    message += `🍽️ *Masa:* ${table_number || 'N/A'}\n`;
+    message += `🆔 *Sifariş:* #${order_id || 'N/A'}\n\n`;
+    message += `📦 *Məhsul:* ${meal_name || 'N/A'}\n`;
+    message += `🔢 *Miqdar:* ${quantity || 0}\n`;
+    message += `💰 *Qiymət:* ${price || 0} AZN\n\n`;
+    message += `📋 *Səbəb:* ${reason_display || 'N/A'}\n\n`;
+    message += `⏰ *Sifariş vaxtı:* ${order_created_at || 'N/A'}\n`;
+    message += `🗑️ *Silinmə vaxtı:* ${deleted_at || 'N/A'}`;
+    if (comment) {
+        message += `\n\n💬 *Qeyd:* ${comment}`;
     }
 
     try {
-        let message = '🚨 *SİFARİŞ MƏHSUL SİLİNDİ*\n\n';
-        message += `👤 *Admin:* ${admin_name || 'N/A'}\n`;
-        message += `🏠 *Zal:* ${room_name || 'N/A'}\n`;
-        message += `🍽️ *Masa:* ${table_number || 'N/A'}\n`;
-        message += `🆔 *Sifariş:* #${order_id || 'N/A'}\n\n`;
-        message += `📦 *Məhsul:* ${meal_name || 'N/A'}\n`;
-        message += `🔢 *Miqdar:* ${quantity || 0}\n`;
-        message += `💰 *Qiymət:* ${price || 0} AZN\n\n`;
-        message += `📋 *Səbəb:* ${reason_display || 'N/A'}\n\n`;
-        message += `⏰ *Sifariş vaxtı:* ${order_created_at || 'N/A'}\n`;
-        message += `🗑️ *Silinmə vaxtı:* ${deleted_at || 'N/A'}`;
-        if (comment) {
-            message += `\n\n💬 *Qeyd:* ${comment}`;
-        }
-
-        const chatId = `${formatPhone(owner_phone)}@c.us`;
-        logEvent('notify_start', {
-            to: formatPhone(owner_phone),
-            from: displayNumber(connectedNumber),
+        const result = await sendOnSession(slug, owner_phone, message, {
+            django_message_id,
+            kind: 'order_deletion',
             order_id,
-            meal_name,
-            table_number,
         });
-        await client.sendMessage(chatId, message);
-        logEvent('notify_ok', { to: formatPhone(owner_phone), order_id, meal_name });
-        return res.json({
-            success: true,
-            message: 'Notification sent successfully',
-            to: owner_phone,
-        });
+        return res.status(result.status).json(result.body);
     } catch (error) {
         console.error('Error sending notification:', error);
         return res.status(500).json({
             success: false,
             error: 'Failed to send notification',
             details: error.message,
+            restaurant: slug,
         });
     }
 });
 
 app.post('/logout', requireKey, async (req, res) => {
-    logEvent('logout_requested', { number: displayNumber(connectedNumber) });
-    manualLogout = true;
+    const slug = restaurantFrom(req);
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
+    const state = getState(slug);
+    logEvent('logout_requested', { restaurant: slug, number: displayNumber(state.connectedNumber) });
+    state.manualLogout = true;
+    state.recoveryCount = 0;
     try {
-        if (client) {
-            await client.logout().catch((err) => {
-                logEvent('logout_client_error', { error: err.message });
+        if (state.client) {
+            await state.client.logout().catch((err) => {
+                logEvent('logout_client_error', { restaurant: slug, error: err.message });
             });
-            await destroyClient();
+            await destroyClient(state);
         }
-        clearStaleBrowserLocks(SESSION_PATH);
-        fs.rmSync(sessionDir(), { recursive: true, force: true });
-        isReady = false;
-        authenticating = false;
-        connectedNumber = null;
-        qrCode = null;
-        lastError = null;
-        logEvent('logout_ok');
-        manualLogout = false;
-        initializeWhatsApp();
-        return res.json({ success: true, message: 'Logged out successfully' });
+        const dir = sessionDir(slug);
+        clearStaleBrowserLocks(dir);
+        fs.rmSync(dir, { recursive: true, force: true });
+        state.isReady = false;
+        state.authenticating = false;
+        state.connectedNumber = null;
+        state.qrCode = null;
+        state.lastError = null;
+        state.outbound.clear();
+        logEvent('logout_ok', { restaurant: slug });
+        await reportBackend({
+            event: 'session',
+            restaurant: slug,
+            logout: true,
+        });
+        initializeWhatsApp(slug);
+        return res.json({ success: true, message: 'Logged out successfully', restaurant: slug });
     } catch (error) {
-        manualLogout = false;
-        logEvent('logout_failed', { error: error.message });
+        state.manualLogout = false;
+        logEvent('logout_failed', { restaurant: slug, error: error.message });
         return res.status(500).json({
             success: false,
             error: 'Failed to logout',
             details: error.message,
+            restaurant: slug,
         });
     }
 });
 
+function bootSessions() {
+    const slugs = savedSlugs();
+    logEvent('boot_sessions', { restaurants: slugs });
+    slugs.forEach((slug) => ensureSession(slug, { start: true }));
+}
+
 app.listen(PORT, '0.0.0.0', () => {
     logEvent('listening', { port: PORT, session: SESSION_PATH, chrome: CHROME_PATH || 'default' });
-    initializeWhatsApp();
+    bootSessions();
 });
 
 process.on('SIGINT', async () => {
-    if (client) {
-        await client.destroy();
+    for (const state of sessions.values()) {
+        if (state.client) {
+            await state.client.destroy();
+        }
     }
     process.exit(0);
 });

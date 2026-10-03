@@ -70,65 +70,41 @@ class WhatsAppNotifier:
                     raw_phones,
                 )
                 return phones
-            
-            # Fallback to settings if DB is empty
-            logger.warning("No active WhatsApp phones in database. Falling back to settings.")
-            
+            logger.warning(
+                "No active WhatsApp phones for restaurant=%s",
+                getattr(restaurant, 'pk', None),
+            )
         except Exception as e:
-            # If DB not ready or model doesn't exist yet (migrations)
-            logger.warning(f"Could not load WhatsApp phones from database: {e}. Using settings.")
-        
-        # Fallback to settings
-        owner_phone_raw = getattr(settings, 'RESTAURANT_OWNER_PHONE', None)
-        if owner_phone_raw:
-            phones = []
-            seen = set()
-            for phone in owner_phone_raw.split(','):
-                normalized = self._normalize_phone(phone.strip())
-                if not normalized or normalized in seen:
-                    continue
-                seen.add(normalized)
-                phones.append(normalized)
-            if phones:
-                logger.info(f"Using WhatsApp phone(s) from settings: {phones}")
-                return phones
-        
-        logger.warning("No WhatsApp owner phones configured in database or settings.")
+            logger.warning("Could not load WhatsApp phones from database: %s", e)
+
         return []
     
+    def _session_status(self, restaurant):
+        slug = getattr(restaurant, 'slug', None)
+        if not slug:
+            return {'ready': False, 'error': 'restaurant missing'}
+        url = f"{self.service_url}/status"
+        try:
+            response = requests.get(
+                url,
+                params={'restaurant': slug},
+                headers=self._headers(),
+                timeout=self.health_timeout,
+            )
+            if response.status_code == 200:
+                return response.json()
+            logger.error("WA status_failed restaurant=%s code=%s", slug, response.status_code)
+            return {'ready': False, 'error': f'status {response.status_code}'}
+        except requests.exceptions.RequestException as exc:
+            logger.error("WA status_error restaurant=%s error=%s", slug, exc)
+            return {'ready': False, 'error': str(exc)}
+
     def is_configured(self, restaurant=None):
-        """Check if WhatsApp service is configured and ready"""
-        if not self._get_owner_phones(restaurant):
+        """Recipient list exists and this restaurant's own WhatsApp session is ready."""
+        if restaurant is None or not self._get_owner_phones(restaurant):
             logger.warning("Restaurant owner phone(s) not configured")
             return False
-        
-        url = f"{self.service_url}/health"
-        try:
-            logger.info(f"Checking WhatsApp service health at: {url}")
-            response = requests.get(url, timeout=self.health_timeout)
-            
-            if response.status_code == 200:
-                data = response.json()
-                is_ready = data.get('whatsapp_ready', False)
-                logger.info(f"WhatsApp service health check successful. Ready: {is_ready}, Response: {data}")
-                return is_ready
-            else:
-                logger.error(
-                    f"WhatsApp service health check failed.\n"
-                    f"  URL: {url}\n"
-                    f"  Status Code: {response.status_code}\n"
-                    f"  Response: {response.text[:500]}"
-                )
-                return False
-        except requests.exceptions.Timeout as e:
-            logger.error(f"WhatsApp service timeout (>{self.health_timeout}s). URL: {url}, Error: {e}")
-            return False
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"WhatsApp service connection failed. URL: {url}, Error: {e}")
-            return False
-        except requests.exceptions.RequestException as e:
-            logger.error(f"WhatsApp service request error. URL: {url}, Error: {type(e).__name__}: {e}")
-            return False
+        return bool(self._session_status(restaurant).get('ready'))
     
     def get_status(self):
         """Get WhatsApp service status"""
@@ -166,60 +142,134 @@ class WhatsAppNotifier:
             logger.error(f"WhatsApp service request error. URL: {url}, Error: {error_msg}")
             return {'ready': False, 'error': error_msg}
     
-    def send_message(self, phone, message):
+    def _recipient_name(self, restaurant, phone):
+        from apps.users.models import WhatsAppConfig
+
+        normalized = self._normalize_phone(phone)
+        if restaurant is None or not normalized:
+            return ''
+        for config in WhatsAppConfig.objects.filter(restaurant=restaurant):
+            if self._normalize_phone(config.phone) == normalized:
+                return config.name or ''
+        return ''
+
+    def _deletion_message(self, order_item_info, restaurant):
+        comment = order_item_info.get('comment') or ''
+        restaurant_name = getattr(restaurant, 'name', None) or 'N/A'
+        message = '🚨 *SİFARİŞ MƏHSUL SİLİNDİ*\n\n'
+        message += f'🏪 *Restoran:* {restaurant_name}\n'
+        message += f"👤 *Admin:* {order_item_info.get('admin_name') or 'N/A'}\n"
+        message += f"🏠 *Zal:* {order_item_info.get('room_name') or 'N/A'}\n"
+        message += f"🍽️ *Masa:* {order_item_info.get('table_number') or 'N/A'}\n"
+        message += f"🆔 *Sifariş:* #{order_item_info.get('order_id') or 'N/A'}\n\n"
+        message += f"📦 *Məhsul:* {order_item_info.get('meal_name') or 'N/A'}\n"
+        message += f"🔢 *Miqdar:* {order_item_info.get('quantity') or 0}\n"
+        message += f"💰 *Qiymət:* {order_item_info.get('price') or 0} AZN\n\n"
+        message += f"📋 *Səbəb:* {order_item_info.get('reason_display') or 'N/A'}\n\n"
+        message += f"⏰ *Sifariş vaxtı:* {order_item_info.get('order_created_at') or 'N/A'}\n"
+        message += f"🗑️ *Silinmə vaxtı:* {order_item_info.get('deleted_at') or 'N/A'}"
+        if comment:
+            message += f'\n\n💬 *Qeyd:* {comment}'
+        return message
+
+    def _open_message(self, restaurant, phone, body, kind, order_id=None, error=''):
+        from apps.users.models import WhatsAppMessage
+        from apps.users.models.whatsapp_message import record_whatsapp_delivery
+
+        if restaurant is None:
+            logger.warning('WA message_skipped reason=no_restaurant phone=%s', phone)
+            return None
+        message = record_whatsapp_delivery(
+            restaurant=restaurant,
+            recipient_phone=self._normalize_phone(phone),
+            recipient_name=self._recipient_name(restaurant, phone),
+            body=body,
+            kind=kind,
+            order_id=order_id,
+            error=error,
+            ack=-1 if error else None,
+        )
+        if error and message.status != WhatsAppMessage.STATUS_FAILED:
+            message.status = WhatsAppMessage.STATUS_FAILED
+            message.error = error
+            message.save(update_fields=['status', 'error', 'updated_at'])
+        return message
+
+    def _finish_message(self, message, data=None, error=''):
+        from apps.users.models.whatsapp_message import record_whatsapp_delivery
+        from apps.users.models.whatsapp_session import touch_whatsapp_session
+
+        if message is None:
+            return
+        data = data or {}
+        ack = data.get('ack')
+        if error:
+            ack = -1
+        elif data.get('success'):
+            try:
+                ack_value = int(ack) if ack is not None else 0
+            except (TypeError, ValueError):
+                ack_value = 0
+            if ack_value < 1:
+                ack = 1
+        record_whatsapp_delivery(
+            restaurant=message.restaurant,
+            django_message_id=message.pk,
+            wa_message_id=data.get('wa_message_id') or '',
+            ack=ack,
+            from_number=data.get('from_number') or '',
+            error=error or data.get('error') or data.get('details') or '',
+        )
+        from_number = data.get('from_number') or ''
+        if from_number:
+            touch_whatsapp_session(message.restaurant, phone=from_number)
+
+    def send_message(self, phone, message, restaurant=None, kind=None, order_id=None):
         """
-        Send a WhatsApp message
-        
-        Args:
-            phone (str): Recipient's phone number (format: 501234567 or 994501234567)
-            message (str): Message content
-            
-        Returns:
-            bool: True if message sent successfully, False otherwise
+        Send a WhatsApp message from this restaurant's own logged-in number.
         """
+        from apps.users.models import WhatsAppMessage
+
+        kind = kind or WhatsAppMessage.KIND_TEXT
+        if restaurant is None:
+            logger.warning('WA send_skipped reason=no_restaurant phone=%s', phone)
+            return False
+
+        record = self._open_message(restaurant, phone, message, kind, order_id=order_id)
         url = f"{self.service_url}/send-message"
-        payload = {'phone': phone, 'message': message}
-        
+        payload = {
+            'restaurant': restaurant.slug,
+            'phone': phone,
+            'message': message,
+            'django_message_id': record.pk if record else None,
+            'kind': kind,
+            'order_id': order_id,
+        }
         try:
-            logger.info(f"Sending WhatsApp message to {phone} via {url}")
+            logger.info(
+                'WA send_start restaurant=%s phone=%s',
+                restaurant.slug,
+                self._normalize_phone(phone),
+            )
             response = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
-            
-            if response.status_code == 200:
+            data = {}
+            try:
                 data = response.json()
-                if data.get('success'):
-                    logger.info(f"WhatsApp message sent successfully to {phone}. Response: {data}")
-                    return True
-                else:
-                    error = data.get('error', 'Unknown error')
-                    logger.error(
-                        f"WhatsApp message sending failed.\n"
-                        f"  URL: {url}\n"
-                        f"  Phone: {phone}\n"
-                        f"  Status: 200 but success=false\n"
-                        f"  Error: {error}\n"
-                        f"  Full Response: {data}"
-                    )
-                    return False
-            else:
-                logger.error(
-                    f"WhatsApp send message request failed.\n"
-                    f"  URL: {url}\n"
-                    f"  Phone: {phone}\n"
-                    f"  Status Code: {response.status_code}\n"
-                    f"  Response: {response.text[:500]}"
-                )
-                return False
-                
-        except requests.exceptions.Timeout as e:
-            logger.error(f"WhatsApp send message timeout (>{self.timeout}s). URL: {url}, Phone: {phone}, Error: {e}")
+            except ValueError:
+                data = {}
+            if response.status_code == 200 and data.get('success'):
+                self._finish_message(record, data)
+                logger.info('WA send_ok restaurant=%s phone=%s', restaurant.slug, phone)
+                return True
+            error = data.get('error') or data.get('details') or f'HTTP {response.status_code}'
+            self._finish_message(record, data, error=error)
+            logger.error('WA send_failed restaurant=%s phone=%s error=%s', restaurant.slug, phone, error)
             return False
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"WhatsApp service connection failed while sending message. URL: {url}, Phone: {phone}, Error: {e}")
+        except requests.exceptions.RequestException as exc:
+            self._finish_message(record, error=str(exc))
+            logger.error('WA send_error restaurant=%s phone=%s error=%s', restaurant.slug, phone, exc)
             return False
-        except requests.exceptions.RequestException as e:
-            logger.error(f"WhatsApp send message request error. URL: {url}, Phone: {phone}, Error: {type(e).__name__}: {e}")
-            return False
-    
+
     def notify_order_item_deleted(self, order_item_info, restaurant=None):
         """
         Send notification to restaurant owner(s) when an order item is deleted
@@ -240,99 +290,46 @@ class WhatsAppNotifier:
                 - reason_display: Display text for reason
                 - comment: Additional comment
         """
+        from apps.users.models import WhatsAppMessage
+
+        if restaurant is None:
+            logger.warning('WA notify_skipped reason=no_restaurant')
+            return False
+
         owner_phones = self._get_owner_phones(restaurant)
         if not owner_phones:
-            logger.warning("Restaurant owner phone(s) not configured. Cannot send notification.")
+            logger.warning(
+                'WA notify_skipped restaurant=%s reason=no_recipients',
+                restaurant.slug,
+            )
             return False
-        
-        url = f"{self.service_url}/notify-order-deletion"
-        payload = {
-            'admin_name': order_item_info.get('admin_name', 'N/A'),
-            'room_name': order_item_info.get('room_name', 'N/A'),
-            'table_number': order_item_info.get('table_number', 'N/A'),
-            'order_id': order_item_info.get('order_id', 'N/A'),
-            'order_created_at': order_item_info.get('order_created_at', 'N/A'),
-            'deleted_at': order_item_info.get('deleted_at', 'N/A'),
-            'meal_name': order_item_info.get('meal_name', 'N/A'),
-            'quantity': order_item_info.get('quantity', 0),
-            'price': float(order_item_info.get('price', 0)),
-            'reason_display': order_item_info.get('reason_display', 'N/A'),
-            'comment': order_item_info.get('comment', '')
-        }
-        
-        # Send to all configured owner phones
+
+        body = self._deletion_message(order_item_info, restaurant)
+        order_id = order_item_info.get('order_id')
+        try:
+            order_id = int(order_id)
+        except (TypeError, ValueError):
+            order_id = None
+
         success_count = 0
         for owner_phone in owner_phones:
-            payload['owner_phone'] = owner_phone
-            
-            try:
-                logger.info(
-                    f"Sending order deletion notification to owner.\n"
-                    f"  URL: {url}\n"
-                    f"  Owner Phone: {owner_phone}\n"
-                    f"  Order ID: {payload['order_id']}\n"
-                    f"  Meal: {payload['meal_name']}\n"
-                    f"  Quantity: {payload['quantity']}"
-                )
-                response = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get('success'):
-                        logger.info(
-                            f"Order deletion notification sent successfully to {owner_phone}.\n"
-                            f"  Order ID: {payload['order_id']}\n"
-                            f"  Response: {data}"
-                        )
-                        success_count += 1
-                    else:
-                        error = data.get('error', 'Unknown error')
-                        logger.error(
-                            f"Order deletion notification failed for {owner_phone}.\n"
-                            f"  URL: {url}\n"
-                            f"  Order ID: {payload['order_id']}\n"
-                            f"  Status: 200 but success=false\n"
-                            f"  Error: {error}\n"
-                            f"  Full Response: {data}"
-                        )
-                else:
-                    logger.error(
-                        f"Order deletion notification request failed for {owner_phone}.\n"
-                        f"  URL: {url}\n"
-                        f"  Order ID: {payload['order_id']}\n"
-                        f"  Status Code: {response.status_code}\n"
-                        f"  Response: {response.text[:500]}"
-                    )
-                    
-            except requests.exceptions.Timeout as e:
-                logger.error(
-                    f"Order deletion notification timeout (>{self.timeout}s) for {owner_phone}.\n"
-                    f"  URL: {url}\n"
-                    f"  Order ID: {payload['order_id']}\n"
-                    f"  Error: {e}"
-                )
-            except requests.exceptions.ConnectionError as e:
-                logger.error(
-                    f"WhatsApp service connection failed during order deletion notification for {owner_phone}.\n"
-                    f"  URL: {url}\n"
-                    f"  Order ID: {payload['order_id']}\n"
-                    f"  Error: {e}"
-                )
-            except requests.exceptions.RequestException as e:
-                logger.error(
-                    f"Order deletion notification request error for {owner_phone}.\n"
-                    f"  URL: {url}\n"
-                    f"  Order ID: {payload['order_id']}\n"
-                    f"  Error: {type(e).__name__}: {e}"
-                )
-        
-        # Return True if at least one notification was sent successfully
-        if success_count > 0:
-            logger.info(f"Order deletion notification sent to {success_count}/{len(owner_phones)} owner(s)")
-            return True
-        else:
-            logger.error(f"Failed to send order deletion notification to all {len(owner_phones)} owner(s)")
-            return False
+            sent = self.send_message(
+                owner_phone,
+                body,
+                restaurant=restaurant,
+                kind=WhatsAppMessage.KIND_ORDER_DELETION,
+                order_id=order_id,
+            )
+            if sent:
+                success_count += 1
+
+        logger.info(
+            'WA notify_result restaurant=%s sent=%s total=%s',
+            restaurant.slug,
+            success_count,
+            len(owner_phones),
+        )
+        return success_count > 0
 
 
 # Singleton instance

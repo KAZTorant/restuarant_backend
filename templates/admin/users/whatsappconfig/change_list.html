@@ -1,8 +1,24 @@
 {% extends "admin/change_list.html" %}
 
+{% block content %}
+    {% if linked_checked %}
+        <p>
+            {% if linked_whatsapp %}
+                Bu restoranın qoşulmuş göndərən nömrəsi: <strong>{{ linked_whatsapp }}</strong>
+            {% else %}
+                Bu restoran üçün WhatsApp hələ qoşulmayıb. «Restoran nömrəsini qoş» ilə öz nömrənizi skan edin.
+            {% endif %}
+        </p>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
+
 {% block object-tools-items %}
     {{ block.super }}
     <li>
         <a href="{% url 'admin:whatsapp_connection' %}" class="historylink">Restoran nömrəsini qoş</a>
+    </li>
+    <li>
+        <a href="{% url 'admin:users_whatsappmessage_changelist' %}" class="historylink">Göndərilən mesajlar</a>
     </li>
 {% endblock %}

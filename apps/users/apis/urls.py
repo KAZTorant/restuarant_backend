@@ -1,7 +1,6 @@
 from django.urls import path
 
-from apps.users.apis import PinLoginAPIView
-from apps.users.apis import NetworkAPIView
+from apps.users.apis import NetworkAPIView, PinLoginAPIView, WhatsAppDeliveryView
 
 urlpatterns = [
     path(
@@ -11,5 +10,10 @@ urlpatterns = [
     path(
         "network-ip/",
         NetworkAPIView.as_view(),
-    )
+    ),
+    path(
+        "whatsapp-delivery/",
+        WhatsAppDeliveryView.as_view(),
+        name="whatsapp-delivery",
+    ),
 ]
