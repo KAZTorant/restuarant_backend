@@ -3,6 +3,22 @@ from django.conf import settings
 from django.utils.timezone import now
 
 
+class OrderItemDeletionLogQuerySet(models.QuerySet):
+    def for_restaurant(self, restaurant):
+        if restaurant is None:
+            return self
+        from apps.tables.models import Table
+
+        # The log has no restaurant FK; table_id is the reliable link,
+        # deleted_by covers logs whose table has since been removed.
+        table_ids = Table.objects.filter(
+            room__restaurant=restaurant).values('pk')
+        return self.filter(
+            models.Q(table_id__in=table_ids)
+            | models.Q(deleted_by__restaurant=restaurant)
+        )
+
+
 class OrderItemDeletionLog(models.Model):
     REASON_RETURN = "return"
     REASON_WASTE = "waste"
@@ -36,6 +52,8 @@ class OrderItemDeletionLog(models.Model):
     )
     deleted_at = models.DateTimeField(
         default=now, verbose_name="Silinmə Vaxtı")
+
+    objects = OrderItemDeletionLogQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Silinmiş Sifariş Məhsulu"

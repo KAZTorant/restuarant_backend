@@ -497,7 +497,10 @@ class PrinterService:
             if payment.change:
                 total_change += payment.change
 
-        open_sum = Order.objects.filter(is_paid=False).aggregate(
+        open_orders = Order.objects.filter(is_paid=False)
+        if restaurant is not None:
+            open_orders = open_orders.filter(table__room__restaurant=restaurant)
+        open_sum = open_orders.aggregate(
             total=Sum('total_price'))['total'] or 0
 
         width = 48
@@ -595,7 +598,10 @@ class PrinterService:
                 total_change += payment.change
 
         op_count = stat.orders.count()
-        open_sum = Order.objects.filter(is_paid=False).aggregate(
+        open_orders = Order.objects.filter(is_paid=False)
+        if restaurant is not None:
+            open_orders = open_orders.filter(table__room__restaurant=restaurant)
+        open_sum = open_orders.aggregate(
             total=Sum('total_price'))['total'] or 0
 
         width = 48
@@ -669,12 +675,12 @@ class PrinterService:
 
         # Determine actual shift time range
         order_dates = orders.aggregate(earliest=Min('created_at'))
-        shift_start = order_dates['earliest']
+        shift_start = order_dates['earliest'] or stat.start_time
         shift_end = stat.end_time or timezone.now()
 
-        deleted_items = OrderItemDeletionLog.objects.filter(
-            deleted_at__range=(shift_start, shift_end)
-        )
+        deleted_items = OrderItemDeletionLog.objects.for_restaurant(
+            restaurant
+        ).filter(deleted_at__range=(shift_start, shift_end))
 
         width = 48
         lines = []

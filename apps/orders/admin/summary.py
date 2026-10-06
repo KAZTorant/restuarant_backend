@@ -258,10 +258,13 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
         end_datetime = timezone.make_aware(
             datetime.combine(summary.end_date, datetime.max.time()))
 
-        # Get orders in the date range
-        orders = Order.objects.all_orders().filter(
-            created_at__range=(start_datetime, end_datetime),
-            is_paid=True
+        orders = filter_queryset_by_restaurant(
+            Order.objects.all_orders().filter(
+                created_at__range=(start_datetime, end_datetime),
+                is_paid=True
+            ),
+            summary.restaurant,
+            'table__room__restaurant',
         )
 
         # Get order items - group by category group, then by meal name
@@ -340,9 +343,9 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
 
         # Get deleted order items from the OrderItemDeletionLog
         from apps.orders.models.order_deletion import OrderItemDeletionLog
-        deleted_items = OrderItemDeletionLog.objects.filter(
-            deleted_at__range=(start_datetime, end_datetime)
-        )
+        deleted_items = OrderItemDeletionLog.objects.for_restaurant(
+            summary.restaurant
+        ).filter(deleted_at__range=(start_datetime, end_datetime))
 
         # Keep deleted items separate by meal name AND reason
         deleted_items_list = []
@@ -450,10 +453,13 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
         end_datetime = timezone.make_aware(
             datetime.combine(summary.end_date, datetime.max.time()))
 
-        # Get orders in the date range
-        orders = Order.objects.all_orders().filter(
-            created_at__range=(start_datetime, end_datetime),
-            is_paid=True
+        orders = filter_queryset_by_restaurant(
+            Order.objects.all_orders().filter(
+                created_at__range=(start_datetime, end_datetime),
+                is_paid=True
+            ),
+            summary.restaurant,
+            'table__room__restaurant',
         )
 
         # Get order items
@@ -550,7 +556,8 @@ class SummaryAdmin(TenantAdminMixin, SimpleHistoryAdmin):
         response = PrinterService._send_text_to_main_printer(
             text,
             payment=None,
-            type=Receipt.ReceiptType.ORDER_SUMMARY
+            type=Receipt.ReceiptType.ORDER_SUMMARY,
+            restaurant=summary.restaurant,
         )
 
         return (response.status_code == 200), (
