@@ -12,8 +12,13 @@
 
   KazzaAPI.init(pin, restaurantSlug);
 
+  // Live refresh (admin/restaurant only): a constant 5s while the page is
+  // visible. Paused only while the tab/window is hidden, with an immediate
+  // refresh when it becomes visible again.
+  const POLL_MS = 5000;
+
   let currentHallId = hallId;
-  let pollInterval = null;
+  let pollTimer = null;
   let halls = [];
   let loadSeq = 0;
   let renderedSnapshot = '';
@@ -171,6 +176,35 @@
     }
   }
 
+  function stopPolling() {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+
+  // Next poll starts only after the previous one finished, so slow responses
+  // never pile up requests.
+  function schedulePoll() {
+    stopPolling();
+    if (document.hidden) return;
+    pollTimer = setTimeout(async () => {
+      await loadTables({ silent: true, animate: false });
+      schedulePoll();
+    }, POLL_MS);
+  }
+
+  function startPolling() {
+    schedulePoll();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopPolling();
+        return;
+      }
+      // Back on screen: refresh right away, then continue polling.
+      loadTables({ silent: true, animate: false });
+      schedulePoll();
+    });
+  }
+
   async function init() {
     KazzaUI.showLoading('Zallar yüklənir...');
     try {
@@ -178,9 +212,7 @@
       renderHalls();
       await loadTables();
 
-      if (isAdmin) {
-        pollInterval = setInterval(() => loadTables({ silent: true, animate: false }), 5000);
-      }
+      if (isAdmin) startPolling();
     } catch (e) {
       KazzaUI.error(KazzaUI.parseError(e, 'Səhifə yüklənərkən xəta baş verdi.'));
     } finally {
@@ -195,9 +227,7 @@
     window.location.href = `/r/${restaurantSlug}/hall/${currentHallId}/table/${card.dataset.tableId}/`;
   });
 
-  window.addEventListener('beforeunload', () => {
-    if (pollInterval) clearInterval(pollInterval);
-  });
+  window.addEventListener('beforeunload', stopPolling);
 
   init();
 })();
