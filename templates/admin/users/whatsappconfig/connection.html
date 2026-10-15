@@ -49,7 +49,7 @@
             {% if connected_number %}Nömrə: {{ connected_number }}.{% endif %}
             Hazırlanmış sifariş məhsulu silinəndə bu nömrədən yalnız bu restoranın aktiv müdir nömrələrinə mesaj gedəcək.
         </p>
-        {% if on_demand %}
+        {% if on_demand and can_change %}
             <div style="margin: 16px 0; padding: 12px 16px; border: 1px solid #ccc; border-radius: 6px;">
                 <p style="margin-top:0;">
                     <strong>Gələn mesajlar (anbar):</strong>
@@ -80,19 +80,35 @@
                 {% endif %}
             </div>
         {% endif %}
+        {% if can_change %}
         <form method="post" action="{% url 'admin:whatsapp_logout' %}">
             {% csrf_token %}
             <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">
             <button type="submit" class="button" style="background:#ba2121;">Sessiyanı sil</button>
         </form>
+        {% endif %}
     {% elif authenticating %}
         <p style="color:#0b6e4f;"><strong>Skan qəbul olundu.</strong> Qoşulma bitənə qədər yeni QR skan etməyin. Mesaj bu mərhələdə hələ getmir.</p>
+        {% if can_change %}
         <form method="post" action="{% url 'admin:whatsapp_logout' %}">
             {% csrf_token %}
             <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">
             <button type="submit" class="button" style="background:#ba2121;">Sessiyanı sil</button>
         </form>
+        {% endif %}
         <script>setTimeout(function () { location.reload(); }, 3000);</script>
+    {% elif not can_change %}
+        {# View-only users: status only. No QR, no buttons, and opening the page does not start the browser. #}
+        <p>
+            {% if linked %}
+                <strong>{{ restaurant.name }}</strong> üçün WhatsApp qoşulub, hazırda enerji qənaəti üçün brauzer bağlıdır. Mesaj göndəriləndə avtomatik açılır.
+            {% elif qr_available %}
+                <strong>{{ restaurant.name }}</strong> üçün WhatsApp qoşulması gözləyir. QR kodu yalnız dəyişiklik icazəsi olan istifadəçilərə göstərilir.
+            {% else %}
+                <strong>{{ restaurant.name }}</strong> üçün WhatsApp hazırda qoşulu deyil. Qoşmaq üçün dəyişiklik icazəsi olan istifadəçiyə müraciət edin.
+            {% endif %}
+        </p>
+        {% if error %}<p style="color:#ba2121;">{{ error }}</p>{% endif %}
     {% elif qr_available %}
         <p>WhatsApp → Ayarlar → Əlaqəli cihazlar → Cihazı əlaqələndir. Ekrandakı kodu <strong>{{ restaurant.name }}</strong> nömrəsi ilə skan edin.</p>
         <img src="{% url 'admin:whatsapp_qr' %}?restaurant={{ restaurant_slug }}&t={% now 'U' %}" alt="WhatsApp QR" width="320" height="320">
@@ -103,7 +119,7 @@
         {% if error %}
             <p style="color:#ba2121;"><strong>WhatsApp başlamadı.</strong> {{ error }}</p>
             <p>Yarımçıq sessiya silinir və yeni QR çıxarılır. Səhifə özü yenilənir.</p>
-            <form method="post" action="{% url 'admin:whatsapp_logout' %}">
+            <form method="post" action="{% url 'admin:whatsapp_logout' %}"> {# this branch only renders for users with change permission #}
                 {% csrf_token %}
                 <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">
                 <button type="submit" class="button" style="background:#ba2121;">Sessiyanı sil və yenidən başlat</button>

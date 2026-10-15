@@ -373,6 +373,7 @@ JAZZMIN_SETTINGS = {
             "name": "WhatsApp qəbulu",
             "url": "admin:whatsapp_connection",
             "icon": "fab fa-whatsapp",
+            "permissions": ["users.view_whatsappconfig"],
         }],
     },
 }

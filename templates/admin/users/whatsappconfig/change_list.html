@@ -6,7 +6,8 @@
             {% if linked_whatsapp %}
                 Bu restoranın qoşulmuş göndərən nömrəsi: <strong>{{ linked_whatsapp }}</strong>
             {% else %}
-                Bu restoran üçün WhatsApp hələ qoşulmayıb. «Restoran nömrəsini qoş» ilə öz nömrənizi skan edin.
+                Bu restoran üçün WhatsApp hələ qoşulmayıb.
+                {% if can_connect %}«Restoran nömrəsini qoş» ilə öz nömrənizi skan edin.{% endif %}
             {% endif %}
         </p>
     {% endif %}
@@ -16,9 +17,11 @@
 {% block object-tools-items %}
     {{ block.super }}
     <li>
-        <a href="{% url 'admin:whatsapp_connection' %}" class="historylink">Restoran nömrəsini qoş</a>
+        <a href="{% url 'admin:whatsapp_connection' %}" class="historylink">{% if can_connect %}Restoran nömrəsini qoş{% else %}WhatsApp statusu{% endif %}</a>
     </li>
+    {% if can_view_messages %}
     <li>
         <a href="{% url 'admin:users_whatsappmessage_changelist' %}" class="historylink">Göndərilən mesajlar</a>
     </li>
+    {% endif %}
 {% endblock %}

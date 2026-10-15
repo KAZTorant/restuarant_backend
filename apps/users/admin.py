@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
@@ -51,10 +52,36 @@ class CustomUserAdmin(TenantAdminMixin, UserAdmin):
 admin.site.register(User, CustomUserAdmin)
 
 
+class WhatsAppRestaurantPermissionsMixin:
+    """Normal Django permissions (user/group view, add, change, delete) for the
+    WhatsApp admins. A non-superuser must additionally belong to a restaurant:
+    without one the tenant filter does not narrow the data down."""
+
+    def _in_restaurant_scope(self, request):
+        user = request.user
+        return user.is_superuser or bool(getattr(user, 'restaurant_id', None))
+
+    def has_module_permission(self, request):
+        return self._in_restaurant_scope(request) and super().has_module_permission(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._in_restaurant_scope(request) and super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request):
+        return self._in_restaurant_scope(request) and super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._in_restaurant_scope(request) and super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._in_restaurant_scope(request) and super().has_delete_permission(request, obj)
+
+
 @admin.register(WhatsAppConfig)
-class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
+class WhatsAppConfigAdmin(WhatsAppRestaurantPermissionsMixin, TenantAdminMixin, admin.ModelAdmin):
     """
-    WhatsApp notification recipients. Restaurant staff can manage their own restaurant.
+    WhatsApp notification recipients. Access follows the user's / group's Django
+    permissions; restaurant staff only ever see their own restaurant.
     """
     list_display = ('phone', 'name', 'is_active', 'created_at', 'updated_at')
     list_filter = ('is_active', 'created_at')
@@ -129,6 +156,11 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return redirect(url)
 
     def connection_view(self, request):
+        # Viewing the status needs "view"; scanning the QR, activating and
+        # deleting the session need "change" (checked again in those views).
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        can_change = self.has_change_permission(request)
         restaurant = self._connection_restaurant(request)
         base = self._service_base()
         context = {
@@ -139,6 +171,8 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 else 'Restoran WhatsApp qoşulması'
             ),
             'opts': self.model._meta,
+            'can_change': can_change,
+            'linked': False,
             'service_url': base,
             'restaurant': restaurant,
             'restaurant_slug': restaurant.slug if restaurant else '',
@@ -164,15 +198,21 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 context['error'] = 'Bu istifadəçinin restoranı yoxdur.'
             return render(request, 'admin/users/whatsappconfig/connection.html', context)
         try:
+            # Only users who may change the connection start the WhatsApp
+            # browser by opening this page; viewers just read the status.
+            params = {'restaurant': restaurant.slug}
+            if can_change:
+                params['start'] = '1'
             response = requests.get(
                 f'{base}/status',
-                params={'restaurant': restaurant.slug, 'start': '1'},
+                params=params,
                 headers=self._service_headers(),
                 timeout=8,
             )
             if response.status_code == 200:
                 data = response.json()
                 context['ready'] = bool(data.get('ready'))
+                context['linked'] = bool(data.get('linked'))
                 context['authenticating'] = bool(data.get('authenticating'))
                 context['qr_available'] = bool(data.get('qr_available'))
                 context['on_demand'] = bool(data.get('on_demand'))
@@ -199,6 +239,8 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return render(request, 'admin/users/whatsappconfig/connection.html', context)
 
     def qr_image_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
         restaurant = self._connection_restaurant(request)
         if restaurant is None:
             return HttpResponse(status=400)
@@ -219,6 +261,8 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
     def _toggle_inbound(self, request, action):
         """Open ('activate') or close ('deactivate') the WhatsApp browser so
         incoming stock messages are received and written to the warehouse."""
+        if not self.has_change_permission(request):
+            raise PermissionDenied
         restaurant = self._connection_restaurant(request)
         if request.method != 'POST':
             return self._connection_redirect(request, restaurant)
@@ -263,6 +307,8 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return self._toggle_inbound(request, 'deactivate')
 
     def logout_view(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
         restaurant = self._connection_restaurant(request)
         if request.method != 'POST':
             return self._connection_redirect(request, restaurant)
@@ -295,34 +341,13 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         extra = dict(extra_context or {})
+        extra['can_connect'] = self.has_change_permission(request)
+        extra['can_view_messages'] = request.user.has_perm('users.view_whatsappmessage') or request.user.has_perm('users.change_whatsappmessage')
         if not request.user.is_superuser and getattr(request.user, 'restaurant_id', None):
             session = WhatsAppSession.objects.filter(restaurant=request.user.restaurant).first()
             extra['linked_checked'] = True
             extra['linked_whatsapp'] = self._format_phone(session.phone) if session and session.phone else ''
         return super().changelist_view(request, extra)
-
-    def _staff_can_manage(self, request):
-        user = request.user
-        if not user.is_active or not user.is_staff:
-            return False
-        if user.is_superuser:
-            return True
-        return bool(getattr(user, 'restaurant_id', None))
-
-    def has_module_permission(self, request):
-        return self._staff_can_manage(request) or super().has_module_permission(request)
-
-    def has_view_permission(self, request, obj=None):
-        return self._staff_can_manage(request) or super().has_view_permission(request, obj)
-
-    def has_add_permission(self, request):
-        return self._staff_can_manage(request) or super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        return self._staff_can_manage(request) or super().has_change_permission(request, obj)
-
-    def has_delete_permission(self, request, obj=None):
-        return self._staff_can_manage(request) or super().has_delete_permission(request, obj)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -332,20 +357,13 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         return qs
 
 
-class _WhatsAppReadOnlyAdmin(TenantAdminMixin, admin.ModelAdmin):
-    def _staff_can_manage(self, request):
+class _WhatsAppReadOnlyAdmin(WhatsAppRestaurantPermissionsMixin, TenantAdminMixin, admin.ModelAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
         user = request.user
-        if not user.is_active or not user.is_staff:
-            return False
-        if user.is_superuser:
-            return True
-        return bool(getattr(user, 'restaurant_id', None))
-
-    def has_module_permission(self, request):
-        return self._staff_can_manage(request)
-
-    def has_view_permission(self, request, obj=None):
-        return self._staff_can_manage(request)
+        if user.is_active and user.is_staff and not user.is_superuser and not getattr(user, 'restaurant_id', None):
+            return qs.none()
+        return qs
 
     def has_add_permission(self, request):
         return False
