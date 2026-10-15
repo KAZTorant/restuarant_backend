@@ -15,6 +15,10 @@ const SESSION_PATH = process.env.WHATSAPP_SESSION_PATH || './whatsapp-session';
 const API_KEY = process.env.WHATSAPP_API_KEY || '';
 const CHROME_PATH = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || '';
 const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+// A session that only shows a QR code (nobody linked a phone) keeps a whole
+// Chromium running for nothing. Stop it after this many minutes; it starts
+// again when the admin opens the connection page. 0 disables the auto-stop.
+const QR_IDLE_MS = Math.max(0, Number(process.env.WHATSAPP_QR_IDLE_MINUTES ?? 10)) * 60 * 1000;
 const LEGACY_RESTAURANT = process.env.WHATSAPP_LEGACY_RESTAURANT === undefined
     ? 'qonaq-baku'
     : String(process.env.WHATSAPP_LEGACY_RESTAURANT || '').trim();
@@ -62,6 +66,9 @@ function blankState() {
         starting: false,
         generation: 0,
         outbound: new Map(),
+        qrIdleTimer: null,
+        qrPrinted: false,
+        idleStopped: false,
     };
 }
 
@@ -200,6 +207,34 @@ async function destroyClient(state) {
     } catch (err) {
         console.error('Could not destroy WhatsApp client:', err.message);
     }
+}
+
+function clearQrIdleTimer(state) {
+    if (state.qrIdleTimer) {
+        clearTimeout(state.qrIdleTimer);
+        state.qrIdleTimer = null;
+    }
+}
+
+// Armed on the first QR of a client; cancelled once the phone is linked.
+// Only the browser is closed: the session folder is kept untouched.
+function armQrIdleStop(slug, state, generation) {
+    if (!QR_IDLE_MS || state.qrIdleTimer) {
+        return;
+    }
+    state.qrIdleTimer = setTimeout(async () => {
+        state.qrIdleTimer = null;
+        if (state.generation !== generation || state.isReady || state.authenticating || !state.qrCode) {
+            return;
+        }
+        logEvent('qr_idle_stop', { restaurant: slug, minutes: QR_IDLE_MS / 60000 });
+        state.generation += 1; // makes late 'disconnected' events from this client ignored
+        state.idleStopped = true;
+        state.qrCode = null;
+        state.qrPrinted = false;
+        state.starting = false;
+        await destroyClient(state);
+    }, QR_IDLE_MS);
 }
 
 async function resetSession(slug, state) {
@@ -423,6 +458,9 @@ function initializeWhatsApp(slug) {
         return state;
     }
     state.starting = true;
+    state.idleStopped = false;
+    state.qrPrinted = false;
+    clearQrIdleTimer(state);
 
     const puppeteer = {
         headless: true,
@@ -465,8 +503,14 @@ function initializeWhatsApp(slug) {
     state.starting = false;
 
     client.on('qr', (qr) => {
-        logEvent('qr', { restaurant: slug, chars: qr.length });
-        qrcode.generate(qr, { small: true });
+        // The QR refreshes every ~20s; print it once per start (the admin page
+        // serves it at /qr.png) so the logs are not flooded.
+        if (!state.qrPrinted) {
+            state.qrPrinted = true;
+            logEvent('qr', { restaurant: slug, chars: qr.length });
+            qrcode.generate(qr, { small: true });
+        }
+        armQrIdleStop(slug, state, generation);
         state.qrCode = qr;
         state.isReady = false;
         state.authenticating = false;
@@ -477,6 +521,7 @@ function initializeWhatsApp(slug) {
     });
 
     client.on('ready', async () => {
+        clearQrIdleTimer(state);
         state.isReady = true;
         state.authenticating = false;
         state.qrCode = null;
@@ -508,6 +553,7 @@ function initializeWhatsApp(slug) {
 
     client.on('authenticated', () => {
         logEvent('authenticated', { restaurant: slug });
+        clearQrIdleTimer(state);
         state.authenticating = true;
         state.qrCode = null;
         state.lastError = null;
@@ -575,7 +621,9 @@ function initializeWhatsApp(slug) {
 function ensureSession(slug, { start = false } = {}) {
     const state = getState(slug);
     const saved = fs.existsSync(sessionDir(slug));
-    const canStart = (start || saved)
+    // After a QR idle stop, only an explicit start (admin opened the
+    // connection page) brings the browser back, not background status calls.
+    const canStart = (start || (saved && !state.idleStopped))
         && !state.client
         && !state.starting
         && !state.recovering
