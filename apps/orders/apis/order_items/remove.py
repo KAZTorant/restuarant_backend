@@ -1,7 +1,9 @@
 # apps/orders/api/remove_refactored.py
 
 import logging
+import threading
 from decimal import Decimal
+from django import db
 from django.db.models import Sum
 from django.db import models
 from django.utils import timezone
@@ -235,13 +237,26 @@ class DeleteOrderItemAPIView(APIView):
                 'comment': comment or '',
             }
             
-            sent = whatsapp.notify_order_item_deleted(order_item_info, restaurant)
-            logger.info(
-                "WA notify_result order=%s meal=%s sent=%s",
-                order.id,
-                order_item.meal.name,
-                sent,
-            )
+            # Send in the background: the WhatsApp service may need a few
+            # seconds to open its browser, and the waiter must not wait for it.
+            order_id = order.id
+            meal_name = order_item_info['meal_name']
+
+            def _notify():
+                try:
+                    sent = whatsapp.notify_order_item_deleted(order_item_info, restaurant)
+                    logger.info(
+                        "WA notify_result order=%s meal=%s sent=%s",
+                        order_id,
+                        meal_name,
+                        sent,
+                    )
+                except Exception as exc:
+                    logger.error("WA notify_error order=%s error=%s", order_id, exc)
+                finally:
+                    db.connections.close_all()
+
+            threading.Thread(target=_notify, name="wa-notify", daemon=True).start()
             
         except Exception as e:
             logger.error("WA notify_error order=%s error=%s", order.id, e)

@@ -20,6 +20,8 @@ class WhatsAppNotifier:
             settings, 'WHATSAPP_SERVICE_URL', 'http://localhost:3001'
         ).rstrip('/')
         self.timeout = 20
+        # Sending can wait for the WhatsApp browser to start (on-demand mode).
+        self.send_timeout = 60
         self.health_timeout = 5
 
     def _headers(self):
@@ -251,7 +253,7 @@ class WhatsAppNotifier:
                 restaurant.slug,
                 self._normalize_phone(phone),
             )
-            response = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            response = requests.post(url, json=payload, headers=self._headers(), timeout=self.send_timeout)
             data = {}
             try:
                 data = response.json()

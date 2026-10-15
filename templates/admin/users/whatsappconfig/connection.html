@@ -49,6 +49,37 @@
             {% if connected_number %}Nömrə: {{ connected_number }}.{% endif %}
             Hazırlanmış sifariş məhsulu silinəndə bu nömrədən yalnız bu restoranın aktiv müdir nömrələrinə mesaj gedəcək.
         </p>
+        {% if on_demand %}
+            <div style="margin: 16px 0; padding: 12px 16px; border: 1px solid #ccc; border-radius: 6px;">
+                <p style="margin-top:0;">
+                    <strong>Gələn mesajlar (anbar):</strong>
+                    WhatsApp enerji qənaəti üçün həmişə açıq deyil: mesaj göndəriləndə, bir neçə saatdan bir qısa müddətə
+                    və ya aşağıdakı düymə ilə açılır. Brauzer bağlı olanda nömrəyə gələn mesajlar növbəti açılışda qəbul edilir.
+                </p>
+                {% if manual_active %}
+                    <p style="color:#0b6e4f;">
+                        <strong>Qəbul aktivdir.</strong>
+                        Gələn mesajlar anbara yazılır.
+                        {% if keep_open_until %}Ən gec {{ keep_open_until|date:"H:i" }}-də avtomatik bağlanacaq.{% endif %}
+                    </p>
+                    <form method="post" action="{% url 'admin:whatsapp_deactivate' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">
+                        <button type="submit" class="button">Qəbulu dayandır</button>
+                    </form>
+                {% else %}
+                    <p>
+                        Hazırda brauzer açıqdır{% if keep_open_until %} və təxminən {{ keep_open_until|date:"H:i" }}-də avtomatik bağlanacaq{% endif %}.
+                        Anbara yazılacaq mesajları gözləyirsinizsə, qəbulu aktivləşdirin.
+                    </p>
+                    <form method="post" action="{% url 'admin:whatsapp_activate' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">
+                        <button type="submit" class="button" style="background:#0b6e4f; color:#fff;">Qəbulu aktivləşdir (20 dəq)</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
         <form method="post" action="{% url 'admin:whatsapp_logout' %}">
             {% csrf_token %}
             <input type="hidden" name="restaurant" value="{{ restaurant_slug }}">

@@ -366,6 +366,15 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Xoş gəldiniz!",
     "copyright": "KAZZA Team © 2025",
     "order_with_respect_to": ["tenants", "users", "tables", "meals", "orders", "payments", "finance", "printers"],
+    # Shortcut in the warehouse ("inventory") menu: start/stop receiving
+    # stock messages sent to the restaurant WhatsApp number.
+    "custom_links": {
+        "inventory": [{
+            "name": "WhatsApp qəbulu",
+            "url": "admin:whatsapp_connection",
+            "icon": "fab fa-whatsapp",
+        }],
+    },
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.

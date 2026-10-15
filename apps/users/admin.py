@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -79,6 +80,16 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 self.admin_site.admin_view(self.logout_view),
                 name='whatsapp_logout',
             ),
+            path(
+                'connection/activate/',
+                self.admin_site.admin_view(self.activate_view),
+                name='whatsapp_activate',
+            ),
+            path(
+                'connection/deactivate/',
+                self.admin_site.admin_view(self.deactivate_view),
+                name='whatsapp_deactivate',
+            ),
         ]
         return custom + super().get_urls()
 
@@ -140,6 +151,9 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
             'ready': False,
             'authenticating': False,
             'qr_available': False,
+            'on_demand': False,
+            'manual_active': False,
+            'keep_open_until': None,
             'connected_number': '',
             'status_message': '',
             'error': '',
@@ -161,6 +175,11 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
                 context['ready'] = bool(data.get('ready'))
                 context['authenticating'] = bool(data.get('authenticating'))
                 context['qr_available'] = bool(data.get('qr_available'))
+                context['on_demand'] = bool(data.get('on_demand'))
+                context['manual_active'] = bool(data.get('manual'))
+                keep_open = parse_datetime(data.get('keep_open_until') or '')
+                if keep_open is not None:
+                    context['keep_open_until'] = timezone.localtime(keep_open)
                 context['connected_number'] = (
                     data.get('connected_number_display')
                     or self._format_phone(data.get('connected_number'))
@@ -196,6 +215,52 @@ class WhatsAppConfigAdmin(TenantAdminMixin, admin.ModelAdmin):
         if response.status_code != 200:
             return HttpResponse(status=response.status_code)
         return HttpResponse(response.content, content_type='image/png')
+
+    def _toggle_inbound(self, request, action):
+        """Open ('activate') or close ('deactivate') the WhatsApp browser so
+        incoming stock messages are received and written to the warehouse."""
+        restaurant = self._connection_restaurant(request)
+        if request.method != 'POST':
+            return self._connection_redirect(request, restaurant)
+        if restaurant is None:
+            self.message_user(request, 'Restoran seçilməyib.', level=messages.ERROR)
+            return self._connection_redirect(request, None)
+        try:
+            response = requests.post(
+                f'{self._service_base()}/{action}',
+                json={'restaurant': restaurant.slug},
+                headers=self._service_headers(),
+                timeout=30,
+            )
+            if response.status_code == 200 and action == 'activate':
+                minutes = response.json().get('minutes')
+                self.message_user(
+                    request,
+                    f'{restaurant.name}: gələn mesajlar qəbul edilir ({minutes} dəqiqə). '
+                    'Mesajlar anbara yazılacaq, sonra WhatsApp özü bağlanacaq.',
+                )
+            elif response.status_code == 200:
+                self.message_user(request, f'{restaurant.name}: WhatsApp qəbulu dayandırıldı.')
+            else:
+                detail = ''
+                try:
+                    detail = response.json().get('error') or ''
+                except ValueError:
+                    pass
+                self.message_user(
+                    request,
+                    f'Əməliyyat alınmadı ({response.status_code}). {detail}',
+                    level=messages.ERROR,
+                )
+        except requests.RequestException as exc:
+            self.message_user(request, f'WhatsApp servisinə qoşulmaq olmadı: {exc}', level=messages.ERROR)
+        return self._connection_redirect(request, restaurant)
+
+    def activate_view(self, request):
+        return self._toggle_inbound(request, 'activate')
+
+    def deactivate_view(self, request):
+        return self._toggle_inbound(request, 'deactivate')
 
     def logout_view(self, request):
         restaurant = self._connection_restaurant(request)

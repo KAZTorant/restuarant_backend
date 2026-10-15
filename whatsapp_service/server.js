@@ -19,6 +19,30 @@ const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
 // Chromium running for nothing. Stop it after this many minutes; it starts
 // again when the admin opens the connection page. 0 disables the auto-stop.
 const QR_IDLE_MS = Math.max(0, Number(process.env.WHATSAPP_QR_IDLE_MINUTES ?? 10)) * 60 * 1000;
+
+// On-demand mode (WHATSAPP_ON_DEMAND=true): a linked session does not keep
+// Chromium open all day. The browser is opened to send a message, for a short
+// inbound check every few hours, or when an admin activates it, and closed
+// again once nothing needs it. The linked session stays on the volume, so no
+// QR is needed. Off by default: without the flag everything behaves as before.
+function envNumber(name, fallback) {
+    const value = Number(process.env[name]);
+    return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+const ON_DEMAND = /^(1|true|yes|on)$/i.test(process.env.WHATSAPP_ON_DEMAND || '');
+const INBOUND_CHECK_EVERY_MS = envNumber('WHATSAPP_INBOUND_CHECK_HOURS', 4) * 3600 * 1000;
+// How long the browser stays open after it became ready (receives queued messages).
+const CHECK_WINDOW_MS = envNumber('WHATSAPP_CHECK_WINDOW_MINUTES', 3) * 60 * 1000;
+// After a send, wait for delivered/read acknowledgements.
+const SEND_LINGER_MS = envNumber('WHATSAPP_SEND_LINGER_MINUTES', 3) * 60 * 1000;
+const INBOUND_LINGER_MS = envNumber('WHATSAPP_INBOUND_LINGER_MINUTES', 3) * 60 * 1000;
+// Default length of the manual "activate" window (admin button).
+const MANUAL_DEFAULT_MINUTES = envNumber('WHATSAPP_MANUAL_MINUTES', 20);
+// A send waits this long for a cold-started browser to become ready.
+const SEND_WAIT_MS = envNumber('WHATSAPP_SEND_WAIT_SECONDS', 50) * 1000;
+// Incoming messages older than this are ignored (never replay old history into stock).
+const INBOUND_MAX_AGE_S = envNumber('WHATSAPP_INBOUND_MAX_AGE_HOURS', 72) * 3600;
+const LINKED_MARKER = '.kazza-linked';
 const LEGACY_RESTAURANT = process.env.WHATSAPP_LEGACY_RESTAURANT === undefined
     ? 'qonaq-baku'
     : String(process.env.WHATSAPP_LEGACY_RESTAURANT || '').trim();
@@ -69,6 +93,13 @@ function blankState() {
         qrIdleTimer: null,
         qrPrinted: false,
         idleStopped: false,
+        // on-demand lifecycle
+        leaseUntil: 0,
+        leaseReason: '',
+        manual: false,
+        closing: false,
+        pendingSends: 0,
+        inboundBusy: 0,
     };
 }
 
@@ -237,12 +268,158 @@ function armQrIdleStop(slug, state, generation) {
     }, QR_IDLE_MS);
 }
 
+// ---- on-demand lifecycle -------------------------------------------------
+
+function linkedMarkerPath(slug) {
+    return path.join(sessionDir(slug), LINKED_MARKER);
+}
+
+// A session counts as linked once its phone has been connected ('ready') at
+// least once. Removed together with the session folder on logout.
+function isLinked(slug) {
+    try {
+        return fs.existsSync(linkedMarkerPath(slug));
+    } catch (err) {
+        return false;
+    }
+}
+
+function markLinked(slug) {
+    try {
+        fs.writeFileSync(linkedMarkerPath(slug), new Date().toISOString());
+    } catch (err) {
+        console.error('Could not write linked marker', slug, err.message);
+    }
+}
+
+// Keep the browser open until at least now + ms. No-op outside on-demand mode.
+function extendLease(state, ms, reason) {
+    if (!ON_DEMAND || !ms) {
+        return;
+    }
+    const until = Date.now() + ms;
+    if (until > state.leaseUntil) {
+        state.leaseUntil = until;
+        state.leaseReason = reason;
+    }
+}
+
+// Close the browser of a ready session nobody needs any more. The linked
+// session folder is left untouched, so the next start needs no QR.
+async function closeIfIdle(slug, state) {
+    if (!ON_DEMAND || !state.client || !state.isReady || state.closing) {
+        return false;
+    }
+    if (Date.now() < state.leaseUntil || state.pendingSends > 0 || state.inboundBusy > 0) {
+        return false;
+    }
+    state.closing = true;
+    try {
+        logEvent('on_demand_close', { restaurant: slug, last_reason: state.leaseReason || null });
+        state.generation += 1; // late 'disconnected' events of this client are ignored
+        state.isReady = false;
+        state.authenticating = false;
+        state.qrCode = null;
+        state.manual = false;
+        state.leaseUntil = 0;
+        state.leaseReason = '';
+        await destroyClient(state);
+    } finally {
+        state.closing = false;
+    }
+    return true;
+}
+
+// Explicit start (send / scheduled check / admin button). Gives a failed
+// session a fresh set of recovery attempts.
+async function startOnDemand(slug, reason) {
+    const state = getState(slug);
+    // A browser that is still shutting down holds the profile folder.
+    for (let i = 0; i < 60 && state.closing; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    if (!state.client && !state.starting && !state.recovering) {
+        state.recoveryCount = 0;
+        logEvent('on_demand_start', { restaurant: slug, reason });
+    }
+    return ensureSession(slug, { start: true });
+}
+
+function waitUntilReady(state, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    return new Promise((resolve) => {
+        const tick = () => {
+            if (state.isReady && state.client) {
+                resolve(true);
+            } else if (state.qrCode) {
+                resolve(false); // phone is not linked: a QR is needed, nothing to wait for
+            } else if (!state.client && !state.starting && !state.recovering && state.recoveryCount >= 3) {
+                resolve(false); // gave up starting
+            } else if (Date.now() >= deadline) {
+                resolve(false);
+            } else {
+                setTimeout(tick, 500);
+            }
+        };
+        tick();
+    });
+}
+
+// ---- processed incoming message ids (no double stock entries) ------------
+
+const processedIds = new Map();
+const PROCESSED_LIMIT = 1000;
+
+function processedFile(slug) {
+    return path.join(SESSION_PATH, `processed-${slug}.json`);
+}
+
+function processedSet(slug) {
+    if (!processedIds.has(slug)) {
+        let ids = [];
+        try {
+            ids = JSON.parse(fs.readFileSync(processedFile(slug), 'utf8'));
+        } catch (err) {
+            ids = [];
+        }
+        processedIds.set(slug, new Set(Array.isArray(ids) ? ids : []));
+    }
+    return processedIds.get(slug);
+}
+
+// Returns true when the id was already handled; otherwise remembers it.
+function seenIncoming(slug, id) {
+    if (!id) {
+        return false;
+    }
+    const set = processedSet(slug);
+    if (set.has(id)) {
+        return true;
+    }
+    set.add(id);
+    while (set.size > PROCESSED_LIMIT) {
+        set.delete(set.values().next().value);
+    }
+    try {
+        fs.writeFileSync(processedFile(slug), JSON.stringify([...set]));
+    } catch (err) {
+        console.error('Could not save processed ids', slug, err.message);
+    }
+    return false;
+}
+
 async function resetSession(slug, state) {
     await destroyClient(state);
     const dir = sessionDir(slug);
     clearStaleBrowserLocks(dir);
     if (usesLegacyStore(slug)) {
         logEvent('legacy_session_kept', { restaurant: slug });
+        return;
+    }
+    if (ON_DEMAND && isLinked(slug)) {
+        // The browser is started often in on-demand mode; one slow start must
+        // not throw away a linked phone. "Sessiyanı sil" in the admin does it.
+        logEvent('linked_session_kept', { restaurant: slug });
         return;
     }
     fs.rmSync(dir, { recursive: true, force: true });
@@ -370,7 +547,54 @@ function rememberOutbound(state, waId, meta) {
     state.outbound.set(waId, meta);
 }
 
+const SKIPPED_INCOMING_TYPES = new Set([
+    'e2e_notification',
+    'notification_template',
+    'gp2',
+    'protocol',
+    'ciphertext',
+    'revoked',
+    'call_log',
+]);
+
+function isRelevantIncoming(msg) {
+    if (!msg || msg.fromMe) {
+        return false;
+    }
+    const from = String(msg.from || '');
+    if (from === 'status@broadcast' || from.endsWith('@g.us')) {
+        return false;
+    }
+    return !SKIPPED_INCOMING_TYPES.has(msg.type);
+}
+
+// Entry point for every incoming message. Ignores duplicates (the browser is
+// restarted often, WhatsApp may hand the same message over again) and keeps
+// the on-demand browser open while the message is processed.
 async function handleIncoming(slug, state, msg) {
+    if (!isRelevantIncoming(msg)) {
+        return;
+    }
+    const waId = msg.id && msg.id._serialized;
+    if (seenIncoming(slug, waId)) {
+        logEvent('inbound_duplicate_ignored', { restaurant: slug, id: waId });
+        return;
+    }
+    if (INBOUND_MAX_AGE_S && msg.timestamp && (Date.now() / 1000 - msg.timestamp) > INBOUND_MAX_AGE_S) {
+        logEvent('inbound_too_old_ignored', { restaurant: slug, id: waId });
+        return;
+    }
+    state.inboundBusy += 1;
+    extendLease(state, INBOUND_LINGER_MS, 'inbound');
+    try {
+        await processIncoming(slug, state, msg);
+    } finally {
+        state.inboundBusy -= 1;
+        extendLease(state, INBOUND_LINGER_MS, 'inbound');
+    }
+}
+
+async function processIncoming(slug, state, msg) {
     if (!msg || msg.fromMe) {
         return;
     }
@@ -539,6 +763,10 @@ function initializeWhatsApp(slug) {
             number: displayNumber(state.connectedNumber),
             digits: state.connectedNumber || null,
         });
+        markLinked(slug);
+        // Queued incoming messages arrive right after 'ready': stay open long
+        // enough to receive and process them.
+        extendLease(state, CHECK_WINDOW_MS, 'ready');
         await reportBackend({
             event: 'session',
             restaurant: slug,
@@ -576,6 +804,7 @@ function initializeWhatsApp(slug) {
         if (!msg || !msg.fromMe) {
             return;
         }
+        extendLease(state, 60 * 1000, 'ack'); // delivered/read usually follow each other
         const waId = msg.id && msg.id._serialized;
         const known = waId ? state.outbound.get(waId) : null;
         reportBackend({
@@ -623,7 +852,9 @@ function ensureSession(slug, { start = false } = {}) {
     const saved = fs.existsSync(sessionDir(slug));
     // After a QR idle stop, only an explicit start (admin opened the
     // connection page) brings the browser back, not background status calls.
-    const canStart = (start || (saved && !state.idleStopped))
+    // In on-demand mode a saved session is never started by background calls
+    // (status checks, sends); only explicit starts open the browser.
+    const canStart = (start || (!ON_DEMAND && saved && !state.idleStopped))
         && !state.client
         && !state.starting
         && !state.recovering
@@ -635,8 +866,18 @@ function ensureSession(slug, { start = false } = {}) {
 }
 
 function statusPayload(slug, state) {
+    const linked = isLinked(slug);
     return {
         restaurant: slug,
+        on_demand: ON_DEMAND,
+        browser_open: Boolean(state.client),
+        linked,
+        // Can a message be sent right now (browser open, or it can be opened on demand)?
+        available: state.isReady || (ON_DEMAND && linked),
+        manual: state.manual,
+        keep_open_until: ON_DEMAND && state.isReady && state.leaseUntil > Date.now()
+            ? new Date(state.leaseUntil).toISOString()
+            : null,
         ready: state.isReady,
         authenticating: state.authenticating,
         qr_available: Boolean(state.qrCode),
@@ -655,6 +896,25 @@ function statusPayload(slug, state) {
 
 async function sendOnSession(slug, phone, message, extra = {}) {
     const state = ensureSession(slug, { start: false });
+    if (!ON_DEMAND) {
+        return sendOnReadySession(slug, state, phone, message, extra);
+    }
+    // On-demand: open the browser for this message if it is closed, send,
+    // then keep it open a little for delivery/read acknowledgements.
+    state.pendingSends += 1;
+    try {
+        if (!state.isReady && isLinked(slug)) {
+            await startOnDemand(slug, 'send');
+            await waitUntilReady(state, SEND_WAIT_MS);
+        }
+        return await sendOnReadySession(slug, state, phone, message, extra);
+    } finally {
+        state.pendingSends -= 1;
+        extendLease(state, SEND_LINGER_MS, 'send');
+    }
+}
+
+async function sendOnReadySession(slug, state, phone, message, extra = {}) {
     if (!state.isReady || !state.client) {
         logEvent('send_rejected', { restaurant: slug, to: phone, ready: state.isReady });
         return {
@@ -720,6 +980,8 @@ app.get('/health', (req, res) => {
     const ready = [...sessions.values()].filter((state) => state.isReady).length;
     res.json({
         status: 'running',
+        on_demand: ON_DEMAND,
+        browsers_open: [...sessions.values()].filter((state) => state.client).length,
         whatsapp_ready: ready > 0,
         sessions_ready: ready,
         timestamp: new Date().toISOString(),
@@ -850,6 +1112,43 @@ app.post('/notify-order-deletion', requireKey, async (req, res) => {
     }
 });
 
+// Admin button "activate": open the browser, receive and process incoming
+// messages (stock entries) for a while, then close on its own or on "deactivate".
+app.post('/activate', requireKey, async (req, res) => {
+    const slug = restaurantFrom(req);
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
+    if (!isLinked(slug) && !getState(slug).client) {
+        return res.status(409).json({
+            success: false,
+            error: 'WhatsApp is not linked yet. Scan the QR code first.',
+            restaurant: slug,
+        });
+    }
+    const requested = Number(req.body && req.body.minutes);
+    const minutes = Math.min(240, Math.max(1, Number.isFinite(requested) && requested > 0 ? requested : MANUAL_DEFAULT_MINUTES));
+    const state = getState(slug);
+    state.manual = true;
+    extendLease(state, minutes * 60 * 1000, 'manual');
+    logEvent('manual_activate', { restaurant: slug, minutes });
+    await startOnDemand(slug, 'manual');
+    return res.json({ success: true, minutes, ...statusPayload(slug, state) });
+});
+
+app.post('/deactivate', requireKey, async (req, res) => {
+    const slug = restaurantFrom(req);
+    if (!slug) {
+        return res.status(400).json({ success: false, error: 'restaurant is required' });
+    }
+    const state = getState(slug);
+    state.manual = false;
+    state.leaseUntil = 0;
+    logEvent('manual_deactivate', { restaurant: slug });
+    await closeIfIdle(slug, state);
+    return res.json({ success: true, ...statusPayload(slug, state) });
+});
+
 app.post('/logout', requireKey, async (req, res) => {
     const slug = restaurantFrom(req);
     if (!slug) {
@@ -859,6 +1158,8 @@ app.post('/logout', requireKey, async (req, res) => {
     logEvent('logout_requested', { restaurant: slug, number: displayNumber(state.connectedNumber) });
     state.manualLogout = true;
     state.recoveryCount = 0;
+    state.manual = false;
+    state.leaseUntil = 0;
     try {
         if (state.client) {
             await state.client.logout().catch((err) => {
@@ -901,9 +1202,45 @@ function bootSessions() {
     slugs.forEach((slug) => ensureSession(slug, { start: true }));
 }
 
+function startOnDemandLoops() {
+    if (!ON_DEMAND) {
+        return;
+    }
+    logEvent('on_demand_enabled', {
+        check_every_hours: INBOUND_CHECK_EVERY_MS / 3600000,
+        check_window_minutes: CHECK_WINDOW_MS / 60000,
+        send_linger_minutes: SEND_LINGER_MS / 60000,
+    });
+    // Close browsers nobody needs any more.
+    setInterval(() => {
+        for (const [slug, state] of sessions) {
+            closeIfIdle(slug, state).catch((err) => {
+                logEvent('on_demand_close_error', { restaurant: slug, error: err.message });
+            });
+        }
+    }, envNumber('WHATSAPP_REAPER_SECONDS', 20) * 1000);
+    // Periodic inbound check: open every linked session briefly so messages
+    // received while the browser was closed are delivered and processed.
+    if (INBOUND_CHECK_EVERY_MS > 0) {
+        setInterval(() => {
+            for (const slug of savedSlugs()) {
+                const state = getState(slug);
+                if (!isLinked(slug) || state.client || state.starting || state.recovering) {
+                    continue;
+                }
+                logEvent('inbound_check', { restaurant: slug });
+                startOnDemand(slug, 'inbound_check').catch((err) => {
+                    logEvent('inbound_check_error', { restaurant: slug, error: err.message });
+                });
+            }
+        }, INBOUND_CHECK_EVERY_MS);
+    }
+}
+
 app.listen(PORT, '0.0.0.0', () => {
-    logEvent('listening', { port: PORT, session: SESSION_PATH, chrome: CHROME_PATH || 'default' });
+    logEvent('listening', { port: PORT, session: SESSION_PATH, chrome: CHROME_PATH || 'default', on_demand: ON_DEMAND });
     bootSessions();
+    startOnDemandLoops();
 });
 
 process.on('SIGINT', async () => {

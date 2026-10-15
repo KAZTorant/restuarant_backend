@@ -102,3 +102,15 @@ Eyni repodan ikinci Railway servisi:
 
 Axın: hər restoran öz nömrəsi ilə QR login olur (göndərən). Hazırlanmış sifariş məhsulu silinəndə mesaj həmin restoranın nömrəsindən yalnız onun müdir nömrələrinə gedir. Mövcud `session` qovluğu Qonaq-Baku-ya aiddir və deploy onu köçürmür, silmir.
 - Print gateway (`print_gateway/`) restoran şəbəkəsində ayrıca işləməlidir.
+
+### Enerji qənaəti rejimi (`WHATSAPP_ON_DEMAND`)
+
+Chromium RAM-ı daimi tutur. WhatsApp servisində `WHATSAPP_ON_DEMAND=true` qoysanız, qoşulmuş sessiya brauzeri bağlı saxlanılır (sessiya diskdə qalır, QR lazım olmur). Brauzer yalnız bu hallarda açılır:
+
+- mesaj göndəriləndə (göndərilir, çatdı/oxundu üçün bir neçə dəqiqə gözləyir, bağlanır);
+- hər `WHATSAPP_INBOUND_CHECK_HOURS` saatdan bir (default 4) qısa müddətə, gələn mesajları qəbul etmək üçün;
+- admin paneldə **WhatsApp qoşulması** səhifəsində (və Anbar menyusundakı **WhatsApp qəbulu** linkində) **Qəbulu aktivləşdir** düyməsi ilə.
+
+Qeyd: brauzer bağlı olanda nömrəyə gələn mesajlar növbəti açılışda qəbul edilir, yəni anbar yazılışı gecikə bilər. Təkrar mesaj stoka iki dəfə yazılmasın deyə işlənmiş mesaj ID-ləri `/data/session/processed-<slug>.json` faylında saxlanılır.
+
+Əlavə dəyişənlər (hamısı ixtiyari): `WHATSAPP_CHECK_WINDOW_MINUTES` (3), `WHATSAPP_SEND_LINGER_MINUTES` (3), `WHATSAPP_INBOUND_LINGER_MINUTES` (3), `WHATSAPP_MANUAL_MINUTES` (20), `WHATSAPP_SEND_WAIT_SECONDS` (50), `WHATSAPP_INBOUND_MAX_AGE_HOURS` (72), `WHATSAPP_QR_IDLE_MINUTES` (10).
