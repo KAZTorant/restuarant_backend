@@ -60,7 +60,7 @@ const AdminUI = {
     if (typeof val === 'object') {
       return AdminUI.escapeHtml(val.label || val.id || JSON.stringify(val));
     }
-    return AdminUI.escapeHtml(val);
+    return AdminUI.escapeHtml(val).replace(/&lt;br\s*\/?&gt;/g, '<br>');
   },
 
   openModal(title, bodyHtml, wide = false) {

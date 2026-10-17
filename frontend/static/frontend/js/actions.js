@@ -136,14 +136,42 @@ const ActionsPanel = {
     this.showLoading(false);
   },
 
-  showPaymentModal() {
+  async showPaymentModal() {
+    let status = {
+      paid_amount: 0, payments: [], discount: 0, discount_comment: '',
+    };
+    KazzaUI.showLoading('Ödəniş yüklənir...');
+    try {
+      status = await KazzaAPI.fetchPaymentStatus(this.tableId) || status;
+    } catch (e) {
+      status = { paid_amount: 0, payments: [], discount: 0, discount_comment: '' };
+    } finally {
+      KazzaUI.hideLoading();
+    }
+
+    const cents = (value) => Math.round((Number(value) || 0) * 100);
+    const money = (value) => (value / 100).toFixed(2);
+    const formatPaidAt = (iso) => {
+      if (!iso) return '';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return iso;
+      return date.toLocaleString('az-AZ', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    };
+
     const overlay = document.getElementById('popup-overlay');
     overlay.classList.remove('hidden');
 
     const state = {
       cash: '', card: '', other: '',
-      discountAmount: 0, discountComment: '',
+      discountAmount: Number(status.discount) || 0,
+      discountComment: status.discount_comment || '',
       activeInput: 'cash',
+      alreadyPaidCents: cents(status.paid_amount),
+      payments: Array.isArray(status.payments) ? status.payments : [],
+      showHistory: false,
     };
 
     const readDiscount = () => {
@@ -168,11 +196,21 @@ const ActionsPanel = {
       readDiscount();
       const total = this.totalPrice;
       const discount = state.discountAmount || 0;
-      const finalAmount = Math.max(0, total - discount);
-      const paid = (parseFloat(state.cash) || 0)
-        + (parseFloat(state.card) || 0)
-        + (parseFloat(state.other) || 0);
-      const remaining = paid - finalAmount;
+      const finalCents = Math.max(0, cents(total) - cents(discount));
+      const currentCents = cents(state.cash) + cents(state.card) + cents(state.other);
+      const paidCents = state.alreadyPaidCents + currentCents;
+      const balanceCents = finalCents - paidCents;
+      const qaliqCents = Math.abs(balanceCents);
+      const qaliqColor = balanceCents > 0 ? 'var(--danger)' : 'var(--primary-dark)';
+      const completes = balanceCents <= 0 && (currentCents > 0 || state.alreadyPaidCents >= finalCents);
+      const historyRows = state.payments.length
+        ? state.payments.map((payment) => `
+            <div class="payment-history-row">
+              <span>${formatPaidAt(payment.paid_at)}</span>
+              <span>${escAttr(payment.payment_type_display || payment.payment_type || '')}</span>
+              <strong>₼ ${Number(payment.amount).toFixed(2)}</strong>
+            </div>`).join('')
+        : '<div class="payment-history-empty">Hələ ödəniş yoxdur</div>';
 
       overlay.innerHTML = `
         <div class="modal-dialog modal-dialog--payment">
@@ -184,18 +222,19 @@ const ActionsPanel = {
             </div>
             <div class="payment-summary-item">
               <div class="label">Son məbləğ</div>
-              <div class="value" id="pay-final">₼ ${finalAmount.toFixed(2)}</div>
+              <div class="value" id="pay-final">₼ ${money(finalCents)}</div>
             </div>
-            <div class="payment-summary-item">
+            <button type="button" class="payment-summary-item payment-summary-item--button ${state.showHistory ? 'is-open' : ''}" id="pay-history-toggle">
               <div class="label">Ödənilən</div>
-              <div class="value" id="pay-paid">₼ ${paid.toFixed(2)}</div>
-            </div>
+              <div class="value" id="pay-paid">₼ ${money(paidCents)}</div>
+            </button>
             <div class="payment-summary-item">
               <div class="label">Qalıq</div>
-              <div class="value" id="pay-remaining" style="color:${remaining >= 0 ? 'var(--primary-dark)' : 'var(--danger)'}">
-                ₼ ${remaining.toFixed(2)}
+              <div class="value" id="pay-remaining" style="color:${qaliqColor}">
+                ₼ ${money(qaliqCents)}
               </div>
             </div>
+            ${state.showHistory ? `<div class="payment-history" id="pay-history">${historyRows}</div>` : ''}
           </div>
           <div class="payment-methods">
             ${paymentTypes.map((type) => `
@@ -224,7 +263,7 @@ const ActionsPanel = {
           </div>
           <div class="modal-buttons">
             <button class="cancel-btn" id="pay-cancel">Ləğv et</button>
-            <button class="confirm-btn" id="pay-confirm">Təsdiqlə</button>
+            <button class="confirm-btn" id="pay-confirm">${completes ? 'Təsdiqlə' : 'Qismən qəbul et'}</button>
           </div>
         </div>`;
 
@@ -232,14 +271,22 @@ const ActionsPanel = {
         inp.addEventListener('click', () => { state.activeInput = inp.dataset.type; render(); });
       });
 
+      overlay.querySelector('#pay-history-toggle').addEventListener('click', () => {
+        state.showHistory = !state.showHistory;
+        render();
+      });
+
       overlay.querySelectorAll('[data-fill]').forEach((btn) => {
         btn.addEventListener('click', () => {
           readDiscount();
-          const amount = Math.max(0, this.totalPrice - (state.discountAmount || 0));
+          const amountCents = Math.max(
+            0,
+            cents(this.totalPrice) - cents(state.discountAmount) - state.alreadyPaidCents,
+          );
           state.cash = '';
           state.card = '';
           state.other = '';
-          state[btn.dataset.fill] = amount.toFixed(2);
+          state[btn.dataset.fill] = amountCents ? money(amountCents) : '';
           state.activeInput = btn.dataset.fill;
           render();
         });
@@ -247,15 +294,19 @@ const ActionsPanel = {
 
       overlay.querySelector('#discount-amt').addEventListener('input', () => {
         const discountNow = parseFloat(document.getElementById('discount-amt').value) || 0;
-        const finalNow = Math.max(0, this.totalPrice - discountNow);
-        const paidNow = (parseFloat(state.cash) || 0)
-          + (parseFloat(state.card) || 0)
-          + (parseFloat(state.other) || 0);
-        const remainingNow = paidNow - finalNow;
-        document.getElementById('pay-final').textContent = `₼ ${finalNow.toFixed(2)}`;
+        const finalNow = Math.max(0, cents(this.totalPrice) - cents(discountNow));
+        const paidNow = state.alreadyPaidCents + cents(state.cash) + cents(state.card) + cents(state.other);
+        const balanceNow = finalNow - paidNow;
+        document.getElementById('pay-final').textContent = `₼ ${money(finalNow)}`;
         const remEl = document.getElementById('pay-remaining');
-        remEl.textContent = `₼ ${remainingNow.toFixed(2)}`;
-        remEl.style.color = remainingNow >= 0 ? 'var(--primary-dark)' : 'var(--danger)';
+        remEl.textContent = `₼ ${money(Math.abs(balanceNow))}`;
+        remEl.style.color = balanceNow > 0 ? 'var(--danger)' : 'var(--primary-dark)';
+        const confirmBtn = document.getElementById('pay-confirm');
+        if (confirmBtn) {
+          const enteredNow = cents(state.cash) + cents(state.card) + cents(state.other);
+          const completesNow = balanceNow <= 0 && (enteredNow > 0 || state.alreadyPaidCents >= finalNow);
+          confirmBtn.textContent = completesNow ? 'Təsdiqlə' : 'Qismən qəbul et';
+        }
       });
 
       overlay.querySelector('#pay-numpad').addEventListener('click', (e) => {
@@ -286,7 +337,9 @@ const ActionsPanel = {
         if (card > 0) methods.push({ payment_type: 'card', amount: card });
         if (other > 0) methods.push({ payment_type: 'other', amount: other });
 
-        if (methods.length === 0) {
+        const enteredCents = cents(cash) + cents(card) + cents(other);
+        const dueCents = Math.max(0, cents(this.totalPrice) - cents(state.discountAmount));
+        if (enteredCents <= 0 && dueCents > state.alreadyPaidCents) {
           KazzaUI.warning('Zəhmət olmasa ödəniş məbləğini daxil edin.');
           return;
         }
@@ -297,7 +350,7 @@ const ActionsPanel = {
         KazzaUI.showLoading('Ödəniş həyata keçirilir...');
 
         try {
-          await KazzaAPI.cancelPayment(this.tableId, {
+          const result = await KazzaAPI.cancelPayment(this.tableId, {
             payment_methods: methods,
             paid_amount: cash + card + other,
             discount_amount: state.discountAmount,
@@ -305,12 +358,17 @@ const ActionsPanel = {
           });
           overlay.classList.add('hidden');
           overlay.innerHTML = '';
+          if (result && result.partial) {
+            const paidNow = Number(result.details?.paid_amount || 0).toFixed(2);
+            const left = Number(result.details?.remaining || 0).toFixed(2);
+            KazzaUI.success(`₼ ${paidNow} ödənildi. Qalıq: ₼ ${left}`);
+            return;
+          }
           KazzaUI.success('Ödəniş uğurla tamamlandı!');
           setTimeout(() => { window.location.href = `/r/${this.restaurantSlug}/hall/${this.hallId}/`; }, 800);
         } catch (e) {
           KazzaUI.error(KazzaUI.parseError(e, 'Ödəniş zamanı xəta baş verdi.'));
-          btn.disabled = false;
-          btn.textContent = 'Təsdiqlə';
+          render();
         } finally {
           KazzaUI.hideLoading();
         }

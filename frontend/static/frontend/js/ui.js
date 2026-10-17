@@ -88,6 +88,7 @@ const KazzaUI = {
         return 'Axtardığınız məlumat tapılmadı.';
       }
       if (status === 400) {
+        if (data?.message) return data.message;
         if (data?.error) return data.error;
         if (data?.pin) return 'PIN düzgün deyil.';
         return 'Daxil etdiyiniz məlumat düzgün deyil.';

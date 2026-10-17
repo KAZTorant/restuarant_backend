@@ -83,3 +83,44 @@ class Payment(models.Model):
             f"{method.get_payment_type_display()}: {method.amount}₼"
             for method in self.payment_methods.all()
         ])
+
+
+class PartialPayment(models.Model):
+    """Açiq hesaba yazılan hissə-hissə ödəniş.
+
+    Ödənişlər siyahısına düşmür. Borc tam bağlananda bir Payment-ə bağlanır.
+    """
+
+    table = models.ForeignKey(
+        Table, on_delete=models.CASCADE, related_name='partial_payments',
+        verbose_name=_("Masa"),
+    )
+    orders = models.ManyToManyField(
+        "orders.Order", related_name='partial_payments', verbose_name=_("Sifarişlər"),
+    )
+    payment = models.ForeignKey(
+        Payment, on_delete=models.CASCADE, related_name='partial_payments',
+        null=True, blank=True, verbose_name=_("Ödəniş"),
+    )
+    amount = models.DecimalField(_("Məbləğ"), max_digits=10, decimal_places=2)
+    payment_type = models.CharField(
+        _("Ödəniş növü"), max_length=20, choices=PaymentMethod.PaymentType.choices,
+    )
+    discount_amount = models.DecimalField(
+        _("Endirim"), max_digits=10, decimal_places=2, default=0,
+    )
+    discount_comment = models.CharField(
+        _("Endirim səbəbi"), max_length=255, blank=True,
+    )
+    paid_by = models.ForeignKey(
+        User, verbose_name=_("Operator"), on_delete=models.SET_NULL, null=True,
+    )
+    paid_at = models.DateTimeField(_("Ödəmə tarixi"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Qismən ödəniş")
+        verbose_name_plural = _("Qismən ödənişlər")
+        ordering = ['paid_at', 'id']
+
+    def __str__(self):
+        return f"{self.get_payment_type_display()} {self.amount}₼"

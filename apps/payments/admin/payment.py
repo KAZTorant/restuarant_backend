@@ -2,7 +2,8 @@ from decimal import Decimal
 from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import redirect
-from django.utils.html import format_html
+from django.utils import timezone
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -112,6 +113,7 @@ class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
         'paid_at',
         'paid_by',
         'orders_display',
+        'installments_display',
     )
     inlines = [PaymentMethodInline, OrderInline]
     fieldsets = (
@@ -127,6 +129,7 @@ class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
                 'change',
                 'paid_by',
                 'paid_at',
+                'installments_display',
             )
         }),
     )
@@ -137,6 +140,31 @@ class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
             for order in obj.orders.all()
         ]) or "Yoxdur"
     orders_display.short_description = _("Əlaqəli sifarişlər")
+
+    def installments_display(self, obj):
+        lines = []
+        partials = obj.partial_payments.order_by('paid_at', 'id')
+        if partials.exists():
+            for partial in partials:
+                when = timezone.localtime(partial.paid_at).strftime('%d.%m.%Y %H:%M')
+                lines.append(
+                    f"{when} — {partial.get_payment_type_display()} {partial.amount:.2f}₼"
+                )
+        else:
+            methods = obj.payment_methods.order_by('created_at', 'id')
+            for method in methods:
+                when = timezone.localtime(method.created_at).strftime('%d.%m.%Y %H:%M')
+                lines.append(
+                    f"{when} — {method.get_payment_type_display()} {method.amount:.2f}₼"
+                )
+            if not lines and obj.paid_at:
+                when = timezone.localtime(obj.paid_at).strftime('%d.%m.%Y %H:%M')
+                lines.append(f"{when} — {obj.paid_amount:.2f}₼")
+        if not lines:
+            return "—"
+        return mark_safe("<br>".join(escape(line) for line in lines))
+
+    installments_display.short_description = _("Ödənişlər")
 
     def payment_methods_display(self, obj):
         if obj.payment_methods.exists():

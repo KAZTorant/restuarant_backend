@@ -543,6 +543,53 @@ html[data-theme="dark"] .status-badge--waiting {
   margin-top: 4px;
 }
 
+.payment-summary-item--button {
+  border: 0;
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+  background: var(--surface-2);
+  color: inherit;
+}
+
+.payment-summary-item--button:hover,
+.payment-summary-item--button.is-open {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.payment-history {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.payment-history-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.payment-history-row:last-child {
+  border-bottom: 0;
+}
+
+.payment-history-row strong {
+  text-align: right;
+}
+
+.payment-history-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 6px 0;
+}
+
 .modal-dialog--payment {
   max-width: 520px;
 }

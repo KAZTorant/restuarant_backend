@@ -100,6 +100,10 @@ const KazzaAPI = {
     return this.post(`/api/payments/${tableId}/pay-orders/`, payload);
   },
 
+  fetchPaymentStatus(tableId) {
+    return this.get(`/api/payments/${tableId}/pay-orders/`);
+  },
+
   fetchMealGroups() { return this.get('/api/meals/groups/'); },
   fetchMealsByCategoryId(categoryId) {
     const url = categoryId
