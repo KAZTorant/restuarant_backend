@@ -32,7 +32,13 @@ const AdminLayout = {
   },
 
   renderNav(container, apps) {
-    container.innerHTML = apps.map((app) => `
+    const head = `
+      <div class="nav-section">
+        <div class="nav-app-title">Panel</div>
+        <a href="/panel/" class="nav-link" data-path="/panel/">İdarə paneli</a>
+        <a href="/panel/analytics/" class="nav-link" data-path="/panel/analytics/">Satış paneli</a>
+      </div>`;
+    container.innerHTML = head + apps.map((app) => `
       <div class="nav-section">
         <div class="nav-app-title">${AdminUI.escapeHtml(app.name)}</div>
         ${app.models.map((m) => {

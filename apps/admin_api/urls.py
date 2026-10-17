@@ -12,6 +12,7 @@ from apps.admin_api.views import (
     NavigationView,
     RelatedChoicesView,
 )
+from apps.admin_api.views_analytics import AnalyticsDashboardView
 from apps.admin_api.views_custom import (
     PaymentCalculationCustomView,
     PrinterScanView,
@@ -31,6 +32,7 @@ urlpatterns = [
     path('navigation/', NavigationView.as_view(), name='admin-api-navigation'),
 
     # Custom workflows
+    path('custom/analytics/', AnalyticsDashboardView.as_view(), name='admin-api-analytics'),
     path('custom/statistics/<str:action>/', StatisticsCustomView.as_view(), name='admin-api-statistics'),
     path('custom/summary/<str:action>/', SummaryCustomView.as_view(), name='admin-api-summary'),
     path('custom/summary/<str:action>/<int:pk>/', SummaryCustomView.as_view(), name='admin-api-summary-detail'),

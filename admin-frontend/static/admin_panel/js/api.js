@@ -53,6 +53,10 @@ const AdminAPI = {
     return this.post(`/${app}/${model}/actions/${actionName}/`, { ids });
   },
 
+  analytics(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.get(`/custom/analytics/${qs ? `?${qs}` : ''}`);
+  },
   statistics: {
     get(action) { return AdminAPI.get(`/custom/statistics/${action}/`); },
     post(action, data = {}) { return AdminAPI.post(`/custom/statistics/${action}/`, data); },

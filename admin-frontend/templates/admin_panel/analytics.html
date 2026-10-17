@@ -1,0 +1,78 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+{% block title %}Satış paneli{% endblock %}
+{% block content %}
+<div class="analytics-head">
+  <div>
+    <h1 class="page-title">Satış paneli</h1>
+    <p class="analytics-sub" id="range-label">Yüklənir...</p>
+  </div>
+  <div class="analytics-controls">
+    <div class="range-pills" id="range-pills">
+      <button type="button" data-range="day" class="active">Son gün</button>
+      <button type="button" data-range="week">Son həftə</button>
+      <button type="button" data-range="month">Son ay</button>
+    </div>
+    <div class="range-custom">
+      <input type="date" id="date-start" aria-label="Başlanğıc">
+      <span style="color:var(--text-muted)">—</span>
+      <input type="date" id="date-end" aria-label="Bitiş">
+      <button type="button" class="btn btn-primary btn-sm" id="btn-apply">Göstər</button>
+    </div>
+    <label class="paid-toggle">
+      <input type="checkbox" id="paid-only">
+      Yalnız ödənilmiş sifarişlər
+    </label>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="label">Ümumi satış</div><div class="value" id="kpi-revenue">—</div></div>
+  <div class="stat-card"><div class="label">Satılan miqdar</div><div class="value" id="kpi-quantity">—</div></div>
+  <div class="stat-card"><div class="label">Sifariş sayı</div><div class="value" id="kpi-orders">—</div></div>
+  <div class="stat-card"><div class="label">Orta çek</div><div class="value" id="kpi-avg">—</div></div>
+  <div class="stat-card"><div class="label">Müştəri sayı</div><div class="value" id="kpi-customers">—</div></div>
+</div>
+
+<section class="card analytics-trend">
+  <div class="analytics-card-head">
+    <h2 id="trend-title">Satış dinamikası</h2>
+    <span>məbləğə görə</span>
+  </div>
+  <div class="vchart" id="trend-chart"></div>
+</section>
+
+<section class="card analytics-block">
+  <div class="analytics-card-head">
+    <h2>Ən çox satılan məhsullar</h2>
+    <span>miqdara görə, ilk 10</span>
+  </div>
+  <div class="analytics-split">
+    <div class="chart-pane" id="products-chart"></div>
+    <div class="table-pane" id="products-table"></div>
+  </div>
+</section>
+
+<section class="card analytics-block">
+  <div class="analytics-card-head">
+    <h2>Ən çox işlənən masalar</h2>
+    <span>sifariş sayına görə, ilk 10</span>
+  </div>
+  <div class="analytics-split">
+    <div class="chart-pane" id="tables-chart"></div>
+    <div class="table-pane" id="tables-table"></div>
+  </div>
+</section>
+
+<section class="card analytics-block">
+  <div class="analytics-card-head">
+    <h2>Ən çox işləyən ofisiantlar</h2>
+    <span>sifariş sayına görə, ilk 10</span>
+  </div>
+  <div class="analytics-split">
+    <div class="chart-pane" id="waiters-chart"></div>
+    <div class="table-pane" id="waiters-table"></div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'admin_panel/js/analytics.js' %}"></script>{% endblock %}

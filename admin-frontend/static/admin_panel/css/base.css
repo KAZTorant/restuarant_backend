@@ -296,6 +296,90 @@ button, input, select, textarea { font: inherit; }
 .module-card a { color: var(--primary); font-size: 0.875rem; }
 .module-card a:hover { text-decoration: underline; }
 
+/* Sales analytics */
+.analytics-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.analytics-head .page-title { margin-bottom: 0.2rem; }
+.analytics-sub { color: var(--text-muted); font-size: 0.8125rem; }
+.analytics-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+.range-pills { display: flex; width: max-content; max-width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem; }
+.range-pills button {
+  border: none; background: transparent; color: var(--text-muted);
+  padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; font-weight: 500; font-size: 0.8125rem;
+}
+.range-pills button.active { background: var(--primary); color: #fff; }
+.range-custom { display: flex; align-items: center; gap: 0.4rem; }
+.range-custom input[type="date"] {
+  border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; background: var(--surface); font-size: 0.8125rem;
+}
+.paid-toggle { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--text-muted); }
+
+.analytics-trend { margin-bottom: 1rem; }
+.analytics-card-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem;
+  padding: 1rem 1.15rem 0.35rem;
+}
+.analytics-card-head h2 { font-size: 0.95rem; font-weight: 600; }
+.analytics-card-head span { font-size: 0.75rem; color: var(--text-muted); }
+
+.vchart {
+  display: flex; align-items: flex-end; gap: 0.35rem;
+  height: 180px; padding: 0.5rem 1.15rem 1rem; overflow-x: auto;
+}
+.vchart .analytics-empty { width: 100%; align-self: center; }
+.vcol { flex: 1 0 28px; min-width: 28px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+.vbar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.vbar {
+  width: 70%; max-width: 22px; border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, #60a5fa, #1d4ed8);
+  position: relative;
+}
+.vbar:hover { filter: brightness(1.08); }
+.vbar-tip {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: #0f172a; color: #fff; font-size: 0.7rem; padding: 0.25rem 0.4rem; border-radius: 6px; white-space: nowrap; z-index: 2;
+}
+.vbar:hover .vbar-tip { display: block; }
+.vbar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.35rem; white-space: nowrap; }
+
+.analytics-block { margin-bottom: 1rem; }
+.analytics-split { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr); }
+.chart-pane, .table-pane { padding: 0.35rem 1rem 1rem; min-width: 0; }
+.table-pane { overflow-x: auto; }
+.analytics-table td.name { white-space: normal; font-weight: 500; }
+.rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.4rem; height: 1.4rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+  background: var(--bg); color: var(--text-muted);
+}
+.rank.top { background: #dbeafe; color: #1d4ed8; }
+
+.hbar { display: grid; grid-template-columns: minmax(90px, 150px) 1fr auto; gap: 0.55rem; align-items: center; margin: 0.45rem 0; }
+.hbar-label { font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { height: 10px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 999px; }
+.hbar-fill.products { background: linear-gradient(90deg, #93c5fd, #2563eb); }
+.hbar-fill.tables { background: linear-gradient(90deg, #5eead4, #0f766e); }
+.hbar-fill.waiters { background: linear-gradient(90deg, #d8b4fe, #7e22ce); }
+.hbar-value { font-size: 0.75rem; font-weight: 600; color: var(--text); min-width: 2.5rem; text-align: right; }
+
+.share-cell { min-width: 88px; }
+.share-bar { height: 6px; background: #eef2f7; border-radius: 999px; margin-top: 0.25rem; overflow: hidden; }
+.share-bar span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.analytics-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+
+@media (max-width: 960px) {
+  .analytics-controls { align-items: stretch; width: 100%; }
+  .range-pills, .range-custom { flex-wrap: wrap; }
+  .analytics-split { grid-template-columns: 1fr; }
+}
+
 /* Login */
 .login-page {
   min-height: 100vh;

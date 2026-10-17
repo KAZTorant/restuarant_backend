@@ -10,6 +10,11 @@ def dashboard_view(request):
     return render(request, 'admin_panel/dashboard.html')
 
 
+@staff_required
+def analytics_view(request):
+    return render(request, 'admin_panel/analytics.html')
+
+
 @require_http_methods(['GET', 'POST'])
 def logout_view(request):
     logout(request)
