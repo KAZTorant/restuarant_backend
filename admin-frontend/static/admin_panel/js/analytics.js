@@ -16,7 +16,6 @@ const AnalyticsPage = {
     const params = { range: this.range };
     const restaurant = document.getElementById('restaurant-select')?.value;
     if (restaurant) params.restaurant = restaurant;
-    if (document.getElementById('paid-only')?.checked) params.paid = '1';
     if (this.range === 'custom') {
       params.start = document.getElementById('date-start').value;
       params.end = document.getElementById('date-end').value;
@@ -65,11 +64,17 @@ const AnalyticsPage = {
     this.setText('kpi-orders', this.num(kpis.orders));
     this.setText('kpi-avg', this.money(kpis.avg_order));
     this.setText('kpi-customers', this.num(kpis.customers));
+    this.setText('kpi-cash', this.money(kpis.cash));
+    this.setText('kpi-card', this.money(kpis.card));
+    this.setText('kpi-other', this.money(kpis.other));
+    this.setText('kpi-paid', this.money(kpis.paid_total));
+    this.setText('kpi-payments', this.num(kpis.payment_count));
 
     const trendTitle = document.getElementById('trend-title');
     if (trendTitle) trendTitle.textContent = data.hourly ? 'Saatlıq satış' : 'Günlük satış';
     if (data.needs_restaurant) {
       this.renderTrend([]);
+      this.renderPayments([]);
       ['products', 'tables', 'waiters'].forEach((key) => {
         this.renderBars(`${key}-chart`, [], 'quantity', key, () => '');
         this.renderTable(`${key}-table`, [], [], () => 0);
@@ -77,8 +82,9 @@ const AnalyticsPage = {
       return;
     }
     this.renderTrend(data.trend || []);
+    this.renderPayments(data.payment_types || []);
 
-    this.renderBars('products-chart', data.products, 'quantity', 'products', (row) => this.num(row.quantity));
+    this.renderBars('products-chart', data.products, 'revenue', 'products', (row) => this.money(row.revenue));
     this.renderTable('products-table', data.products, [
       ['Məhsul', (row) => row.name],
       ['Miqdar', (row) => this.num(row.quantity)],
@@ -163,16 +169,26 @@ const AnalyticsPage = {
       el.innerHTML = '<div class="analytics-empty">Məlumat yoxdur</div>';
       return;
     }
-    const max = Math.max(...rows.map((row) => Number(row[metric]) || 0), 0);
-    el.innerHTML = rows.map((row) => {
+    const chartRows = id === 'products-chart' ? rows.slice(0, 10) : rows;
+    const max = Math.max(...chartRows.map((row) => Number(row[metric]) || 0), 0);
+    el.innerHTML = chartRows.map((row) => {
       const width = max ? Math.max((Number(row[metric]) / max) * 100, 4) : 0;
+      const barTone = row.tone || tone;
       return `
         <div class="hbar">
           <div class="hbar-label" title="${AdminUI.escapeHtml(row.name)}">${AdminUI.escapeHtml(row.name)}</div>
-          <div class="hbar-track"><div class="hbar-fill ${tone}" style="width:${width}%"></div></div>
+          <div class="hbar-track"><div class="hbar-fill ${barTone}" style="width:${width}%"></div></div>
           <div class="hbar-value">${formatValue(row)}</div>
         </div>`;
     }).join('');
+  },
+
+  renderPayments(rows) {
+    this.renderBars('payments-chart', rows, 'amount', 'cash', (row) => this.money(row.amount));
+    this.renderTable('payments-table', rows, [
+      ['Növ', (row) => row.name],
+      ['Məbləğ', (row) => this.money(row.amount)],
+    ], (row) => row.share);
   },
 
   renderTable(id, rows, columns, shareOf) {
@@ -209,7 +225,6 @@ const AnalyticsPage = {
       this.range = 'custom';
       this.load();
     });
-    document.getElementById('paid-only')?.addEventListener('change', () => this.load());
     document.getElementById('restaurant-select')?.addEventListener('change', () => this.load());
     this.load();
   },

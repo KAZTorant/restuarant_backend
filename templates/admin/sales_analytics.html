@@ -29,10 +29,7 @@
         <input type="date" id="date-end" aria-label="Bitiş">
         <button type="button" class="btn btn-primary btn-sm" id="btn-apply">Göstər</button>
       </div>
-      <label class="paid-toggle">
-        <input type="checkbox" id="paid-only">
-        Yalnız ödənilmiş sifarişlər
-      </label>
+      <p class="analytics-sub">Ödəniş edilmiş sifarişlərin məhsulları</p>
     </div>
   </div>
 
@@ -44,7 +41,23 @@
     <div class="stat-card"><div class="label">Sifariş sayı</div><div class="value" id="kpi-orders">—</div></div>
     <div class="stat-card"><div class="label">Orta çek</div><div class="value" id="kpi-avg">—</div></div>
     <div class="stat-card"><div class="label">Müştəri sayı</div><div class="value" id="kpi-customers">—</div></div>
+    <div class="stat-card"><div class="label">Nağd</div><div class="value" id="kpi-cash">—</div></div>
+    <div class="stat-card"><div class="label">Kart</div><div class="value" id="kpi-card">—</div></div>
+    <div class="stat-card"><div class="label">Digər</div><div class="value" id="kpi-other">—</div></div>
+    <div class="stat-card"><div class="label">Ödənilən cəm</div><div class="value" id="kpi-paid">—</div></div>
+    <div class="stat-card"><div class="label">Ödəniş sayı</div><div class="value" id="kpi-payments">—</div></div>
   </div>
+
+  <section class="card analytics-block">
+    <div class="analytics-card-head">
+      <h2>Ödəniş növləri</h2>
+      <span>nağd, kart və digər</span>
+    </div>
+    <div class="analytics-split">
+      <div class="chart-pane" id="payments-chart"></div>
+      <div class="table-pane" id="payments-table"></div>
+    </div>
+  </section>
 
   <section class="card analytics-trend">
     <div class="analytics-card-head">
@@ -57,7 +70,7 @@
   <section class="card analytics-block">
     <div class="analytics-card-head">
       <h2>Ən çox satılan məhsullar</h2>
-      <span>miqdara görə, ilk 10</span>
+      <span>məbləğə görə</span>
     </div>
     <div class="analytics-split">
       <div class="chart-pane" id="products-chart"></div>

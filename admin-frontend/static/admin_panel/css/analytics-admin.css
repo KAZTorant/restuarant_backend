@@ -52,6 +52,9 @@
 #sales-root .hbar-fill.products { background: linear-gradient(90deg, #93c5fd, #2563eb); }
 #sales-root .hbar-fill.tables { background: linear-gradient(90deg, #5eead4, #0f766e); }
 #sales-root .hbar-fill.waiters { background: linear-gradient(90deg, #d8b4fe, #7e22ce); }
+#sales-root .hbar-fill.cash { background: linear-gradient(90deg, #86efac, #15803d); }
+#sales-root .hbar-fill.card { background: linear-gradient(90deg, #93c5fd, #1d4ed8); }
+#sales-root .hbar-fill.other { background: linear-gradient(90deg, #fcd34d, #b45309); }
 #sales-root .share-bar span { background: var(--primary); }
 #sales-root .hbar-value { font-size: 0.75rem; font-weight: 700; }
 #sales-root .analytics-empty { padding: 1.25rem; text-align: center; color: var(--text-muted); }

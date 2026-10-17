@@ -3,8 +3,8 @@
 from datetime import datetime, time, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.db.models import Count, Sum
-from django.db.models.functions import Coalesce, TruncDate, TruncHour
+from django.db.models import Count, OuterRef, Subquery, Sum
+from django.db.models.functions import TruncDate, TruncHour
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -85,24 +85,15 @@ class AnalyticsDashboardView(APIView):
         restaurant, restaurants, needs_restaurant, scope_message = _restaurant_scope(
             user, params.get('restaurant')
         )
-        paid_only = params.get('paid') in ('1', 'true', 'yes')
+        paid_only = False
         if restaurant is None:
             return self._empty(
                 range_key, start, end, label, paid_only,
                 restaurant, restaurants, needs_restaurant, scope_message,
             )
 
-        items = (
-            OrderItem.objects
-            .annotate(sold_at=Coalesce('item_added_at', 'created_at'))
-            .filter(
-                sold_at__gte=start,
-                sold_at__lte=end,
-                order__table__room__restaurant_id=restaurant['id'],
-            )
-        )
-        if paid_only:
-            items = items.filter(order__is_paid=True)
+        items, orders, payments = self._paid_sales(restaurant['id'], start, end)
+        payment_stats = self._payment_types(payments)
 
         totals = items.aggregate(
             revenue=Sum('price'),
@@ -113,8 +104,6 @@ class AnalyticsDashboardView(APIView):
         quantity = int(totals['quantity'] or 0)
         order_count = int(totals['orders'] or 0)
 
-        order_ids = items.values_list('order_id', flat=True).distinct()
-        orders = Order.objects.filter(pk__in=order_ids)
         customers = int(orders.aggregate(total=Sum('customer_count'))['total'] or 0)
         avg_order = (revenue / order_count) if order_count else Decimal('0')
         hourly = (end - start) <= timedelta(hours=36)
@@ -130,7 +119,13 @@ class AnalyticsDashboardView(APIView):
             'orders': order_count,
             'avg_order': _money(avg_order),
             'customers': customers,
+            'cash': payment_stats['cash'],
+            'card': payment_stats['card'],
+            'other': payment_stats['other'],
+            'paid_total': payment_stats['paid_total'],
+            'payment_count': payment_stats['payment_count'],
         }
+        payload['payment_types'] = payment_stats['types']
         payload['trend'] = self._trend(items, start, end, hourly)
         payload['products'] = self._products(items, revenue, quantity)
         payload['tables'] = self._tables(items, orders, revenue)
@@ -158,7 +153,13 @@ class AnalyticsDashboardView(APIView):
                 'orders': 0,
                 'avg_order': 0.0,
                 'customers': 0,
+                'cash': 0.0,
+                'card': 0.0,
+                'other': 0.0,
+                'paid_total': 0.0,
+                'payment_count': 0,
             },
+            'payment_types': [],
             'trend': [],
             'products': [],
             'tables': [],
@@ -170,12 +171,13 @@ class AnalyticsDashboardView(APIView):
         now = timezone.localtime()
         tz = timezone.get_current_timezone()
 
+        end_of_today = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         if range_key == 'week':
             start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
-            return range_key, start, now, 'Son həftə'
+            return range_key, start, end_of_today, 'Son həftə'
         if range_key == 'month':
             start = (now - timedelta(days=29)).replace(hour=0, minute=0, second=0, microsecond=0)
-            return range_key, start, now, 'Son ay'
+            return range_key, start, end_of_today, 'Son ay'
         if range_key == 'custom':
             start_raw = params.get('start') or ''
             end_raw = params.get('end') or ''
@@ -190,13 +192,75 @@ class AnalyticsDashboardView(APIView):
                 raise ValueError(f'Tarix aralığı {MAX_RANGE_DAYS} gündən çox ola bilməz')
             start = timezone.make_aware(datetime.combine(start_day, time.min), tz)
             end = timezone.make_aware(datetime.combine(end_day, time.max), tz)
-            if end > now:
-                end = now
             label = f'{start_day.strftime("%d.%m.%Y")} — {end_day.strftime("%d.%m.%Y")}'
             return range_key, start, end, label
 
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        return 'day', start, now, 'Son gün'
+        end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        return 'day', start, end, 'Son gün'
+
+    def _paid_sales(self, restaurant_id, start, end):
+        """Same sold-product set as the payment calculation report."""
+        from apps.payments.models import Payment
+
+        payments = Payment.objects.filter(
+            paid_at__gte=start,
+            paid_at__lte=end,
+            table__room__restaurant_id=restaurant_id,
+        )
+        through = Payment.orders.through
+        order_ids = through.objects.filter(
+            payment_id__in=payments.values('id')
+        ).values('order_id')
+        paid_at = through.objects.filter(
+            order_id=OuterRef('order_id'),
+            payment_id__in=payments.values('id'),
+        ).order_by('payment__paid_at').values('payment__paid_at')[:1]
+        items = (
+            OrderItem.objects.all_order_items()
+            .filter(order_id__in=order_ids)
+            .annotate(sold_at=Subquery(paid_at))
+        )
+        orders = Order.objects.all_orders().filter(pk__in=order_ids)
+        return items, orders, payments
+
+    def _payment_types(self, payments):
+        from apps.payments.models import PaymentMethod
+
+        totals = {'cash': Decimal('0'), 'card': Decimal('0'), 'other': Decimal('0')}
+        method_rows = (
+            PaymentMethod.objects.filter(payment__in=payments)
+            .values('payment_type')
+            .annotate(total=Sum('amount'))
+        )
+        for row in method_rows:
+            key = row['payment_type'] if row['payment_type'] in totals else 'other'
+            totals[key] += row['total'] or 0
+
+        bare_rows = (
+            payments.annotate(method_count=Count('payment_methods'))
+            .filter(method_count=0)
+            .values('payment_type')
+            .annotate(total=Sum('paid_amount'))
+        )
+        for row in bare_rows:
+            key = row['payment_type'] if row['payment_type'] in ('cash', 'card') else 'other'
+            totals[key] += row['total'] or 0
+
+        paid = totals['cash'] + totals['card'] + totals['other']
+        types = [
+            {'name': 'Nağd', 'amount': _money(totals['cash']), 'share': _share(totals['cash'], paid), 'tone': 'cash'},
+            {'name': 'Kart', 'amount': _money(totals['card']), 'share': _share(totals['card'], paid), 'tone': 'card'},
+            {'name': 'Digər', 'amount': _money(totals['other']), 'share': _share(totals['other'], paid), 'tone': 'other'},
+        ]
+        return {
+            'cash': _money(totals['cash']),
+            'card': _money(totals['card']),
+            'other': _money(totals['other']),
+            'paid_total': _money(paid),
+            'payment_count': payments.count(),
+            'types': types,
+        }
 
     def _trend(self, items, start, end, hourly):
         tz = timezone.get_current_timezone()
@@ -259,7 +323,7 @@ class AnalyticsDashboardView(APIView):
         rows = (
             items.values('meal_id', 'meal__name')
             .annotate(quantity=Sum('quantity'), revenue=Sum('price'))
-            .order_by('-quantity', '-revenue')[:TOP_LIMIT]
+            .order_by('-revenue', '-quantity')
         )
         result = []
         for row in rows:

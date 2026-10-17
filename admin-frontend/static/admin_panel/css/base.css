@@ -375,6 +375,9 @@ button, input, select, textarea { font: inherit; }
 .hbar-fill.products { background: linear-gradient(90deg, #93c5fd, #2563eb); }
 .hbar-fill.tables { background: linear-gradient(90deg, #5eead4, #0f766e); }
 .hbar-fill.waiters { background: linear-gradient(90deg, #d8b4fe, #7e22ce); }
+.hbar-fill.cash { background: linear-gradient(90deg, #86efac, #15803d); }
+.hbar-fill.card { background: linear-gradient(90deg, #93c5fd, #1d4ed8); }
+.hbar-fill.other { background: linear-gradient(90deg, #fcd34d, #b45309); }
 .hbar-value { font-size: 0.75rem; font-weight: 600; color: var(--text); min-width: 2.5rem; text-align: right; }
 
 .share-cell { min-width: 88px; }
