@@ -1,5 +1,7 @@
 const AnalyticsPage = {
   range: 'day',
+  productSort: 'revenue',
+  products: [],
 
   money(value) {
     return `${new Intl.NumberFormat('az-AZ', {
@@ -83,13 +85,9 @@ const AnalyticsPage = {
     }
     this.renderTrend(data.trend || []);
     this.renderPayments(data.payment_types || []);
-
-    this.renderBars('products-chart', data.products, 'revenue', 'products', (row) => this.money(row.revenue));
-    this.renderTable('products-table', data.products, [
-      ['Məhsul', (row) => row.name],
-      ['Miqdar', (row) => this.num(row.quantity)],
-      ['Məbləğ', (row) => this.money(row.revenue)],
-    ], (row) => row.share);
+    this.products = data.products || [];
+    this.fillProductFilters();
+    this.renderProductList();
 
     this.renderBars('tables-chart', data.tables, 'orders', 'tables', (row) => this.num(row.orders));
     this.renderTable('tables-table', data.tables, [
@@ -184,11 +182,86 @@ const AnalyticsPage = {
   },
 
   renderPayments(rows) {
-    this.renderBars('payments-chart', rows, 'amount', 'cash', (row) => this.money(row.amount));
-    this.renderTable('payments-table', rows, [
+    const ordered = [...(rows || [])].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    this.renderBars('payments-chart', ordered, 'amount', 'cash', (row) => this.money(row.amount));
+    this.renderTable('payments-table', ordered, [
       ['Növ', (row) => row.name],
+      ['Ödəniş', (row) => this.num(row.count)],
       ['Məbləğ', (row) => this.money(row.amount)],
     ], (row) => row.share);
+  },
+
+  fillProductFilters() {
+    const groupSelect = document.getElementById('product-group');
+    const categorySelect = document.getElementById('product-category');
+    if (!groupSelect || !categorySelect) return;
+
+    const groups = new Map();
+    this.products.forEach((row) => {
+      if (row.group_id != null) groups.set(String(row.group_id), row.group_name || 'Qrup');
+    });
+    const selectedGroup = groups.has(groupSelect.value) ? groupSelect.value : '';
+    groupSelect.innerHTML = `<option value="">Bütün qruplar</option>${[...groups.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], 'az'))
+      .map(([id, name]) => `<option value="${id}">${AdminUI.escapeHtml(name)}</option>`)
+      .join('')}`;
+    groupSelect.value = selectedGroup;
+
+    const categories = new Map();
+    this.products.forEach((row) => {
+      if (row.category_id == null) return;
+      if (selectedGroup && String(row.group_id || '') !== selectedGroup) return;
+      categories.set(String(row.category_id), row.category_name || 'Kateqoriya');
+    });
+    const selectedCategory = categories.has(categorySelect.value) ? categorySelect.value : '';
+    categorySelect.innerHTML = `<option value="">Bütün kateqoriyalar</option>${[...categories.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], 'az'))
+      .map(([id, name]) => `<option value="${id}">${AdminUI.escapeHtml(name)}</option>`)
+      .join('')}`;
+    categorySelect.value = selectedCategory;
+  },
+
+  filteredProducts() {
+    const groupId = document.getElementById('product-group')?.value || '';
+    const categoryId = document.getElementById('product-category')?.value || '';
+    return this.products.filter((row) => {
+      if (groupId && String(row.group_id || '') !== groupId) return false;
+      if (categoryId && String(row.category_id || '') !== categoryId) return false;
+      return true;
+    });
+  },
+
+  renderProductList() {
+    const byQuantity = this.productSort === 'quantity';
+    document.querySelectorAll('#product-sort button').forEach((button) => {
+      button.classList.toggle('active', button.dataset.sort === this.productSort);
+    });
+    const source = this.filteredProducts();
+    const totalRevenue = source.reduce((sum, row) => sum + (Number(row.revenue) || 0), 0);
+    const totalQuantity = source.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
+    const rows = source
+      .map((row) => ({
+        ...row,
+        share: totalRevenue ? Math.round((Number(row.revenue) / totalRevenue) * 1000) / 10 : 0,
+        qty_share: totalQuantity ? Math.round((Number(row.quantity) / totalQuantity) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => {
+        const left = byQuantity ? a.quantity : a.revenue;
+        const right = byQuantity ? b.quantity : b.revenue;
+        return (right || 0) - (left || 0);
+      });
+    this.renderBars(
+      'products-chart',
+      rows,
+      byQuantity ? 'quantity' : 'revenue',
+      'products',
+      (row) => (byQuantity ? this.num(row.quantity) : this.money(row.revenue)),
+    );
+    this.renderTable('products-table', rows, [
+      ['Məhsul', (row) => row.name],
+      ['Miqdar', (row) => this.num(row.quantity)],
+      ['Məbləğ', (row) => this.money(row.revenue)],
+    ], (row) => (byQuantity ? row.qty_share : row.share));
   },
 
   renderTable(id, rows, columns, shareOf) {
@@ -226,6 +299,19 @@ const AnalyticsPage = {
       this.load();
     });
     document.getElementById('restaurant-select')?.addEventListener('change', () => this.load());
+    document.getElementById('product-sort')?.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-sort]');
+      if (!button) return;
+      this.productSort = button.dataset.sort;
+      this.renderProductList();
+    });
+    document.getElementById('product-group')?.addEventListener('change', () => {
+      const categorySelect = document.getElementById('product-category');
+      if (categorySelect) categorySelect.value = '';
+      this.fillProductFilters();
+      this.renderProductList();
+    });
+    document.getElementById('product-category')?.addEventListener('change', () => this.renderProductList());
     this.load();
   },
 };

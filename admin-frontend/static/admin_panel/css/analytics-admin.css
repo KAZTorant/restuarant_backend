@@ -13,6 +13,10 @@
 #sales-root .range-pills { display: flex; width: max-content; background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem; }
 #sales-root .range-pills button { border: none; background: transparent; color: var(--text-muted); padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; font-weight: 600; }
 #sales-root .range-pills button.active { background: var(--primary); color: #fff; }
+#sales-root .product-tools { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: flex-end; }
+#sales-root .sort-pills { display: flex; background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 0.15rem; }
+#sales-root .sort-pills button { border: none; background: transparent; color: var(--text-muted); padding: 0.28rem 0.7rem; border-radius: 999px; cursor: pointer; font-size: 0.75rem; font-weight: 600; }
+#sales-root .sort-pills button.active { background: var(--primary); color: #fff; }
 #sales-root .range-custom { display: flex; align-items: center; gap: 0.4rem; }
 #sales-root .range-custom input[type="date"],
 #sales-root .restaurant-select { border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; background: #fff; }

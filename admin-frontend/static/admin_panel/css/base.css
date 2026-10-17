@@ -314,6 +314,13 @@ button, input, select, textarea { font: inherit; }
   padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; font-weight: 500; font-size: 0.8125rem;
 }
 .range-pills button.active { background: var(--primary); color: #fff; }
+.product-tools { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: flex-end; }
+.sort-pills { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.15rem; }
+.sort-pills button {
+  border: none; background: transparent; color: var(--text-muted);
+  padding: 0.28rem 0.7rem; border-radius: 999px; cursor: pointer; font-size: 0.75rem; font-weight: 600;
+}
+.sort-pills button.active { background: var(--primary); color: #fff; }
 .range-custom { display: flex; align-items: center; gap: 0.4rem; }
 .range-custom input[type="date"] {
   border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; background: var(--surface); font-size: 0.8125rem;

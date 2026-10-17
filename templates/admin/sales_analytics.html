@@ -51,7 +51,7 @@
   <section class="card analytics-block">
     <div class="analytics-card-head">
       <h2>Ödəniş növləri</h2>
-      <span>nağd, kart və digər</span>
+      <span>məbləğə görə</span>
     </div>
     <div class="analytics-split">
       <div class="chart-pane" id="payments-chart"></div>
@@ -70,7 +70,14 @@
   <section class="card analytics-block">
     <div class="analytics-card-head">
       <h2>Ən çox satılan məhsullar</h2>
-      <span>məbləğə görə</span>
+      <div class="product-tools">
+        <select id="product-group" class="restaurant-select" aria-label="Yemək qrupu"></select>
+        <select id="product-category" class="restaurant-select" aria-label="Kateqoriya"></select>
+        <div class="sort-pills" id="product-sort">
+          <button type="button" data-sort="quantity">Sayı</button>
+          <button type="button" data-sort="revenue" class="active">Məbləğ</button>
+        </div>
+      </div>
     </div>
     <div class="analytics-split">
       <div class="chart-pane" id="products-chart"></div>

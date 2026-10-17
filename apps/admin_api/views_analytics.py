@@ -228,30 +228,33 @@ class AnalyticsDashboardView(APIView):
         from apps.payments.models import PaymentMethod
 
         totals = {'cash': Decimal('0'), 'card': Decimal('0'), 'other': Decimal('0')}
+        counts = {'cash': 0, 'card': 0, 'other': 0}
         method_rows = (
             PaymentMethod.objects.filter(payment__in=payments)
             .values('payment_type')
-            .annotate(total=Sum('amount'))
+            .annotate(total=Sum('amount'), n=Count('payment_id', distinct=True))
         )
         for row in method_rows:
             key = row['payment_type'] if row['payment_type'] in totals else 'other'
             totals[key] += row['total'] or 0
+            counts[key] += int(row['n'] or 0)
 
         bare_rows = (
             payments.annotate(method_count=Count('payment_methods'))
             .filter(method_count=0)
             .values('payment_type')
-            .annotate(total=Sum('paid_amount'))
+            .annotate(total=Sum('paid_amount'), n=Count('id'))
         )
         for row in bare_rows:
             key = row['payment_type'] if row['payment_type'] in ('cash', 'card') else 'other'
             totals[key] += row['total'] or 0
+            counts[key] += int(row['n'] or 0)
 
         paid = totals['cash'] + totals['card'] + totals['other']
         types = [
-            {'name': 'Nağd', 'amount': _money(totals['cash']), 'share': _share(totals['cash'], paid), 'tone': 'cash'},
-            {'name': 'Kart', 'amount': _money(totals['card']), 'share': _share(totals['card'], paid), 'tone': 'card'},
-            {'name': 'Digər', 'amount': _money(totals['other']), 'share': _share(totals['other'], paid), 'tone': 'other'},
+            {'name': 'Nağd', 'count': counts['cash'], 'amount': _money(totals['cash']), 'share': _share(totals['cash'], paid), 'tone': 'cash'},
+            {'name': 'Kart', 'count': counts['card'], 'amount': _money(totals['card']), 'share': _share(totals['card'], paid), 'tone': 'card'},
+            {'name': 'Digər', 'count': counts['other'], 'amount': _money(totals['other']), 'share': _share(totals['other'], paid), 'tone': 'other'},
         ]
         return {
             'cash': _money(totals['cash']),
@@ -321,7 +324,14 @@ class AnalyticsDashboardView(APIView):
 
     def _products(self, items, revenue, quantity):
         rows = (
-            items.values('meal_id', 'meal__name')
+            items.values(
+                'meal_id',
+                'meal__name',
+                'meal__category_id',
+                'meal__category__name',
+                'meal__category__group_id',
+                'meal__category__group__name',
+            )
             .annotate(quantity=Sum('quantity'), revenue=Sum('price'))
             .order_by('-revenue', '-quantity')
         )
@@ -332,6 +342,10 @@ class AnalyticsDashboardView(APIView):
             result.append({
                 'id': row['meal_id'],
                 'name': row['meal__name'] or 'Naməlum məhsul',
+                'category_id': row['meal__category_id'],
+                'category_name': row['meal__category__name'] or '',
+                'group_id': row['meal__category__group_id'],
+                'group_name': row['meal__category__group__name'] or '',
                 'quantity': qty,
                 'revenue': _money(amount),
                 'share': _share(amount, revenue),
