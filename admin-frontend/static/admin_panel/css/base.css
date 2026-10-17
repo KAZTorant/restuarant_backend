@@ -319,6 +319,14 @@ button, input, select, textarea { font: inherit; }
   border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; background: var(--surface); font-size: 0.8125rem;
 }
 .paid-toggle { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--text-muted); }
+.restaurant-select {
+  border: 1px solid var(--border); border-radius: 8px; padding: 0.45rem 0.6rem;
+  background: var(--surface); min-width: 220px; font-size: 0.8125rem;
+}
+.scope-note {
+  background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe;
+  border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.875rem;
+}
 
 .analytics-trend { margin-bottom: 1rem; }
 .analytics-card-head {

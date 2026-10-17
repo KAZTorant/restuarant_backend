@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from apps.admin_api.permissions import IsAdminUser
 from apps.orders.models import Order, OrderItem
-from apps.tenants.admin_utils import filter_queryset_by_restaurant, get_user_restaurant
+from apps.tenants.models import Restaurant
 
 MONEY = Decimal('0.01')
 TOP_LIMIT = 10
@@ -42,25 +42,64 @@ def _table_name(number, room_name, table_id):
     return label
 
 
+def sales_analytics_payload(user, params):
+    return AnalyticsDashboardView().build(user, params)
+
+
+def _restaurant_scope(user, requested_id):
+    """Staff always sees only their restaurant. Superuser must pick one."""
+    if user.is_superuser:
+        restaurants = list(Restaurant.objects.order_by('name').values('id', 'name'))
+        if requested_id in (None, ''):
+            return None, restaurants, True, 'Baxmaq üçün restoran seçin'
+        try:
+            restaurant_id = int(requested_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Restoran seçimi yanlışdır') from exc
+        match = next((row for row in restaurants if row['id'] == restaurant_id), None)
+        if match is None:
+            raise ValueError('Restoran tapılmadı')
+        return match, restaurants, False, ''
+
+    restaurant = user.restaurant if getattr(user, 'restaurant_id', None) else None
+    if restaurant is None:
+        return None, [], False, 'Bu istifadəçiyə restoran bağlı deyil'
+    return {'id': restaurant.pk, 'name': restaurant.name}, [], False, ''
+
+
 class AnalyticsDashboardView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
         try:
-            range_key, start, end, label = self._bounds(request)
+            return Response(self.build(request.user, request.query_params))
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        restaurant = get_user_restaurant(request.user)
-        paid_only = request.query_params.get('paid') in ('1', 'true', 'yes')
+    def build(self, user, params):
+        try:
+            range_key, start, end, label = self._bounds(params)
+        except ValueError:
+            raise
+
+        restaurant, restaurants, needs_restaurant, scope_message = _restaurant_scope(
+            user, params.get('restaurant')
+        )
+        paid_only = params.get('paid') in ('1', 'true', 'yes')
+        if restaurant is None:
+            return self._empty(
+                range_key, start, end, label, paid_only,
+                restaurant, restaurants, needs_restaurant, scope_message,
+            )
 
         items = (
             OrderItem.objects
             .annotate(sold_at=Coalesce('item_added_at', 'created_at'))
-            .filter(sold_at__gte=start, sold_at__lte=end)
-        )
-        items = filter_queryset_by_restaurant(
-            items, restaurant, 'order__table__room__restaurant'
+            .filter(
+                sold_at__gte=start,
+                sold_at__lte=end,
+                order__table__room__restaurant_id=restaurant['id'],
+            )
         )
         if paid_only:
             items = items.filter(order__is_paid=True)
@@ -80,7 +119,27 @@ class AnalyticsDashboardView(APIView):
         avg_order = (revenue / order_count) if order_count else Decimal('0')
         hourly = (end - start) <= timedelta(hours=36)
 
-        return Response({
+        payload = self._empty(
+            range_key, start, end, label, paid_only,
+            restaurant, restaurants, needs_restaurant, scope_message,
+        )
+        payload['hourly'] = hourly
+        payload['kpis'] = {
+            'revenue': _money(revenue),
+            'quantity': quantity,
+            'orders': order_count,
+            'avg_order': _money(avg_order),
+            'customers': customers,
+        }
+        payload['trend'] = self._trend(items, start, end, hourly)
+        payload['products'] = self._products(items, revenue, quantity)
+        payload['tables'] = self._tables(items, orders, revenue)
+        payload['waiters'] = self._waiters(items, orders, revenue)
+        return payload
+
+    def _empty(self, range_key, start, end, label, paid_only, restaurant, restaurants, needs_restaurant, scope_message):
+        hourly = (end - start) <= timedelta(hours=36)
+        return {
             'range': range_key,
             'label': label,
             'paid_only': paid_only,
@@ -89,21 +148,25 @@ class AnalyticsDashboardView(APIView):
             'start_date': timezone.localtime(start).date().isoformat(),
             'end_date': timezone.localtime(end).date().isoformat(),
             'hourly': hourly,
+            'needs_restaurant': needs_restaurant,
+            'scope_message': scope_message,
+            'restaurant': restaurant,
+            'restaurants': restaurants,
             'kpis': {
-                'revenue': _money(revenue),
-                'quantity': quantity,
-                'orders': order_count,
-                'avg_order': _money(avg_order),
-                'customers': customers,
+                'revenue': 0.0,
+                'quantity': 0,
+                'orders': 0,
+                'avg_order': 0.0,
+                'customers': 0,
             },
-            'trend': self._trend(items, start, end, hourly),
-            'products': self._products(items, revenue, quantity),
-            'tables': self._tables(items, orders, revenue),
-            'waiters': self._waiters(items, orders, revenue),
-        })
+            'trend': [],
+            'products': [],
+            'tables': [],
+            'waiters': [],
+        }
 
-    def _bounds(self, request):
-        range_key = (request.query_params.get('range') or 'day').strip().lower()
+    def _bounds(self, params):
+        range_key = (params.get('range') or 'day').strip().lower()
         now = timezone.localtime()
         tz = timezone.get_current_timezone()
 
@@ -114,8 +177,8 @@ class AnalyticsDashboardView(APIView):
             start = (now - timedelta(days=29)).replace(hour=0, minute=0, second=0, microsecond=0)
             return range_key, start, now, 'Son ay'
         if range_key == 'custom':
-            start_raw = request.query_params.get('start') or ''
-            end_raw = request.query_params.get('end') or ''
+            start_raw = params.get('start') or ''
+            end_raw = params.get('end') or ''
             try:
                 start_day = datetime.strptime(start_raw, '%Y-%m-%d').date()
                 end_day = datetime.strptime(end_raw, '%Y-%m-%d').date()

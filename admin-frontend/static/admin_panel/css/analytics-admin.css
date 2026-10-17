@@ -1,0 +1,61 @@
+#sales-root {
+  --primary: #2563eb;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --surface: #fff;
+  --bg: #f8fafc;
+}
+#sales-root .page-title { font-size: 1.35rem; font-weight: 700; margin: 0 0 0.2rem; }
+#sales-root .analytics-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+#sales-root .analytics-sub { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+#sales-root .analytics-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+#sales-root .range-pills { display: flex; width: max-content; background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem; }
+#sales-root .range-pills button { border: none; background: transparent; color: var(--text-muted); padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; font-weight: 600; }
+#sales-root .range-pills button.active { background: var(--primary); color: #fff; }
+#sales-root .range-custom { display: flex; align-items: center; gap: 0.4rem; }
+#sales-root .range-custom input[type="date"],
+#sales-root .restaurant-select { border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; background: #fff; }
+#sales-root .restaurant-select { min-width: 220px; }
+#sales-root .paid-toggle { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-muted); }
+#sales-root .scope-note { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem; }
+#sales-root .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+#sales-root .stat-card, #sales-root .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: none; }
+#sales-root .stat-card { padding: 0.9rem 1rem; }
+#sales-root .stat-card .label { font-size: 0.75rem; color: var(--text-muted); }
+#sales-root .stat-card .value { font-size: 1.35rem; font-weight: 700; }
+#sales-root .analytics-block, #sales-root .analytics-trend { margin-bottom: 1rem; overflow: hidden; }
+#sales-root .analytics-card-head { display: flex; justify-content: space-between; align-items: baseline; padding: 1rem 1.1rem 0.25rem; }
+#sales-root .analytics-card-head h2 { font-size: 1rem; font-weight: 600; margin: 0; }
+#sales-root .analytics-card-head span { font-size: 0.75rem; color: var(--text-muted); }
+#sales-root .vchart { display: flex; align-items: flex-end; gap: 0.35rem; height: 180px; padding: 0.5rem 1rem 1rem; overflow-x: auto; }
+#sales-root .vcol { flex: 1 0 28px; min-width: 28px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+#sales-root .vbar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+#sales-root .vbar { width: 70%; max-width: 22px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, #60a5fa, #1d4ed8); position: relative; }
+#sales-root .vbar-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; font-size: 0.7rem; padding: 0.25rem 0.4rem; border-radius: 6px; white-space: nowrap; z-index: 2; }
+#sales-root .vbar:hover .vbar-tip { display: block; }
+#sales-root .vbar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.35rem; }
+#sales-root .analytics-split { display: grid; grid-template-columns: minmax(240px, 0.9fr) minmax(280px, 1.1fr); }
+#sales-root .chart-pane, #sales-root .table-pane { padding: 0.35rem 1rem 1rem; min-width: 0; }
+#sales-root .table-pane { overflow-x: auto; }
+#sales-root .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+#sales-root .data-table th, #sales-root .data-table td { padding: 0.55rem 0.7rem; text-align: left; border-bottom: 1px solid var(--border); }
+#sales-root .data-table th { font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); background: var(--bg); }
+#sales-root .analytics-table td.name { white-space: normal; font-weight: 600; }
+#sales-root .rank { display: inline-flex; width: 1.4rem; height: 1.4rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--bg); font-size: 0.7rem; }
+#sales-root .rank.top { background: #dbeafe; color: #1d4ed8; }
+#sales-root .hbar { display: grid; grid-template-columns: minmax(90px, 150px) 1fr auto; gap: 0.55rem; align-items: center; margin: 0.4rem 0; }
+#sales-root .hbar-label { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sales-root .hbar-track, #sales-root .share-bar { height: 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
+#sales-root .share-bar { height: 6px; margin-top: 0.25rem; }
+#sales-root .hbar-fill, #sales-root .share-bar span { display: block; height: 100%; border-radius: 999px; }
+#sales-root .hbar-fill.products { background: linear-gradient(90deg, #93c5fd, #2563eb); }
+#sales-root .hbar-fill.tables { background: linear-gradient(90deg, #5eead4, #0f766e); }
+#sales-root .hbar-fill.waiters { background: linear-gradient(90deg, #d8b4fe, #7e22ce); }
+#sales-root .share-bar span { background: var(--primary); }
+#sales-root .hbar-value { font-size: 0.75rem; font-weight: 700; }
+#sales-root .analytics-empty { padding: 1.25rem; text-align: center; color: var(--text-muted); }
+#sales-root .hidden { display: none !important; }
+@media (max-width: 960px) {
+  #sales-root .analytics-split { grid-template-columns: 1fr; }
+}

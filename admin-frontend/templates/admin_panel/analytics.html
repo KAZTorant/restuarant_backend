@@ -8,6 +8,9 @@
     <p class="analytics-sub" id="range-label">Yüklənir...</p>
   </div>
   <div class="analytics-controls">
+      <label class="hidden" id="restaurant-wrap">
+        <select id="restaurant-select" class="restaurant-select" aria-label="Restoran"></select>
+      </label>
     <div class="range-pills" id="range-pills">
       <button type="button" data-range="day" class="active">Son gün</button>
       <button type="button" data-range="week">Son həftə</button>
@@ -25,6 +28,8 @@
     </label>
   </div>
 </div>
+
+<div class="scope-note hidden" id="scope-note"></div>
 
 <div class="stats-grid">
   <div class="stat-card"><div class="label">Ümumi satış</div><div class="value" id="kpi-revenue">—</div></div>

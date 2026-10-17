@@ -14,6 +14,8 @@ const AnalyticsPage = {
 
   async load() {
     const params = { range: this.range };
+    const restaurant = document.getElementById('restaurant-select')?.value;
+    if (restaurant) params.restaurant = restaurant;
     if (document.getElementById('paid-only')?.checked) params.paid = '1';
     if (this.range === 'custom') {
       params.start = document.getElementById('date-start').value;
@@ -36,10 +38,17 @@ const AnalyticsPage = {
   },
 
   render(data) {
+    this.renderRestaurant(data);
+    const note = document.getElementById('scope-note');
+    if (note) {
+      note.textContent = data.scope_message || '';
+      note.classList.toggle('hidden', !data.scope_message);
+    }
     const label = document.getElementById('range-label');
     if (label) {
       const paid = data.paid_only ? ' · yalnız ödənilmiş' : '';
-      label.textContent = `${data.label}${paid} · ${this.formatStamp(data.start)} — ${this.formatStamp(data.end)}`;
+      const place = data.restaurant ? `${data.restaurant.name} · ` : '';
+      label.textContent = `${place}${data.label}${paid} · ${this.formatStamp(data.start)} — ${this.formatStamp(data.end)}`;
     }
     const startInput = document.getElementById('date-start');
     const endInput = document.getElementById('date-end');
@@ -59,6 +68,14 @@ const AnalyticsPage = {
 
     const trendTitle = document.getElementById('trend-title');
     if (trendTitle) trendTitle.textContent = data.hourly ? 'Saatlıq satış' : 'Günlük satış';
+    if (data.needs_restaurant) {
+      this.renderTrend([]);
+      ['products', 'tables', 'waiters'].forEach((key) => {
+        this.renderBars(`${key}-chart`, [], 'quantity', key, () => '');
+        this.renderTable(`${key}-table`, [], [], () => 0);
+      });
+      return;
+    }
     this.renderTrend(data.trend || []);
 
     this.renderBars('products-chart', data.products, 'quantity', 'products', (row) => this.num(row.quantity));
@@ -97,11 +114,29 @@ const AnalyticsPage = {
     return `${day}.${month}.${year} ${time || ''}`.trim();
   },
 
+  renderRestaurant(data) {
+    const wrap = document.getElementById('restaurant-wrap');
+    const select = document.getElementById('restaurant-select');
+    if (!wrap || !select) return;
+    const options = data.restaurants || [];
+    if (!options.length) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    const selected = data.restaurant ? String(data.restaurant.id) : '';
+    select.innerHTML = `<option value="">Restoran seçin</option>${options.map((row) => (
+      `<option value="${row.id}">${AdminUI.escapeHtml(row.name)}</option>`
+    )).join('')}`;
+    select.value = selected;
+    wrap.classList.remove('hidden');
+  },
+
   renderTrend(points) {
     const el = document.getElementById('trend-chart');
     if (!el) return;
+    const note = document.getElementById('scope-note')?.textContent;
     if (!points.length || !points.some((point) => point.revenue || point.quantity)) {
-      el.innerHTML = '<div class="analytics-empty">Bu aralıqda satış yoxdur</div>';
+      el.innerHTML = `<div class="analytics-empty">${AdminUI.escapeHtml(note || 'Bu aralıqda satış yoxdur')}</div>`;
       return;
     }
     const max = Math.max(...points.map((p) => p.revenue), 0);
@@ -175,6 +210,7 @@ const AnalyticsPage = {
       this.load();
     });
     document.getElementById('paid-only')?.addEventListener('change', () => this.load());
+    document.getElementById('restaurant-select')?.addEventListener('change', () => this.load());
     this.load();
   },
 };

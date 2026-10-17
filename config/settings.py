@@ -365,10 +365,17 @@ JAZZMIN_SETTINGS = {
     "site_brand": "KAZZA",
     "welcome_sign": "Xoş gəldiniz!",
     "copyright": "KAZZA Team © 2025",
-    "order_with_respect_to": ["tenants", "users", "tables", "meals", "orders", "payments", "finance", "printers"],
+    "order_with_respect_to": [
+        "tenants", "users", "tables", "meals", "satış paneli", "orders", "payments", "finance", "printers",
+    ],
     # Shortcut in the warehouse ("inventory") menu: start/stop receiving
     # stock messages sent to the restaurant WhatsApp number.
     "custom_links": {
+        "orders": [{
+            "name": "Satış paneli",
+            "url": "admin:sales_analytics",
+            "icon": "fas fa-chart-bar",
+        }],
         "inventory": [{
             "name": "WhatsApp qəbulu",
             "url": "admin:whatsapp_connection",
@@ -376,6 +383,7 @@ JAZZMIN_SETTINGS = {
             "permissions": ["users.view_whatsappconfig"],
         }],
     },
+    "custom_js": "admin_panel/js/jazzmin-nav.js",
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
