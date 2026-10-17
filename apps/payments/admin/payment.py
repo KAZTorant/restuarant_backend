@@ -89,6 +89,7 @@ class OrderInline(admin.TabularInline):
 class PaymentAdmin(TenantAdminMixin, admin.ModelAdmin):
     tenant_lookup = 'table__room__restaurant'
     show_restaurant_in_list = False
+    list_per_page = 50
     list_display = (
         'id',
         'table',

@@ -46,6 +46,7 @@ class PreparationPlaceActionForm(forms.Form):
 class MealAdmin(TenantAdminMixin, admin.ModelAdmin):
     tenant_lookup = 'category__group__restaurant'
     show_restaurant_in_list = False
+    list_per_page = 50
     list_display = ['name', 'category', 'get_preparation_places_display',
                     'price', 'cost_price', 'marja_amount', 'marja_percentage']
     list_filter = ['category', 'preparation_places']

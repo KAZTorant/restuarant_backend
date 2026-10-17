@@ -70,6 +70,7 @@ class StatisticsAdmin(TenantAdminMixin, SimpleHistoryAdmin):
     """
     Admin for shift-based Statistics with both historical Z-check and shift start/end.
     """
+    list_per_page = 50
     list_display = (
         'started_by', 'start_time',
         'total', 'remaining_cash',
