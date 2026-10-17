@@ -164,9 +164,17 @@ const ActionsPanel = {
     const overlay = document.getElementById('popup-overlay');
     overlay.classList.remove('hidden');
 
+    const percentFromAmount = (amount) => {
+      const total = Number(this.totalPrice) || 0;
+      const discount = Number(amount) || 0;
+      if (!total || !discount) return '';
+      return String(Math.round((discount / total) * 10000) / 100);
+    };
+
     const state = {
       cash: '', card: '', other: '',
       discountAmount: Number(status.discount) || 0,
+      discountPercent: percentFromAmount(status.discount),
       discountComment: status.discount_comment || '',
       activeInput: 'cash',
       alreadyPaidCents: cents(status.paid_amount),
@@ -176,9 +184,30 @@ const ActionsPanel = {
 
     const readDiscount = () => {
       const amt = document.getElementById('discount-amt');
+      const pct = document.getElementById('discount-pct');
       const comment = document.getElementById('discount-comment');
       if (amt) state.discountAmount = parseFloat(amt.value) || 0;
+      if (pct) state.discountPercent = pct.value;
       if (comment) state.discountComment = comment.value;
+    };
+
+    const refreshDiscountSummary = (discountNow) => {
+      const finalNow = Math.max(0, cents(this.totalPrice) - cents(discountNow));
+      const paidNow = state.alreadyPaidCents + cents(state.cash) + cents(state.card) + cents(state.other);
+      const balanceNow = finalNow - paidNow;
+      const finalEl = document.getElementById('pay-final');
+      if (finalEl) finalEl.textContent = `₼ ${money(finalNow)}`;
+      const remEl = document.getElementById('pay-remaining');
+      if (remEl) {
+        remEl.textContent = `₼ ${money(Math.abs(balanceNow))}`;
+        remEl.style.color = balanceNow > 0 ? 'var(--danger)' : 'var(--primary-dark)';
+      }
+      const confirmBtn = document.getElementById('pay-confirm');
+      if (confirmBtn) {
+        const enteredNow = cents(state.cash) + cents(state.card) + cents(state.other);
+        const completesNow = balanceNow <= 0 && (enteredNow > 0 || state.alreadyPaidCents >= finalNow);
+        confirmBtn.textContent = completesNow ? 'Təsdiqlə' : 'Qismən qəbul et';
+      }
     };
 
     const escAttr = (value) => String(value || '')
@@ -254,9 +283,14 @@ const ActionsPanel = {
               `<button type="button" data-key="${n}">${n}</button>`).join('')}
           </div>
           <div class="modal-form">
-            <label>Endirim (₼)
-              <input type="text" id="discount-amt" inputmode="decimal" value="${discount || ''}" placeholder="0.00">
-            </label>
+            <div class="discount-row">
+              <label>Endirim (₼)
+                <input type="text" id="discount-amt" inputmode="decimal" value="${discount || ''}" placeholder="0.00">
+              </label>
+              <label>Endirim (%)
+                <input type="text" id="discount-pct" inputmode="decimal" value="${escAttr(state.discountPercent)}" placeholder="0">
+              </label>
+            </div>
             <label>Endirim səbəbi
               <input type="text" id="discount-comment" value="${escAttr(state.discountComment)}" placeholder="Qeyd yazın...">
             </label>
@@ -294,19 +328,26 @@ const ActionsPanel = {
 
       overlay.querySelector('#discount-amt').addEventListener('input', () => {
         const discountNow = parseFloat(document.getElementById('discount-amt').value) || 0;
-        const finalNow = Math.max(0, cents(this.totalPrice) - cents(discountNow));
-        const paidNow = state.alreadyPaidCents + cents(state.cash) + cents(state.card) + cents(state.other);
-        const balanceNow = finalNow - paidNow;
-        document.getElementById('pay-final').textContent = `₼ ${money(finalNow)}`;
-        const remEl = document.getElementById('pay-remaining');
-        remEl.textContent = `₼ ${money(Math.abs(balanceNow))}`;
-        remEl.style.color = balanceNow > 0 ? 'var(--danger)' : 'var(--primary-dark)';
-        const confirmBtn = document.getElementById('pay-confirm');
-        if (confirmBtn) {
-          const enteredNow = cents(state.cash) + cents(state.card) + cents(state.other);
-          const completesNow = balanceNow <= 0 && (enteredNow > 0 || state.alreadyPaidCents >= finalNow);
-          confirmBtn.textContent = completesNow ? 'Təsdiqlə' : 'Qismən qəbul et';
-        }
+        state.discountAmount = discountNow;
+        state.discountPercent = percentFromAmount(discountNow);
+        const pctEl = document.getElementById('discount-pct');
+        if (pctEl) pctEl.value = state.discountPercent;
+        refreshDiscountSummary(discountNow);
+      });
+
+      overlay.querySelector('#discount-pct').addEventListener('input', () => {
+        const raw = document.getElementById('discount-pct').value;
+        state.discountPercent = raw;
+        const pct = Math.min(100, Math.max(0, parseFloat(raw) || 0));
+        const discountCents = Math.min(
+          cents(this.totalPrice),
+          Math.round(cents(this.totalPrice) * pct / 100),
+        );
+        const discountNow = discountCents / 100;
+        state.discountAmount = discountNow;
+        const amtEl = document.getElementById('discount-amt');
+        if (amtEl) amtEl.value = raw.trim() === '' ? '' : discountNow.toFixed(2);
+        refreshDiscountSummary(discountNow);
       });
 
       overlay.querySelector('#pay-numpad').addEventListener('click', (e) => {
