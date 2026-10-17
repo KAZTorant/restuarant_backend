@@ -191,25 +191,6 @@ const ActionsPanel = {
       if (comment) state.discountComment = comment.value;
     };
 
-    const refreshDiscountSummary = (discountNow) => {
-      const finalNow = Math.max(0, cents(this.totalPrice) - cents(discountNow));
-      const paidNow = state.alreadyPaidCents + cents(state.cash) + cents(state.card) + cents(state.other);
-      const balanceNow = finalNow - paidNow;
-      const finalEl = document.getElementById('pay-final');
-      if (finalEl) finalEl.textContent = `₼ ${money(finalNow)}`;
-      const remEl = document.getElementById('pay-remaining');
-      if (remEl) {
-        remEl.textContent = `₼ ${money(Math.abs(balanceNow))}`;
-        remEl.style.color = balanceNow > 0 ? 'var(--danger)' : 'var(--primary-dark)';
-      }
-      const confirmBtn = document.getElementById('pay-confirm');
-      if (confirmBtn) {
-        const enteredNow = cents(state.cash) + cents(state.card) + cents(state.other);
-        const completesNow = balanceNow <= 0 && (enteredNow > 0 || state.alreadyPaidCents >= finalNow);
-        confirmBtn.textContent = completesNow ? 'Təsdiqlə' : 'Qismən qəbul et';
-      }
-    };
-
     const escAttr = (value) => String(value || '')
       .replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
@@ -221,17 +202,49 @@ const ActionsPanel = {
       { key: 'other', label: 'Digər', fill: 'Tam digər' },
     ];
 
-    const render = () => {
+    const figures = () => {
       readDiscount();
-      const total = this.totalPrice;
       const discount = state.discountAmount || 0;
-      const finalCents = Math.max(0, cents(total) - cents(discount));
+      const finalCents = Math.max(0, cents(this.totalPrice) - cents(discount));
       const currentCents = cents(state.cash) + cents(state.card) + cents(state.other);
       const paidCents = state.alreadyPaidCents + currentCents;
       const balanceCents = finalCents - paidCents;
-      const qaliqCents = Math.abs(balanceCents);
-      const qaliqColor = balanceCents > 0 ? 'var(--danger)' : 'var(--primary-dark)';
-      const completes = balanceCents <= 0 && (currentCents > 0 || state.alreadyPaidCents >= finalCents);
+      return {
+        finalCents,
+        paidCents,
+        qaliqCents: Math.abs(balanceCents),
+        qaliqColor: balanceCents > 0 ? 'var(--danger)' : 'var(--primary-dark)',
+        completes: balanceCents <= 0 && (currentCents > 0 || state.alreadyPaidCents >= finalCents),
+      };
+    };
+
+    const paint = () => {
+      const view = figures();
+      const finalEl = overlay.querySelector('#pay-final');
+      if (!finalEl) return;
+      finalEl.textContent = `₼ ${money(view.finalCents)}`;
+      overlay.querySelector('#pay-paid').textContent = `₼ ${money(view.paidCents)}`;
+      const remEl = overlay.querySelector('#pay-remaining');
+      remEl.textContent = `₼ ${money(view.qaliqCents)}`;
+      remEl.style.color = view.qaliqColor;
+      const confirmBtn = overlay.querySelector('#pay-confirm');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = view.completes ? 'Təsdiqlə' : 'Qismən qəbul et';
+      overlay.querySelectorAll('.payment-method').forEach((el) => {
+        const key = el.querySelector('[data-type]')?.dataset.type;
+        el.classList.toggle('is-active', key === state.activeInput);
+      });
+      overlay.querySelectorAll('[data-type]').forEach((inp) => {
+        inp.value = state[inp.dataset.type] || '';
+      });
+      overlay.querySelector('#pay-history-toggle').classList.toggle('is-open', state.showHistory);
+      overlay.querySelector('#pay-history').classList.toggle('hidden', !state.showHistory);
+    };
+
+    const render = () => {
+      const total = this.totalPrice;
+      const discount = state.discountAmount || 0;
+      const view = figures();
       const historyRows = state.payments.length
         ? state.payments.map((payment) => `
             <div class="payment-history-row">
@@ -251,19 +264,19 @@ const ActionsPanel = {
             </div>
             <div class="payment-summary-item">
               <div class="label">Son məbləğ</div>
-              <div class="value" id="pay-final">₼ ${money(finalCents)}</div>
+              <div class="value" id="pay-final">₼ ${money(view.finalCents)}</div>
             </div>
             <button type="button" class="payment-summary-item payment-summary-item--button ${state.showHistory ? 'is-open' : ''}" id="pay-history-toggle">
               <div class="label">Ödənilən</div>
-              <div class="value" id="pay-paid">₼ ${money(paidCents)}</div>
+              <div class="value" id="pay-paid">₼ ${money(view.paidCents)}</div>
             </button>
             <div class="payment-summary-item">
               <div class="label">Qalıq</div>
-              <div class="value" id="pay-remaining" style="color:${qaliqColor}">
-                ₼ ${money(qaliqCents)}
+              <div class="value" id="pay-remaining" style="color:${view.qaliqColor}">
+                ₼ ${money(view.qaliqCents)}
               </div>
             </div>
-            ${state.showHistory ? `<div class="payment-history" id="pay-history">${historyRows}</div>` : ''}
+            <div class="payment-history ${state.showHistory ? '' : 'hidden'}" id="pay-history">${historyRows}</div>
           </div>
           <div class="payment-methods">
             ${paymentTypes.map((type) => `
@@ -297,17 +310,17 @@ const ActionsPanel = {
           </div>
           <div class="modal-buttons">
             <button class="cancel-btn" id="pay-cancel">Ləğv et</button>
-            <button class="confirm-btn" id="pay-confirm">${completes ? 'Təsdiqlə' : 'Qismən qəbul et'}</button>
+            <button class="confirm-btn" id="pay-confirm">${view.completes ? 'Təsdiqlə' : 'Qismən qəbul et'}</button>
           </div>
         </div>`;
 
       overlay.querySelectorAll('[data-type]').forEach((inp) => {
-        inp.addEventListener('click', () => { state.activeInput = inp.dataset.type; render(); });
+        inp.addEventListener('click', () => { state.activeInput = inp.dataset.type; paint(); });
       });
 
       overlay.querySelector('#pay-history-toggle').addEventListener('click', () => {
         state.showHistory = !state.showHistory;
-        render();
+        paint();
       });
 
       overlay.querySelectorAll('[data-fill]').forEach((btn) => {
@@ -322,7 +335,7 @@ const ActionsPanel = {
           state.other = '';
           state[btn.dataset.fill] = amountCents ? money(amountCents) : '';
           state.activeInput = btn.dataset.fill;
-          render();
+          paint();
         });
       });
 
@@ -332,7 +345,7 @@ const ActionsPanel = {
         state.discountPercent = percentFromAmount(discountNow);
         const pctEl = document.getElementById('discount-pct');
         if (pctEl) pctEl.value = state.discountPercent;
-        refreshDiscountSummary(discountNow);
+        paint();
       });
 
       overlay.querySelector('#discount-pct').addEventListener('input', () => {
@@ -347,7 +360,7 @@ const ActionsPanel = {
         state.discountAmount = discountNow;
         const amtEl = document.getElementById('discount-amt');
         if (amtEl) amtEl.value = raw.trim() === '' ? '' : discountNow.toFixed(2);
-        refreshDiscountSummary(discountNow);
+        paint();
       });
 
       overlay.querySelector('#pay-numpad').addEventListener('click', (e) => {
@@ -359,7 +372,7 @@ const ActionsPanel = {
         else if (key === '.' && next.includes('.')) return;
         else next += key;
         state[field] = next;
-        render();
+        paint();
       });
 
       overlay.querySelector('#pay-cancel').onclick = () => {
@@ -409,7 +422,7 @@ const ActionsPanel = {
           setTimeout(() => { window.location.href = `/r/${this.restaurantSlug}/hall/${this.hallId}/`; }, 800);
         } catch (e) {
           KazzaUI.error(KazzaUI.parseError(e, 'Ödəniş zamanı xəta baş verdi.'));
-          render();
+          paint();
         } finally {
           KazzaUI.hideLoading();
         }
