@@ -383,7 +383,29 @@ JAZZMIN_SETTINGS = {
             "permissions": ["users.view_whatsappconfig"],
         }],
     },
+    "custom_css": "admin_panel/css/jazzmin.css",
     "custom_js": "admin_panel/js/jazzmin-nav.js",
+    "use_google_fonts_cdn": False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_flat_style": True,
+    "sidebar_nav_child_indent": True,
+    "accent": "accent-teal",
+    "theme": "default",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-outline-primary",
+        "warning": "btn-warning",
+        "danger": "btn-outline-danger",
+        "success": "btn-success",
+    },
 }
 
 X_FRAME_OPTIONS = 'ALLOWALL'  # Change value for your need.
