@@ -47,6 +47,11 @@ def _rooms_for_restaurant(restaurant):
 
 
 @require_http_methods(['GET'])
+def presentation_view(request):
+    return render(request, 'frontend/presentation.html')
+
+
+@require_http_methods(['GET'])
 def restaurant_list_view(request):
     restaurants = Restaurant.objects.filter(is_active=True).order_by('name')
     if restaurants.count() == 1:

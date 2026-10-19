@@ -1,0 +1,1584 @@
+{% load static %}
+<!doctype html>
+<html lang="az">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KAZZA — Satış təqdimatı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,620&family=Outfit:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'frontend/css/presentation.css' %}?v=3"
+    />
+  </head>
+  <body>
+    <button class="menu-btn" type="button">Bölmələr</button>
+    <aside class="rail">
+      <a class="brand" href="#acilis">
+        <span class="brand-mark">KAZZA</span>
+      </a>
+      <p class="brand-kicker">Satış təqdimatı</p>
+      <nav>
+        <a href="#acilis">Açılış</a>
+        <a href="#iki-teref">İki tərəf</a>
+        <a href="#pos-giris">POS giriş</a>
+        <a href="#zal">Zal və masalar</a>
+        <a href="#sifaris">Sifariş</a>
+        <a href="#masa">Masa əməliyyatları</a>
+        <a href="#odenis">Ödəniş</a>
+        <a href="#metbex">Mətbəx və printer</a>
+        <a href="#admin">İdarə etmə paneli</a>
+        <a href="#satis">Satış paneli</a>
+        <a href="#novbe">Növbə və kassa</a>
+        <a href="#hesabat">Hesabatlar</a>
+        <a href="#menyu">Menyu, zal, heyət</a>
+        <a href="#maliyye">Maliyyə</a>
+        <a href="#anbar">Anbar</a>
+        <a href="#whatsapp">WhatsApp</a>
+        <a href="#gun">Bir iş günü</a>
+        <a href="#yekun">Yekun</a>
+      </nav>
+      <p class="rail-foot">
+        Oxlarla və ya altdakı düymələrlə bölmə-bölmə keçin.
+      </p>
+    </aside>
+
+    <main class="deck">
+      <header class="hero" id="acilis">
+        <div>
+          <p class="eyebrow">Restoran satış və idarəetmə sistemi</p>
+          <h1>Ofisiant üçün POS. Sahibkar üçün idarə paneli.</h1>
+          <p class="lede">
+            KAZZA ofisiantın əlindəki POS-dur və sahibin kabinetindəki Django
+            admin-dir. Sifariş, mətbəx, hesab, kassa, anbar və satış bir
+            yerdədir.
+          </p>
+          <div class="promises">
+            <span class="promise">Cihaz sayı yoxdur</span>
+            <span class="promise">İşçi sayı yoxdur</span>
+            <span class="promise">Masa və zal sayı yoxdur</span>
+          </div>
+        </div>
+        <figure class="shot shot-hero">
+          <img
+            src="{% static 'frontend/img/presentation/floor.png' %}"
+            alt="POS zalı: boş və aktiv masalar"
+          />
+          <figcaption>POS. Zal ekranı, canlı masalar.</figcaption>
+        </figure>
+      </header>
+
+      <section class="block" id="iki-teref">
+        <p class="kicker">01 — Vəd</p>
+        <h2>İki ekran, bir restoran.</h2>
+        <p class="say">
+          Satış cümləsi: “Ofisiant zalda işləyir, siz kabinetdən eyni axına
+          baxırsınız. Planşet, telefon və kompüter sayı bizdə limit deyil.”
+        </p>
+        <div class="split">
+          <article class="panel">
+            <h3>POS</h3>
+            <p>
+              Ofisiant və administratorun zal ekranı. Masa, menyu, mətbəxə
+              göndəriş, çek və ödəniş.
+            </p>
+            <figure class="shot">
+              <img
+                src="{% static 'frontend/img/presentation/floor.png' %}"
+                alt="POS zal ekranı"
+              />
+              <figcaption>Zal.</figcaption>
+            </figure>
+          </article>
+          <article class="panel">
+            <h3>İdarə etmə paneli</h3>
+            <p>
+              Sahibkarin və menecerin idarə tərəfi. Satış, növbə, kassa,
+              hesabat, menyu, heyət, anbar və WhatsApp.
+            </p>
+            <figure class="shot">
+              <img
+                src="{% static 'frontend/img/presentation/admin.png' %}"
+                alt="İdarə etmə paneli ana səhifəsi"
+              />
+              <figcaption>Admin ana səhifə.</figcaption>
+            </figure>
+          </article>
+        </div>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Hər restoran ayrıdır</strong
+              ><span
+                >Öz menyusu, zalı, işçisi, kassası və hesabatı. Başqa restoranın
+                rəqəmi qarışmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Şəbəkə restoranı da eyni sistemdədir</strong
+              ><span
+                >Platforma tərəfi restoranlar arasında keçid edir. Hər filial öz
+                məlumatını görür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Buludda işləyir</strong
+              ><span
+                >Server restoranın içində qalmaq məcburiyyətində deyil.
+                Printerlər lokal şəbəkədə qalır, çap ora çatır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Limit yoxdur</strong
+              ><span
+                >Neçə planşet, neçə ofisiant, neçə masa, neçə zal — hamısı eyni
+                KAZZA-dadır.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="pos-giris">
+        <p class="kicker">02 — POS</p>
+        <h2>Giriş dörd rəqəmdir.</h2>
+        <p class="say">
+          Satış cümləsi: “Ofisiant parol yadda saxlamır. Öz PIN-ini yığır və zal
+          açılır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/login.png' %}"
+            alt="POS girişi: QR kod və PIN düymələri"
+          />
+          <figcaption>POS girişi. QR və dörd rəqəm.</figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Restoranın öz ünvanı</strong
+              ><span
+                >Hər restoranın ayrıca girişi var. İşçi yalnız öz restoranına
+                düşür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>4 rəqəmli PIN</strong
+              ><span
+                >Ekrandakı düymələrlə yığılır. Sürətli növbə dəyişimi
+                üçündür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>QR kod</strong
+              ><span
+                >Giriş səhifəsində QR var. Telefonu yaxınlaşdırıb həmin səhifəni
+                açır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Açıq və tünd ekran</strong
+              ><span
+                >Zalın işığına görə tema dəyişir. Gecə növbəsində göz
+                yorulmur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Bağlanmış hesab girmir</strong
+              ><span
+                >İşçi çıxıbsa, PIN dərhal işləmir. Administrator hesabı
+                söndürür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Rol girişlə birgə gəlir</strong
+              ><span
+                >Ofisiant, kapitan, administrator və Sahibkar eyni ekrana düşür,
+                gördüyü düymələr roluna görədir.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="zal">
+        <p class="kicker">03 — POS</p>
+        <h2>Zal bir baxışda oxunur.</h2>
+        <p class="say">
+          Satış cümləsi: “Boş masa, dolu masa və çeki çıxmış masa eyni anda
+          görünür. Ofisiant başqasının masasına girə bilmir.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/floor.png' %}"
+            alt="Aktiv və boş masalar"
+          />
+          <figcaption>
+            Aktiv masada ofisiantın adı və məbləğ görünür.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Bir neçə zal</strong
+              ><span
+                >Əsas zal, terras, VIP, kabinet. Hər zalın öz masaları var,
+                altdan keçid edilir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Masa kartı</strong
+              ><span
+                >Nömrə, ofisiantın adı və masanın məbləği kartın
+                üstündədir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Dörd vəziyyət</strong
+              ><span
+                >Boş. Aktiv. Çek çıxarılıb. Başqa ofisiantın masası —
+                kilidli.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Canlı zal</strong
+              ><span
+                >Administrator ekranı zalı özü yeniləyir. Masa bağlananda rəng
+                dəyişir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Ofisiantın öz sahəsi</strong
+              ><span
+                >Ofisiant başqa ofisiantın masasını görür, amma aça
+                bilmir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Söndürülmüş zal gizlənir</strong
+              ><span
+                >Mövsümi zalı bağlayırsınız, ekrandan çıxır. Masalar
+                silinmir.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="sifaris">
+        <p class="kicker">04 — POS</p>
+        <h2>Sifariş menyudan yığılır.</h2>
+        <p class="say">
+          Satış cümləsi: “Qrup, kateqoriya, yemək. Qeyd mətbəxə gedir. Extra
+          məhsulun qiymətini ofisiant yerində yazır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/order.png' %}"
+            alt="Sifariş siyahısı və menyu kartları"
+          />
+          <figcaption>Sifariş və menyu yan-yanadır.</figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Menyu üç qatdır</strong
+              ><span>Qrup, kateqoriya, yemək. Böyük menyu itmir.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Telefonda iki tab</strong
+              ><span
+                >Sifarişlər və menyu ayrı açılır. Planşetdə ikisi
+                yan-yanadır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Miqdar</strong
+              ><span>Məhsul artırılır və, göndərilməmişsə, azaldılır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Mətbəx qeydi</strong
+              ><span
+                >Az acılı, soğansız, uşaq porsiyonu. Qeyd məhsulun üstündə
+                qalır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Extra məhsul</strong
+              ><span
+                >Menyuda olmayan şey: təsvir və qiymət sifariş anında
+                yazılır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>İki status</strong
+              ><span
+                >Göndərilməyən məhsul gözləyir. Mətbəxə düşən məhsul hazır kimi
+                işarələnir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Bir masada bir neçə sifariş</strong
+              ><span
+                >Əsas hesab və əlavə sifarişlər ayrı qutudadır. Məbləğ masanın
+                üstündə cəmlənir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Başlığı yığmaq</strong
+              ><span
+                >Masa nömrəsi və məbləğ yuxarıdadır. Dar ekranda başlıq
+                gizlənir, menyu böyüyür.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="masa">
+        <p class="kicker">05 — POS</p>
+        <h2>Masa əməliyyatı administratorun əlindədir.</h2>
+        <p class="say">
+          Satış cümləsi: “Ofisiant sifarişi yığır və mətbəxə göndərir. Köçürmə,
+          birləşdirmə, ofisiant dəyişmə və qaytarma administrator üçündür.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/order.png' %}"
+            alt="Masa əməliyyat düymələri və sifariş"
+          />
+          <figcaption>
+            Çek, hazırla, ofisiant dəyiş, köçür, birləşdir.
+          </figcaption>
+        </figure>
+        <div class="roles">
+          <div class="role">
+            <b>Ofisiant</b><span>Hesab çeki və mətbəxə göndəriş.</span>
+          </div>
+          <div class="role">
+            <b>Kapitan</b><span>Eyni zal axını, öz masaları.</span>
+          </div>
+          <div class="role">
+            <b>Administrator</b
+            ><span>Ödəniş, köçürmə, birləşdirmə, qaytarma.</span>
+          </div>
+          <div class="role">
+            <b>Sahibkar</b><span>Administratorun bütün zal əməliyyatları.</span>
+          </div>
+        </div>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Hesab çeki</strong
+              ><span
+                >Müştəriyə hesab göstərilir, çek əsas printerdən çıxır. Masa
+                “çek çıxıb” olur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Çeki ləğv etmək</strong
+              ><span
+                >Müştəri hələ əlavə edirsə, çek geri alınır. Masa yenidən aktiv
+                olur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Hazırla</strong
+              ><span
+                >Seçilmiş məhsullar hazırlanma yerinin printerinə düşür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Ofisiantı dəyiş</strong
+              ><span>Növbə bölünəndə masa başqa ofisiantın adına keçir.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Masanı köçür</strong
+              ><span
+                >Zal və boş masa seçilir. Hesab müştəri ilə birgə gedir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Masanı birləşdir</strong
+              ><span
+                >İki şirkət bir hesabda oturanda sifarişlər bir masaya
+                yığılır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Tək məhsulu köçür</strong
+              ><span>Bir yemək başqa masaya gedir, köçürmə qeydi yazılır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Qaytarma və tullantı</strong
+              ><span
+                >Mətbəxə düşmüş məhsul silinəndə səbəb seçilir: müştəri
+                qaytardı, ya tullantı.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">09</span>
+            <div>
+              <strong>Anbar geri qayıdır</strong
+              ><span
+                >Qaytarma seçiləndə reseptin məhsulları anbara yazılır.
+                Tullantıda anbar qayıtmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">10</span>
+            <div>
+              <strong>Silinmə jurnalı</strong
+              ><span
+                >Kim sildi, hansı ofisiantın masası idi, nə vaxt, neçə ədəd,
+                qiymət və şərh qalır.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block dark" id="odenis">
+        <p class="kicker">06 — POS</p>
+        <h2>Hesab bir toxunuşla bağlanır.</h2>
+        <p class="say">
+          Satış cümləsi: “Nağd, kart və digər eyni hesabda qarışır. Endirim
+          manatla da olur, faizlə də. Müştəri bir hissəsini veribsə, qalanı açıq
+          qalır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/payment.png' %}"
+            alt="Ödəniş pəncərəsi: nağd, kart, digər"
+          />
+          <figcaption>Nağd, kart, digər, endirim və qismən ödəniş.</figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Üç ödəniş növü</strong
+              ><span>Nağd, kart, digər. Bir hesabın içində bölünür.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Tam məbləğ düyməsi</strong
+              ><span
+                >Tam nağd, tam kart, tam digər. Ədəd yığmağa ehtiyac
+                qalmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Rəqəm paneli</strong
+              ><span>Qarışıq məbləğ ekrandakı paneldən yığılır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Endirim</strong
+              ><span
+                >Manat və faiz. Səbəb yazılır: ad günü, personal, sahib.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Qismən ödəniş</strong
+              ><span
+                >Müştəri bir hissəsini verir, hesab açıq qalır. Tarixçədə
+                görünür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Qalıq və qaytarılacaq</strong
+              ><span
+                >Ekranda son məbləğ, ödənilən və qalıq eyni anda durur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Bağlanış çeki</strong
+              ><span
+                >Hesab tam olanda ödəniş yazılır və müştəri çeki çıxır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Operator qalır</strong
+              ><span
+                >Ödənişi hansı administratorun bağladığı ödənişin üstündə
+                saxlanır.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="metbex">
+        <p class="kicker">07 — Mətbəx</p>
+        <h2>Sifariş itmir, printerə düşür.</h2>
+        <p class="say">
+          Satış cümləsi: “Manqal manqala, bar bara, mətbəx mətbəxə. Bir yemək
+          iki yerə də gedə bilər. Server buluddadır, printer isə restoranın
+          divarındadır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/printers.png' %}"
+            alt="İdarə etmə paneli: hazırlanma yerləri və printerlər"
+          />
+          <figcaption>
+            İdarə etmə paneli. Hazırlanma yerləri və printerlər.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Hazırlanma yerləri</strong
+              ><span
+                >Mətbəx, manqal, bar, şirniyyat, soyuq sex. Hər yerin adı və
+                printeri var.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Yemək yerə bağlanır</strong
+              ><span
+                >Hər yemək bir və ya bir neçə hazırlanma yerinə düşür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Əsas printer</strong
+              ><span
+                >Müştəri çeki, növbə yekunu və Z hesabat əsas
+                printerdədir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Beş çek növü</strong
+              ><span
+                >Müştəri çeki, hazırlanma yeri, növbə yekunu, Z hesabat, satılan
+                məhsulların yekunu.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Silinmə çeki</strong
+              ><span
+                >Mətbəxə düşmüş məhsul silinəndə həmin yerə ləğv çeki
+                gedir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Yenidən çap</strong
+              ><span
+                >Çek itibsə, İdarə etmə paneli-dən eyni çeki yenidən çıxarmaq
+                olur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Print Gateway</strong
+              ><span
+                >Restoranda kiçik proqram işləyir. Bulud serveri lokal printerə
+                onun vasitəsilə çatır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Onlayn status</strong
+              ><span
+                >Gateway və printerlərin vəziyyəti İdarə etmə paneli-də görünür:
+                onlayn, oflayn, son görülmə.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">09</span>
+            <div>
+              <strong>Azərbaycan hərfləri</strong
+              ><span
+                >Çekdə ə, ş, ç, ğ, ö, ü, ı printerin oxuduğu formaya
+                çevrilir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">10</span>
+            <div>
+              <strong>Səs və kəsmə</strong
+              ><span
+                >Çek çıxanda printer siqnal verir və kağızı kəsir. Mətbəx çeki
+                eşitmədən ötüşmür.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="admin">
+        <p class="kicker">08 — Admin</p>
+        <h2>Kabinet İdarə etmə paneli-dədir.</h2>
+        <p class="say">
+          Satış cümləsi: “Sahibkar ofisiant ekranına düşmür. İdarə etmə
+          paneli-də satış, kassa, menyu və heyət yan-yanadır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/admin.png' %}"
+            alt="İdarə etmə paneli ana səhifəsi"
+          />
+          <figcaption>
+            Restoran, heyət, maliyyə, printer, zal və anbar bir menyudadır.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Ayrıca giriş</strong
+              ><span
+                >İdarə etmə paneli-in öz login səhifəsi var. Zal PIN-i ilə
+                qarışmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>İdarə menyusu</strong
+              ><span
+                >Satış, statistika, sifariş, ödəniş, yemək, masa və hesablama
+                bir ekranda açılır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Modul siyahısı</strong
+              ><span>Hər bölmənin siyahısı, əlavəsi və düzəlişi var.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Restoran adı yuxarıda</strong
+              ><span>İşçi hansı restoranda olduğunu hər səhifədə görür.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Məlumat qarışmır</strong
+              ><span>Menyu, zal, ödəniş və hesabat restorana bağlanır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Şəbəkə görünüşü</strong
+              ><span
+                >Bir neçə restoran olanda satış panelində restoran
+                seçilir.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="satis">
+        <p class="kicker">09 — Admin</p>
+        <h2>Satış paneli günü danışır.</h2>
+        <p class="say">
+          Satış cümləsi: “Son gün, son həftə, son ay, ya da öz tarixiniz. Orta
+          çek, ən çox satılan yemək, ən işlək masa və ən çox işləyən ofisiant
+          eyni səhifədədir.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/analytics.png' %}"
+            alt="İdarə etmə paneli satış paneli"
+          />
+          <figcaption>
+            İdarə etmə paneli. Satış, nağd, kart və diaqram.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Hazır dövrlər</strong
+              ><span
+                >Son gün, son həftə, son ay. İstəsəniz başlanğıc və bitiş
+                tarixini özünüz seçirsiniz.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Ümumi satış</strong
+              ><span>Seçilmiş aralıqdakı ödənilmiş dövriyyə.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Satılan miqdar</strong><span>Neçə porsiya gedib.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Sifariş sayı və orta çek</strong
+              ><span
+                >Masa sayı ilə məbləğin nisbəti. Menyu qiymətini bununla
+                yoxlayırsınız.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Müştəri sayı</strong
+              ><span>Dövr ərzində masalara düşən qonaq sayı.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Nağd, kart, digər</strong
+              ><span
+                >Hər kanalın məbləği, ödənilən cəm və ödəniş sayı ayrı
+                kartlardadır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Ödəniş diaqramı</strong
+              ><span>Nağd, kart və digər məbləğə görə bölünür.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Satış dinamikası</strong
+              ><span
+                >Günlərin məbləği yan-yana durur. Zəif gün gözə dəyir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">09</span>
+            <div>
+              <strong>Ən çox satılanlar</strong
+              ><span
+                >Qrup və kateqoriya süzgəci. Saya görə, ya da məbləğə
+                görə.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">10</span>
+            <div>
+              <strong>Masalar və ofisiantlar</strong
+              ><span
+                >Ən çox işlənən 10 masa və ən çox işləyən 10 ofisiant.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="novbe">
+        <p class="kicker">10 — Kassa</p>
+        <h2>Növbə açılır, bağlanır, təhvil verilir.</h2>
+        <p class="say">
+          Satış cümləsi: “Kassadakı pul əvvəlki növbədən gəlir. Çıxarış qeydlə
+          yazılır. Fərq növbə təslimində görünür.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/shifts.png' %}"
+            alt="İdarə etmə paneli hesabatlar və növbə"
+          />
+          <figcaption>
+            İdarə etmə paneli. Növbəni başlat, hesabat və kassa.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Növbəni başlat</strong
+              ><span
+                >Administrator növbəni açır. Açıq növbə varsa, ikincisi
+                açılmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Əvvəlki qalıq</strong
+              ><span
+                >Nağd, kart və digər qalıq yeni növbənin başlanğıcına
+                keçir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Canlı kassa</strong
+              ><span
+                >Ödənilmiş və ödənilməmiş məbləğ növbə boyu yenilənir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Növbəni bağla</strong
+              ><span>Növbəni onu açan administrator bağlayır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Çıxarış</strong
+              ><span
+                >Nağddan, kartdan və digər kanaldan ayrı-ayrı məbləğ çıxarılır.
+                Qeyd yazılır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Limitin özü kassadır</strong
+              ><span>Çıxarış mövcud məbləğdən çox yazılmır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Qalan pul</strong
+              ><span
+                >Çıxarışdan sonra qalan nağd, kart və digər növbəti növbəyə
+                qalır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Z yoxlama</strong
+              ><span
+                >Növbə bağlananda Z işarələnir. Z hesabatı printerdən
+                çıxır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">09</span>
+            <div>
+              <strong>Gün, ay, il, ofisiant</strong
+              ><span
+                >Statistikada günlük, aylıq, illik və ofisiant üzrə məbləğ
+                var.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">10</span>
+            <div>
+              <strong>Növbə təslimi</strong
+              ><span
+                >Verən, alan, kassadakı pul, gözlənilən məbləğ, fərq, iki
+                tərəfin qeydi və təsdiq.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">11</span>
+            <div>
+              <strong>Götürülən məbləğlər</strong
+              ><span
+                >Çıxarışlar siyahısı. Tarix aralığı seçib cəmi
+                hesablayırsınız.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">12</span>
+            <div>
+              <strong>Çap</strong
+              ><span>Növbə yekunu və Z hesabatı əsas printerə gedir.</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="hesabat">
+        <p class="kicker">11 — Admin</p>
+        <h2>Hesabat gecə yarısında qırılmır.</h2>
+        <p class="say">
+          Satış cümləsi: “Restoran 12-də açılıb saat 2-də bağlanırsa, hesabat da
+          elə həmin iş gününə düşür. Təqvim günü sizin növbənizi bölmür.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/calc.png' %}"
+            alt="İdarə etmə paneli ödəniş hesablaması"
+          />
+          <figcaption>
+            İdarə etmə paneli. Tarix aralığı, nağd, kart və çap.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Tarix aralığı hesabatı</strong
+              ><span
+                >Başlanğıc və bitiş seçilir. Nağd, kart, digər və cəm
+                çıxır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Kim hazırlayıb</strong
+              ><span>Hesabatın müəllifi yazılır.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>İş dövrü</strong
+              ><span
+                >Başlama və bitmə saatı. Saat 02 səhərdirsə, dövr növbəti günə
+                keçir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Dövr hesabatı</strong
+              ><span
+                >Ümumi, nağd, kart, digər və ödənilməmiş məbləğ həmin dövrün
+                içindədir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Ödəniş hesablaması</strong
+              ><span
+                >Tarix və saat aralığı. Neçə ödəniş, nə qədər nağd, kart,
+                digər.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Məhsul yekunu</strong
+              ><span
+                >Həmin aralıqda hansı yeməkdən neçə ədəd və neçə manat
+                satılıb.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Çaypulu və artıq ödəniş</strong
+              ><span
+                >Ödənilən məbləğ sifariş cəmindən çoxdursa, fərq ayrıca
+                görünür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Çap</strong
+              ><span
+                >Ödəniş hesablaması və satılan məhsullar printerə
+                göndərilir.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="menyu">
+        <p class="kicker">12 — Quruluş</p>
+        <h2>Menyu, zal və heyət sizin ölçünüzdədir.</h2>
+        <p class="say">
+          Satış cümləsi: “Yemək adı təkrarlanmır, masa nömrəsi zalın içində
+          təkdir, işçi sayı isə heç yerdə kəsilmir.”
+        </p>
+        <div class="shots">
+          <figure class="shot">
+            <img
+              src="{% static 'frontend/img/presentation/meals.png' %}"
+              alt="İdarə etmə paneli yeməklər"
+            />
+            <figcaption>Yemək, qiymət, maya.</figcaption>
+          </figure>
+          <figure class="shot">
+            <img
+              src="{% static 'frontend/img/presentation/halls.png' %}"
+              alt="İdarə etmə paneli zallar"
+            />
+            <figcaption>Zallar. Aktiv və söndürülmüş.</figcaption>
+          </figure>
+        </div>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Yemək qrupu</strong
+              ><span>Mətbəx, içkilər, manqal. Qrupun təsviri var.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Kateqoriya</strong
+              ><span
+                >Qrupun içində şorba, isti, salat. Extra kateqoriya qiyməti
+                sifariş anında götürür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Yemək</strong
+              ><span>Ad, təsvir, qiymət və hazırlanma yeri.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Təkrar ad yoxdur</strong
+              ><span
+                >Eyni qrupda eyni kateqoriya, eyni kateqoriyada eyni yemək
+                yazılmır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Zal</strong
+              ><span>Ad, təsvir, aktiv və ya söndürülmüş.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Masa</strong
+              ><span
+                >Nömrə, tutum, hansı zal. Eyni zalda eyni nömrə olmur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>Dörd rol</strong
+              ><span
+                >Ofisiant, kapitan ofisiant, administrator, restoran
+                sahibi.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>PIN restorana bağlıdır</strong
+              ><span
+                >Eyni rəqəm başqa restoranda ola bilər. Bu restoranın içində
+                təkrarı yoxdur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">09</span>
+            <div>
+              <strong>İşçi limiti yoxdur</strong
+              ><span
+                >Yayda on ofisiant, qışda üç. Hamısı İdarə etmə paneli-də açılıb
+                bağlanır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">10</span>
+            <div>
+              <strong>Sifariş tarixçəsi</strong
+              ><span
+                >Sifariş və məhsul dəyişiklikləri qalır. Kim nəyi düzəldib, geri
+                baxmaq olur.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="maliyye">
+        <p class="kicker">13 — Maliyyə</p>
+        <h2>Satışdan kənar pul da yazılır.</h2>
+        <p class="say">
+          Satış cümləsi: “Masa satışı ayrıdır. Maaş, rüsum və kənar gəlir də
+          restoranın İdarə etmə paneli-ində qalır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/income.png' %}"
+            alt="İdarə etmə paneli gəlir formu"
+          />
+          <figcaption>
+            İdarə etmə paneli. Gəlir: restoran, məbləğ, ödəniş növü, tarix.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Gəlir</strong
+              ><span>Kassa, kartdan karta və NFS. Məbləğ, tarix, qeyd.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Xərc</strong
+              ><span>Maaş, rüsum və digər. Məbləğ, tarix, qeyd.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Restorana bağlıdır</strong
+              ><span>Filialın xərci başqa filialın hesabına düşmür.</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block alt" id="anbar">
+        <p class="kicker">14 — Anbar</p>
+        <h2>Yemək satılanda anbar özü azalır.</h2>
+        <p class="say">
+          Satış cümləsi: “Hər yeməyin resepti var. On tikə kabab satıldısa, ət
+          özü düşür. Müştəri qaytardısa, ət geri yazılır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/inventory.png' %}"
+            alt="İdarə etmə paneli anbar məhsulları"
+          />
+          <figcaption>
+            İdarə etmə paneli. Anbar, miqdar, əlavə et və silinmə.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Anbar kartı</strong
+              ><span>Məhsul, kateqoriya və təchizatçı.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Hərəkət</strong
+              ><span>Giriş və çıxış qeydi. Nə vaxt, nə qədər, nə üçün.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Resept</strong
+              ><span
+                >Yeməyə anbar məhsulu bağlanır: miqdar və vahid qiymət. Un
+                kiloqramla, yağ litrlə, yumurta ədədlə.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Maya</strong
+              ><span>Reseptin məhsullarından yeməyin maya dəyəri görünür.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Satışda azalma</strong
+              ><span>Məhsul mətbəxə göndəriləndə resept anbardan düşür.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Qaytarmada artım</strong
+              ><span
+                >Səbəb “müştəri qaytardı” olanda həmin miqdar anbara
+                qayıdır.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">07</span>
+            <div>
+              <strong>WhatsApp-dan giriş</strong
+              ><span
+                >“Un 10 kq”, “Süd 5 l 1.20”, “Yumurta 30 ədəd”. Mətn anbar
+                sətrinə çevrilir.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">08</span>
+            <div>
+              <strong>Şəkil də gedir</strong
+              ><span
+                >Qaimənin şəkli göndərilə bilər. Sistem oxuya bilməyəndə nümunə
+                yazır.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block" id="whatsapp">
+        <p class="kicker">15 — WhatsApp</p>
+        <h2>Sahibkar restoranda olmayanda da xəbər tutur.</h2>
+        <p class="say">
+          Satış cümləsi: “Məhsul silinəndə Sahibkarin telefonuna mesaj gedir.
+          Çatıb-çatmadığı da admin-də yazılır.”
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/whatsapp.png' %}"
+            alt="İdarə etmə paneli WhatsApp konfiqurasiyası"
+          />
+          <figcaption>
+            İdarə etmə paneli. Nömrəni qoş, mesajlar və konfiqurasiya.
+          </figcaption>
+        </figure>
+        <ol class="points">
+          <li>
+            <span class="num">01</span>
+            <div>
+              <strong>Bir neçə nömrə</strong
+              ><span
+                >Sahibkar, müdir, mühasib. Hər nömrənin adı və qeydi var.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <strong>Nömrəni söndürmək</strong
+              ><span>Məzuniyyətdə olan nömrəyə bildiriş getmir.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <strong>Silinmə bildirişi</strong
+              ><span
+                >Təsdiqlənmiş məhsul silinəndə aktiv nömrələrə mesaj
+                düşür.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <div>
+              <strong>Status</strong
+              ><span>Gözləyir, göndərildi, çatdı, oxundu, alınmadı.</span>
+            </div>
+          </li>
+          <li>
+            <span class="num">05</span>
+            <div>
+              <strong>Qoşulma</strong
+              ><span
+                >WhatsApp QR ilə bağlanır. Sessiya restorana məxsusdur.</span
+              >
+            </div>
+          </li>
+          <li>
+            <span class="num">06</span>
+            <div>
+              <strong>Anbar qəbulu</strong
+              ><span
+                >Anbar mesajlarını qəbul etmək İdarə etmə paneli-dən açılıb
+                bağlanır.</span
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="block dark" id="gun">
+        <p class="kicker">16 — Ssenari</p>
+        <h2>Bir iş günü KAZZA-da belə gedir.</h2>
+        <p class="say">
+          Bunu restoranda nağıl kimi danışın. Hər sətir onların zalında baş
+          verən işdir.
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/floor.png' %}"
+            alt="POS zalı"
+          />
+          <figcaption>Gün zal ekranından başlayır.</figcaption>
+        </figure>
+        <div class="day">
+          <article>
+            <time>11:00</time>
+            <div>
+              <strong>Növbə açılır.</strong> Dünənki qalıq nağd, kart və digər
+              bu günün kassasına keçir.
+            </div>
+          </article>
+          <article>
+            <time>12:10</time>
+            <div>
+              <strong>Ofisiant PIN yığır.</strong> Zal açılır, boş masanı seçir,
+              qrupdan yeməyi əlavə edir, qeyd yazır, mətbəxə göndərir.
+            </div>
+          </article>
+          <article>
+            <time>12:11</time>
+            <div>
+              <strong>İki printer işləyir.</strong> Kabab manqala, içki bara
+              düşür. Mətbəx eşitmədən də çeki görür.
+            </div>
+          </article>
+          <article>
+            <time>14:00</time>
+            <div>
+              <strong>Hesab.</strong> Çek çıxır. Müştəri yarısını kartla,
+              yarısını nağd verir. Endirimin səbəbi yazılır.
+            </div>
+          </article>
+          <article>
+            <time>14:02</time>
+            <div>
+              <strong>Masa boşalır.</strong> Ödəniş bağlanır, müştəri çeki
+              çıxır, kart yenidən boş olur.
+            </div>
+          </article>
+          <article>
+            <time>16:30</time>
+            <div>
+              <strong>Bir yemək geri gəlir.</strong> Administrator “müştəri
+              qaytardı” seçir. Anbar geri yazılır, Sahibkarin WhatsApp-ına mesaj
+              gedir.
+            </div>
+          </article>
+          <article>
+            <time>19:00</time>
+            <div>
+              <strong>Sahibkar admin-dədir.</strong> Ən çox satılan yemək, orta
+              çek və ən işlək masa artıq görünür.
+            </div>
+          </article>
+          <article>
+            <time>23:40</time>
+            <div>
+              <strong>Növbə bağlanır.</strong> Çıxarış qeydlə yazılır, Z çap
+              olunur, qalan pul növbəti adminə təhvil verilir.
+            </div>
+          </article>
+          <article>
+            <time>23:55</time>
+            <div>
+              <strong>Anbar WhatsApp-dadır.</strong> “Ət 8 kq” mesajı anbar
+              sətrinə düşür. Səhər restoran dolu anbarla açılır.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="block" id="yekun">
+        <p class="kicker">17 — Bağlanış</p>
+        <h2>Ölçüyə görə kəsilmir.</h2>
+        <p class="say">
+          Kiçik çay evi də, bir neçə zalı olan restoran da, şəbəkə də eyni
+          KAZZA-nı götürür. Cihaz əlavə olunanda qiymət artmır. Ofisiant əlavə
+          olunanda yer bitmir.
+        </p>
+        <figure class="shot">
+          <img
+            src="{% static 'frontend/img/presentation/analytics.png' %}"
+            alt="İdarə etmə paneli satış rəqəmləri"
+          />
+          <figcaption>Sahibkar günü İdarə etmə paneli-də bağlayır.</figcaption>
+        </figure>
+        <div class="close">
+          <p><strong>Masada bu üç sualı verin.</strong></p>
+          <ol class="questions">
+            <li>Sifariş indi kağızdadır, yoxsa başqa proqramdadır?</li>
+            <li>Gün sonunda kassanı kim sayır və fərq haradan çıxır?</li>
+            <li>Mətbəx sifarişi necə görür — səslə, yoxsa öz printerində?</li>
+          </ol>
+          <p>
+            Son cümlə: biz cihaz və işçi satmırıq. Restoranın zalını və
+            idarəsini bir KAZZA-ya bağlayırıq.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <div class="pager">
+      <button type="button" id="prev-section">Əvvəlki</button>
+      <button type="button" id="next-section">Növbəti</button>
+    </div>
+    <script src="{% static 'frontend/js/presentation.js' %}?v=4"></script>
+  </body>
+</html>
