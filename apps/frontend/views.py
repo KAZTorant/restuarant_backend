@@ -1,6 +1,3 @@
-import socket
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
@@ -12,15 +9,14 @@ from apps.tenants.models import Restaurant
 User = get_user_model()
 
 
-def _get_network_ip():
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.connect(('8.8.8.8', 80))
-        ip_address = sock.getsockname()[0]
-        sock.close()
-        return ip_address
-    except OSError:
-        return '127.0.0.1'
+def _public_page_url(request):
+    """URL the browser actually opened, including the public host behind a proxy."""
+    url = request.build_absolute_uri()
+    forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO', '')
+    proto = forwarded_proto.split(',')[0].strip().lower()
+    if proto in {'http', 'https'} and '://' in url:
+        url = f'{proto}://{url.split("://", 1)[1]}'
+    return url
 
 
 def _auth_context(request):
@@ -98,13 +94,9 @@ def login_view(request, slug):
             except User.DoesNotExist:
                 error = 'Daxil etdiyiniz PIN kodu yanlışdır. Yenidən cəhd edin.'
 
-    port = settings.BACKEND_PORT
-    network_ip = _get_network_ip()
-    qr_url = f'http://{network_ip}:{port}/r/{slug}/'
-
     return render(request, 'frontend/login.html', {
         'error': error,
-        'qr_url': qr_url,
+        'qr_url': _public_page_url(request),
         'restaurant': restaurant,
         'restaurant_slug': slug,
     })
