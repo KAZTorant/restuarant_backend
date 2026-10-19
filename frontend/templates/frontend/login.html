@@ -9,20 +9,29 @@
 
 {% block content %}
 <div class="login-page">
+    <div class="login-orb login-orb--a" aria-hidden="true"></div>
+    <div class="login-orb login-orb--b" aria-hidden="true"></div>
     <div class="page-theme-bar">
         {% include 'frontend/includes/theme_toggle.html' %}
     </div>
     <div class="login-container">
-        <div class="login-brand">
+        <aside class="login-brand">
+            <div class="brand-mark" aria-hidden="true">K</div>
             <h1>Kazza</h1>
-            <p>{% if restaurant %}{{ restaurant.name }}<br>{% endif %}PIN kodunuzla daxil olun.</p>
+            <p>{% if restaurant %}{{ restaurant.name }}{% endif %}</p>
+            <p class="brand-note">PIN kodunuzla daxil olun.</p>
             <div class="qr-code" id="qr-section">
                 <div class="qr-code-wrapper">
+                    <span class="qr-corner qr-corner--tl" aria-hidden="true"></span>
+                    <span class="qr-corner qr-corner--tr" aria-hidden="true"></span>
+                    <span class="qr-corner qr-corner--bl" aria-hidden="true"></span>
+                    <span class="qr-corner qr-corner--br" aria-hidden="true"></span>
+                    <span class="qr-scan" aria-hidden="true"></span>
                     <div id="qr-code"></div>
                 </div>
                 <p>Mobil cihazdan skan edin</p>
             </div>
-        </div>
+        </aside>
 
         <div class="login-form-card">
             <h2>Xoş gəldiniz</h2>
@@ -51,9 +60,9 @@
                     <button type="button" class="btn number" data-key="7">7</button>
                     <button type="button" class="btn number" data-key="8">8</button>
                     <button type="button" class="btn number" data-key="9">9</button>
-                    <button type="button" class="btn number zero" data-key="0">0</button>
-                    <button type="button" class="btn control clear" id="clear-btn">Təmizlə</button>
-                    <button type="submit" class="btn control enter" id="submit-btn">Daxil ol</button>
+                    <button type="button" class="btn control clear" id="clear-btn">Sil</button>
+                    <button type="button" class="btn number" data-key="0">0</button>
+                    <button type="submit" class="btn control enter" id="submit-btn">Daxil</button>
                 </div>
             </form>
 

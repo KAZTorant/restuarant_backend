@@ -94,12 +94,20 @@ def login_view(request, slug):
             except User.DoesNotExist:
                 error = 'Daxil etdiyiniz PIN kodu yanlışdır. Yenidən cəhd edin.'
 
-    return render(request, 'frontend/login.html', {
+    response = render(request, 'frontend/login.html', {
         'error': error,
         'qr_url': _public_page_url(request),
         'restaurant': restaurant,
         'restaurant_slug': slug,
     })
+    response.set_cookie(
+        'staff_restaurant',
+        restaurant.slug,
+        max_age=60 * 60 * 24 * 30,
+        samesite='Lax',
+        httponly=True,
+    )
+    return response
 
 
 @require_http_methods(['GET'])

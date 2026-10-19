@@ -436,40 +436,86 @@ p.help {
   background: var(--kz-primary) !important;
 }
 
-.table {
+#result_list,
+.change-list table.table {
+  border: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0;
   color: var(--kz-ink);
+  margin-bottom: 0;
 }
 
-.table thead th {
-  border-top: 0;
-  border-bottom: 1px solid var(--kz-line) !important;
-  background: #f8fafc;
+#result_list thead th,
+.change-list table.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff !important;
   color: #64748b !important;
-  font-size: 0.7rem;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding-top: 0.85rem;
-  padding-bottom: 0.85rem;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e7edf5 !important;
+  padding: 0.95rem 1rem !important;
+  box-shadow: none !important;
 }
 
-.table td,
-.table th {
-  border-top: 1px solid #f1f5f9;
+#result_list tbody td,
+#result_list tbody th,
+.change-list table.table tbody td,
+.change-list table.table tbody th {
+  background: #fff !important;
+  border: 0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 0.95rem 1rem !important;
   vertical-align: middle;
+  color: #334155;
 }
 
+#result_list.table-striped tbody tr:nth-of-type(odd),
+#result_list.table-striped tbody tr:nth-of-type(odd) td,
+#result_list tbody tr.odd,
+#result_list tbody tr.odd td,
+#result_list tbody tr.even,
+#result_list tbody tr.even td,
 .table-striped tbody tr:nth-of-type(odd) {
-  background: transparent;
+  background: #fff !important;
+  background-color: #fff !important;
 }
 
-.table-hover tbody tr:hover,
-.table tbody tr:hover {
-  background: #f8fafc;
+#result_list tbody tr:hover td,
+#result_list tbody tr:hover th,
+.change-list table.table tbody tr:hover td {
+  background: #f8fafc !important;
+  background-color: #f8fafc !important;
 }
 
-.table a {
+#result_list tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+#result_list a,
+.change-list table.table a {
   font-weight: 600;
+  color: #0f766e;
+}
+
+#result_list td.action-checkbox,
+#result_list th.action-checkbox {
+  width: 42px;
+  padding-left: 1rem !important;
+  padding-right: 0.2rem !important;
+}
+
+.change-list #changelist .card,
+.change-list #result_list {
+  box-shadow: none;
+}
+
+.change-list .card-body.table-responsive {
+  border-radius: 16px;
 }
 
 #changelist .card,
@@ -619,7 +665,8 @@ p.help {
   padding: 0.85rem 1rem;
 }
 
-.main-footer .float-right {
+.main-footer .float-right,
+.main-footer .d-sm-inline {
   display: none !important;
 }
 
