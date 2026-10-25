@@ -7,9 +7,9 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from apps.orders.models import Order
-
 from apps.tables.models import Table
+from apps.tenants.context import get_current_restaurant
+from apps.tenants.utils import filter_by_restaurant
 from apps.users.models import User
 
 from apps.users.permissions import IsAdmin
@@ -32,8 +32,11 @@ class ChangeWaitressAPIView(APIView):
         )
     )
     def post(self, request, table_id):
-        table: (Table | None) = Table.objects.filter(id=table_id).first()
-        if not table:
+        restaurant = get_current_restaurant()
+        table: (Table | None) = filter_by_restaurant(
+            Table.objects.filter(id=table_id)
+        ).first()
+        if not table or restaurant is None:
             return Response(
                 {'error': 'Masa tapılmadı!'},
                 status=status.HTTP_404_NOT_FOUND
@@ -41,8 +44,10 @@ class ChangeWaitressAPIView(APIView):
 
         new_waitress_id = request.data.get("new_waitress_id", 0)
         new_waitress = User.objects.filter(
-            type="waitress"
-        ).filter(id=new_waitress_id).first()
+            type="waitress",
+            id=new_waitress_id,
+            restaurant=restaurant,
+        ).first()
         if not new_waitress:
             return Response(
                 {'error': 'Dəyişmək istədiyiniz ofisiant tapılmadı!'},
