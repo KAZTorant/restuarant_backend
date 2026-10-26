@@ -263,6 +263,7 @@ html[data-theme="dark"] .pin-dot.filled {
   border-radius: 18px;
   cursor: pointer;
   font-weight: 650;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.12s ease, background 0.12s ease;
 }

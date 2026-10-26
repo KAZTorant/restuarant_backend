@@ -82,9 +82,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
     window.KAZZA_QR_URL = "{{ qr_url|escapejs }}";
 </script>
 <script src="{% static 'frontend/js/login.js' %}"></script>
+<script src="{% static 'frontend/js/qrcode.min.js' %}" defer></script>
 {% endblock %}
