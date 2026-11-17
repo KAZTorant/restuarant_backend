@@ -40,8 +40,7 @@ RUN mkdir -p /data/session
 
 EXPOSE 3001
 
-# tini is PID 1 so exited Chromium children are reaped, and SIGTERM reaches
-# the whole process group when Railway stops the container.
+# Railway starts the image CMD and skips ENTRYPOINT, so tini has to be the
+# command itself. It reaps exited Chromium children and forwards SIGTERM.
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
-CMD ["node", "server.js"]
+CMD ["/usr/bin/tini", "-g", "--", "/usr/local/bin/node", "server.js"]
