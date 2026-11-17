@@ -3,8 +3,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Railway runs this instead of the image ENTRYPOINT. tini must be the process
-# Railway starts, otherwise Chromium children are never reaped.
+# Keep in sync with the service's start command in the Railway dashboard; that
+# value wins. tini must be PID 1, otherwise Chromium children are never reaped.
 startCommand = "/usr/bin/tini -g -- /usr/local/bin/node server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120

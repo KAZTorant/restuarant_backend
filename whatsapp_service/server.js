@@ -1197,7 +1197,9 @@ app.post('/logout', requireKey, async (req, res) => {
 });
 
 function bootSessions() {
-    const slugs = savedSlugs();
+    // In on-demand mode an unlinked session would only show a QR nobody is
+    // looking at; it starts when an admin opens the connection page.
+    const slugs = savedSlugs().filter((slug) => !ON_DEMAND || isLinked(slug));
     logEvent('boot_sessions', { restaurants: slugs });
     slugs.forEach((slug) => ensureSession(slug, { start: true }));
 }
