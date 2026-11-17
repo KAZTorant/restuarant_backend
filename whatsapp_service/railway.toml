@@ -3,9 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Keep in sync with the service's start command in the Railway dashboard; that
-# value wins. tini must be PID 1, otherwise Chromium children are never reaped.
-startCommand = "/usr/bin/tini -g -- /usr/local/bin/node server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

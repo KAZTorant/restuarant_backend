@@ -34,13 +34,11 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --ignore-scripts
 
-COPY server.js ./
+COPY server.js app.js ./
 
 RUN mkdir -p /data/session
 
 EXPOSE 3001
 
-# Railway starts the image CMD and skips ENTRYPOINT, so tini has to be the
-# command itself. It reaps exited Chromium children and forwards SIGTERM.
 STOPSIGNAL SIGTERM
-CMD ["/usr/bin/tini", "-g", "--", "/usr/local/bin/node", "server.js"]
+CMD ["node", "server.js"]
