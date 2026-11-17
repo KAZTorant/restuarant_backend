@@ -1237,17 +1237,64 @@ function startOnDemandLoops() {
     }
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     logEvent('listening', { port: PORT, session: SESSION_PATH, chrome: CHROME_PATH || 'default', on_demand: ON_DEMAND });
     bootSessions();
     startOnDemandLoops();
 });
 
-process.on('SIGINT', async () => {
-    for (const state of sessions.values()) {
-        if (state.client) {
-            await state.client.destroy();
+// Railway stops the container with SIGTERM. tini forwards it to this process.
+// Finish in-flight HTTP, close Chromium, then exit. A second signal is ignored
+// so a slow destroy cannot start twice.
+const SHUTDOWN_MS = 10000;
+let shuttingDown = false;
+
+function closeHttpServer() {
+    return new Promise((resolve) => {
+        const timer = setTimeout(resolve, 2000);
+        server.close(() => {
+            clearTimeout(timer);
+            resolve();
+        });
+        if (typeof server.closeIdleConnections === 'function') {
+            server.closeIdleConnections();
         }
+    });
+}
+
+async function shutdown(signal) {
+    if (shuttingDown) {
+        return;
     }
-    process.exit(0);
-});
+    shuttingDown = true;
+    logEvent('shutdown', { signal });
+    const force = setTimeout(() => {
+        console.error('WhatsApp shutdown timed out');
+        process.exit(1);
+    }, SHUTDOWN_MS);
+    force.unref();
+    try {
+        await closeHttpServer();
+        for (const state of sessions.values()) {
+            clearQrIdleTimer(state);
+            state.generation += 1;
+            state.leaseUntil = 0;
+            state.manual = false;
+            await destroyClient(state);
+        }
+        clearTimeout(force);
+        process.exit(0);
+    } catch (err) {
+        console.error('WhatsApp shutdown failed:', err);
+        process.exit(1);
+    }
+}
+
+for (const signal of ['SIGTERM', 'SIGINT']) {
+    process.on(signal, () => {
+        shutdown(signal).catch((err) => {
+            console.error('WhatsApp shutdown failed:', err);
+            process.exit(1);
+        });
+    });
+}

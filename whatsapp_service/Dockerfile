@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxcomposite1 \
         libxdamage1 \
         libxrandr2 \
+        tini \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
@@ -39,4 +40,8 @@ RUN mkdir -p /data/session
 
 EXPOSE 3001
 
+# tini is PID 1 so exited Chromium children are reaped, and SIGTERM reaches
+# the whole process group when Railway stops the container.
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["node", "server.js"]
